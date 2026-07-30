@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unity-mcp-cli run-system-tool *)",
+      "Bash(unity-mcp-cli run-tool *)",
+      "Bash(npx --yes unity-mcp-cli run-system-tool ping --input '{\"message\":\"compilecheck\"}')",
+      "Bash(grep -A3 \"simplefilebrowser\" Packages/packages-lock.json)",
+      "Bash(ls -d Library/PackageCache/*simplefilebrowser*)"
+    ]
+  }
+}
