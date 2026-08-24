@@ -14,7 +14,7 @@ using UnityEngine;
 // "which parts of this edge are not already covered by a neighbor's wall" so that stamping a room
 // against an existing one SHARES its wall rather than doubling it. Subtract is what answers that.
 //
-// TOL is PlanBuilder's, unchanged. It is deliberately coarser than HomeConventions.EPS: these are
+// TOL is PlanBuilder's, unchanged. It is deliberately coarser than ResidenceConventions.EPS: these are
 // authored coordinates quantised to a 1 mm grid, and two runs meeting within 2 mm are meeting.
 public static class Spans
 {

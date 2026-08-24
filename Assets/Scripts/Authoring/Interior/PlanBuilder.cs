@@ -8,7 +8,7 @@ public enum PlanEdge { South, East, North, West }
 //
 // WHY THIS EXISTS: nothing downstream of the schema throws on bad geometry. WallLayout silently
 // CLAMPS an opening that hangs off its wall, WallMeshBuilder leaves a ~57 mm notch wherever two wall
-// endpoints miss each other by more than 1 mm, and HomeRenderer skips an opening whose wallId does
+// endpoints miss each other by more than 1 mm, and ResidenceRenderer skips an opening whose wallId does
 // not resolve. Hand-authoring several floor plans as coordinate literals would therefore produce
 // plans that are quietly wrong in ways nobody notices. So the sample plans are authored as ROOMS and
 // everything error-prone is derived:
@@ -47,8 +47,8 @@ public sealed class PlanBuilder
 
     public PlanBuilder(float ceilingHeight = 0f, float wallThickness = 0f)
     {
-        _ceilingHeight = ceilingHeight > 0f ? ceilingHeight : HomeConventions.DEFAULT_CEILING_HEIGHT;
-        _wallThickness = wallThickness > 0f ? wallThickness : HomeConventions.DEFAULT_WALL_THICKNESS;
+        _ceilingHeight = ceilingHeight > 0f ? ceilingHeight : ResidenceConventions.DEFAULT_CEILING_HEIGHT;
+        _wallThickness = wallThickness > 0f ? wallThickness : ResidenceConventions.DEFAULT_WALL_THICKNESS;
     }
 
     public IReadOnlyList<string> Warnings => _warnings;
@@ -150,8 +150,8 @@ public sealed class PlanBuilder
             vertical = vertical,
             coord = coord,
             along = Mathf.Lerp(lo, hi, Mathf.Clamp01(alongFraction)),
-            width = width > 0f ? width : HomeConventions.DEFAULT_DOOR_WIDTH,
-            height = height > 0f ? height : HomeConventions.DEFAULT_DOOR_HEIGHT,
+            width = width > 0f ? width : ResidenceConventions.DEFAULT_DOOR_WIDTH,
+            height = height > 0f ? height : ResidenceConventions.DEFAULT_DOOR_HEIGHT,
             sill = 0f,
             threshold = threshold,
             kind = kind,
@@ -172,8 +172,8 @@ public sealed class PlanBuilder
             vertical = vertical,
             coord = coord,
             along = Mathf.Lerp(lo, hi, Mathf.Clamp01(alongFraction)),
-            width = width > 0f ? width : HomeConventions.DEFAULT_WINDOW_WIDTH,
-            height = HomeConventions.DEFAULT_DOOR_HEIGHT,
+            width = width > 0f ? width : ResidenceConventions.DEFAULT_WINDOW_WIDTH,
+            height = ResidenceConventions.DEFAULT_DOOR_HEIGHT,
             sill = 0f,
             threshold = threshold,
             kind = OpeningKind.Door,
@@ -181,7 +181,7 @@ public sealed class PlanBuilder
         return this;
     }
 
-    /// <summary>A window in a room's wall. Zero arguments fall back to the HomeConventions defaults.</summary>
+    /// <summary>A window in a room's wall. Zero arguments fall back to the ResidenceConventions defaults.</summary>
     public PlanBuilder Window(string room, PlanEdge edge, float alongFraction,
                               float width = 0f, float height = 0f, float sill = 0f)
     {
@@ -194,9 +194,9 @@ public sealed class PlanBuilder
             vertical = vertical,
             coord = coord,
             along = Mathf.Lerp(lo, hi, Mathf.Clamp01(alongFraction)),
-            width = width > 0f ? width : HomeConventions.DEFAULT_WINDOW_WIDTH,
-            height = height > 0f ? height : HomeConventions.DEFAULT_WINDOW_HEIGHT,
-            sill = sill > 0f ? sill : HomeConventions.DEFAULT_WINDOW_SILL,
+            width = width > 0f ? width : ResidenceConventions.DEFAULT_WINDOW_WIDTH,
+            height = height > 0f ? height : ResidenceConventions.DEFAULT_WINDOW_HEIGHT,
+            sill = sill > 0f ? sill : ResidenceConventions.DEFAULT_WINDOW_SILL,
             threshold = 0f,
             kind = OpeningKind.Window,
         });
@@ -379,7 +379,7 @@ public sealed class PlanBuilder
     /// <summary>
     /// Adds one block to a person's day. Times are anything Clock parses ("7:30", "7:30 AM", "0730").
     /// <paramref name="room"/> is a ROOM KEY as passed to Room(), not the emitted RoomDef.id: the same
-    /// convention Against() and Mount() use. Null means away from home.
+    /// convention Against() and Mount() use. Null means away from residence.
     ///
     /// <paramref name="anchor"/> names a catalog prefabType to stand beside ("range", "twin_bed"); it
     /// resolves to the first item of that type inside the named room. Authors do not see the f_n ids
@@ -769,7 +769,7 @@ public sealed class PlanBuilder
                 offset = p.along - seg.lo,
                 width = p.width,
                 height = height,
-                clearWidth = 0f,      // unspecified; HomeMetrics derives it from width + kind
+                clearWidth = 0f,      // unspecified; ResidenceMetrics derives it from width + kind
                 sillHeight = sill,
                 kind = p.kind,
                 thresholdHeight = p.threshold,
@@ -826,7 +826,7 @@ public sealed class PlanBuilder
                 // Reserving an approach strip in front of them was tried and reverted: a kitchen run is
                 // supposed to reach the corner next to a cased opening, and the rule pushed counters,
                 // baths and wardrobes out of layouts that were correct. The handful of items that do
-                // reach into a neighboring doorway are placed explicitly in SampleHomes instead.
+                // reach into a neighboring doorway are placed explicitly in SampleResidences instead.
                 float want = p.wallVertical ? z : x;
                 if (blocked.Count > 0 && !SpanIsClear(want, p.alongSize, blocked))
                 {
@@ -938,7 +938,7 @@ public sealed class PlanBuilder
         foreach (var f in level.furniture)
         {
             if (f == null || f.prefabType != prefabType || f.position == null || f.position.Length < 3) continue;
-            if (HomeMetrics.PointInPolygon(new Vector2(f.position[0], f.position[2]), poly)) return f.instanceId;
+            if (ResidenceMetrics.PointInPolygon(new Vector2(f.position[0], f.position[2]), poly)) return f.instanceId;
         }
 
         Warn($"'{who}' is anchored to a '{prefabType}', but '{room.name}' has none.");
@@ -1045,7 +1045,7 @@ public sealed class PlanBuilder
 
     // Demands a sliver of daylight rather than merely tolerating a hair of overlap. Parking two items
     // exactly flush leaves their footprints overlapping by float noise, which is a real test failure
-    // (SampleHomesTests allows 1e-3 m²) even though it is invisible.
+    // (SampleResidencesTests allows 1e-3 m²) even though it is invisible.
     private static bool SpanIsClear(float center, float size, List<Vector2> blocked)
     {
         float s = center - 0.5f * size, e = center + 0.5f * size;

@@ -157,7 +157,7 @@ public static class PolygonTriangulator
         // Convex test for a counter-clockwise polygon. Collinear (cross ≈ 0) is rejected: clipping a
         // collinear vertex yields a zero-area triangle, which renders as nothing and can leave the
         // remaining ring in a state where no further ear is found.
-        if (Cross(b - a, c - b) <= HomeConventions.EPS) return false;
+        if (Cross(b - a, c - b) <= ResidenceConventions.EPS) return false;
 
         for (int j = 0; j < n; j++)
         {
@@ -174,7 +174,7 @@ public static class PolygonTriangulator
         Vector2 p = poly[idx[(j - 1 + n) % n]];
         Vector2 q = poly[idx[j]];
         Vector2 r = poly[idx[(j + 1) % n]];
-        return Cross(q - p, r - q) < -HomeConventions.EPS;
+        return Cross(q - p, r - q) < -ResidenceConventions.EPS;
     }
 
     private static float Cross(Vector2 u, Vector2 v) => u.x * v.y - u.y * v.x;
@@ -184,9 +184,9 @@ public static class PolygonTriangulator
         float d1 = Cross(b - a, p - a);
         float d2 = Cross(c - b, p - b);
         float d3 = Cross(a - c, p - c);
-        return d1 >= -HomeConventions.EPS && d2 >= -HomeConventions.EPS && d3 >= -HomeConventions.EPS;
+        return d1 >= -ResidenceConventions.EPS && d2 >= -ResidenceConventions.EPS && d3 >= -ResidenceConventions.EPS;
     }
 
     private static bool Near(Vector2 p, Vector2 q)
-        => (p - q).sqrMagnitude <= HomeConventions.EPS * HomeConventions.EPS;
+        => (p - q).sqrMagnitude <= ResidenceConventions.EPS * ResidenceConventions.EPS;
 }

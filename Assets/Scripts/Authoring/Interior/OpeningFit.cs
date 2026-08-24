@@ -39,26 +39,26 @@ public static class OpeningFit
         float minEdge = 0f,
         float minGap = 0f)
     {
-        if (wallLength <= HomeConventions.EPS)
+        if (wallLength <= ResidenceConventions.EPS)
             return Fail("This wall has no length.");
 
-        if (width <= HomeConventions.EPS)
+        if (width <= ResidenceConventions.EPS)
             return Fail("Opening has no width.");
 
-        if (width + 2f * minEdge > wallLength + HomeConventions.EPS)
+        if (width + 2f * minEdge > wallLength + ResidenceConventions.EPS)
             return Fail($"Too wide for this wall ({Units.Format(wallLength)}).");
 
         FreeSpan(desiredOffset, wallLength, others, ignoreId, minEdge, minGap,
                  out float lower, out float upper);
 
         float available = upper - lower;
-        if (available + HomeConventions.EPS < width)
+        if (available + ResidenceConventions.EPS < width)
             return Fail($"No room here. Only {Units.Format(Mathf.Max(0f, available))} free.");
 
         float min = lower + 0.5f * width;
         float max = upper - 0.5f * width;
         float clampedOffset = Mathf.Clamp(desiredOffset, min, max);
-        bool moved = Mathf.Abs(clampedOffset - desiredOffset) > HomeConventions.EPS;
+        bool moved = Mathf.Abs(clampedOffset - desiredOffset) > ResidenceConventions.EPS;
 
         return new Result
         {
@@ -91,7 +91,7 @@ public static class OpeningFit
         {
             if (o == null) continue;
             if (ignoreId != null && o.id == ignoreId) continue;
-            if (o.width <= HomeConventions.EPS) continue;
+            if (o.width <= ResidenceConventions.EPS) continue;
 
             float half = 0.5f * o.width;
             float oStart = o.offset - half;
@@ -122,7 +122,7 @@ public static class OpeningFit
     public static float MaxWidth(float atOffset, float wallLength, IReadOnlyList<OpeningDef> others,
                                  string ignoreId = null, float minEdge = 0f, float minGap = 0f)
     {
-        if (wallLength <= HomeConventions.EPS) return 0f;
+        if (wallLength <= ResidenceConventions.EPS) return 0f;
 
         FreeSpan(atOffset, wallLength, others, ignoreId, minEdge, minGap,
                  out float lower, out float upper);
@@ -173,9 +173,9 @@ public static class OpeningFit
     public static void FitVertical(float sill, float height, float wallHeight,
                                    out float fittedSill, out float fittedHeight)
     {
-        fittedSill = Mathf.Clamp(sill, 0f, Mathf.Max(0f, wallHeight - HomeConventions.EPS));
+        fittedSill = Mathf.Clamp(sill, 0f, Mathf.Max(0f, wallHeight - ResidenceConventions.EPS));
         float maxHeight = wallHeight - fittedSill;
-        fittedHeight = Mathf.Clamp(height, HomeConventions.EPS, Mathf.Max(HomeConventions.EPS, maxHeight));
+        fittedHeight = Mathf.Clamp(height, ResidenceConventions.EPS, Mathf.Max(ResidenceConventions.EPS, maxHeight));
     }
 
     private static Result Fail(string reason) => new Result { ok = false, reason = reason };

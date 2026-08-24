@@ -1,15 +1,15 @@
-// Decides whether an installed sample home may be re-installed from the current SampleHomes plans.
+// Decides whether an installed sample residence may be re-installed from the current SampleResidences plans.
 //
-// The problem this solves: seeding is one-shot. `HomeSettings.samplesSeeded` deliberately stops the
+// The problem this solves: seeding is one-shot. `ResidenceSettings.samplesSeeded` deliberately stops the
 // seeder ever running twice, because archiving a sample has to keep it archived, so a fix to a plan
-// never reaches a machine that has already launched the app. `SampleHomeInstaller.BackfillOccupants`
+// never reaches a machine that has already launched the app. `SampleResidenceInstaller.BackfillOccupants`
 // was a hand-written patch for one instance of exactly that drift, and it only ever fixes the one
-// thing it was written for. `SampleHomes.Generation` plus this verdict is the general form.
+// thing it was written for. `SampleResidences.Generation` plus this verdict is the general form.
 //
 // It lives in CXRAuthoring, apart from the code that actually rewrites files, for one reason: the
 // installer is in Assembly-CSharp and EditMode tests cannot reference that assembly. The rule about
-// when a home may be overwritten is the part worth pinning, so it is the part that lives here. The
-// installer stays a thin shell around HomeStore.
+// when a residence may be overwritten is the part worth pinning, so it is the part that lives here. The
+// installer stays a thin shell around ResidenceStore.
 public static class SampleRefresh
 {
     public enum Verdict
@@ -34,7 +34,7 @@ public static class SampleRefresh
     /// destroys work: a refresh is a whole-document overwrite, not a merge. A sample qualifies only
     /// while it is still exactly what was seeded: every variant one WE authored, all still locked,
     /// nothing traced over it. The moment someone branches a proposal, unlocks a variant or imports a
-    /// floor plan, the home stops being a sample and starts being theirs, and the automatic path
+    /// floor plan, the residence stops being a sample and starts being theirs, and the automatic path
     /// gives up in favour of the explicit "Reset to the latest sample" action.
     ///
     /// Note that this does NOT compare geometry. `BackfillOccupants` had to, because it wrote a
@@ -45,27 +45,27 @@ public static class SampleRefresh
     /// <remarks>
     /// This used to ask a simpler question ("is there exactly one variant") and that was the same
     /// question while every sample shipped only its baseline. It stopped being the same question the
-    /// day the two care samples began shipping a smart home proposal beside it: a home is born with
+    /// day the two care samples began shipping a smart home proposal beside it: a residence is born with
     /// two variants, trips the count on the first launch, and is frozen at whatever generation it was
-    /// installed at forever. Which is precisely the staleness trap SampleHomes.Generation exists to
+    /// installed at forever. Which is precisely the staleness trap SampleResidences.Generation exists to
     /// close, reintroduced by the mechanism meant to close it.
     ///
-    /// <see cref="VariantDef.fromSample"/> asks it properly. It defaults to false, so a home already
+    /// <see cref="VariantDef.fromSample"/> asks it properly. It defaults to false, so a residence already
     /// on disk keeps taking the old path exactly (one variant, locked, no stamp) with no migration,
     /// and anything a user branches is false by construction, which is the signal, not a heuristic
     /// about it.
     /// </remarks>
-    private static bool HasUnderlay(HomeDoc doc)
+    private static bool HasUnderlay(ResidenceDoc doc)
     {
         // The legacy single field is read too: Evaluate can be handed a document straight off disk,
-        // before HomeStore.Migrate has folded it into the list.
+        // before ResidenceStore.Migrate has folded it into the list.
         if (doc.underlay != null && !string.IsNullOrEmpty(doc.underlay.imageFileName)) return true;
         foreach (var u in doc.underlays ?? new System.Collections.Generic.List<UnderlayDef>())
             if (u != null && !string.IsNullOrEmpty(u.imageFileName)) return true;
         return false;
     }
 
-    public static Verdict Evaluate(HomeDoc stored, int currentGeneration)
+    public static Verdict Evaluate(ResidenceDoc stored, int currentGeneration)
     {
         if (stored == null) return Verdict.NotASample;
         if (!IsSample(stored)) return Verdict.NotASample;
@@ -104,13 +104,13 @@ public static class SampleRefresh
         return Verdict.Refresh;
     }
 
-    /// <summary>True when this home came from SampleHomes, by stamp or by the `sample` tag.</summary>
+    /// <summary>True when this residence came from SampleResidences, by stamp or by the `sample` tag.</summary>
     /// <remarks>
     /// The tag is the fallback for everything seeded before <c>sampleKey</c> existed. Those are the
-    /// homes with the oldest geometry, so a check that only trusted the stamp would skip precisely
+    /// residences with the oldest geometry, so a check that only trusted the stamp would skip precisely
     /// the ones that need refreshing.
     /// </remarks>
-    public static bool IsSample(HomeDoc doc)
+    public static bool IsSample(ResidenceDoc doc)
     {
         if (doc == null) return false;
         if (!string.IsNullOrEmpty(doc.sampleKey)) return true;

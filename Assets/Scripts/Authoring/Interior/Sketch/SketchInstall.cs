@@ -49,8 +49,8 @@ public static class SketchInstall
 
     /// <summary>
     /// Copies the generated contents into <paramref name="destination"/>, keeping everything that
-    /// identifies the floor and re-stemming every id so two generated stories in one home cannot
-    /// collide in HomeRenderer's single flat id dictionary.
+    /// identifies the floor and re-stemming every id so two generated stories in one residence cannot
+    /// collide in ResidenceRenderer's single flat id dictionary.
     ///
     /// Sensors are left alone deliberately. A device hosts on an element, so most of them will not
     /// resolve against the new geometry, but that is the caller's decision to make in front of the

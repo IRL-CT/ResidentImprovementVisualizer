@@ -6,8 +6,8 @@ using UnityEngine;
 // The report states each of these as a sentence with a number in it: "if the stovetop is left
 // unattended for 45 minutes", "If front door opens after 9 PM, alert caregiver and play verbal
 // prompt", "alerts for prolonged absence (e.g., after 10-30 minutes)". SensorRuleDef is that sentence
-// as data and this file is the evaluator, so a home that keeps tripping a threshold can move it
-// without a code change and without moving it for every other home.
+// as data and this file is the evaluator, so a residence that keeps tripping a threshold can move it
+// without a code change and without moving it for every other residence.
 //
 // PURE, and separate from SensorSim on purpose. The simulation decides what happened; this decides
 // what is worth waking someone for. Keeping them apart is what lets the tests feed a hand-built

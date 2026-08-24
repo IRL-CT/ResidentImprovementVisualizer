@@ -15,7 +15,7 @@ using UnityEngine;
 // behind them, and reprinting them in a tool a care team uses to argue for funding would launder a
 // marketing claim into an estimate. What is quoted instead is the single mechanical figure §5.2.2
 // gives: a caregiver who answers an alert remotely instead of driving over saves $20-40 of labour,
-// being an hour at the DSP wage §2.2.4 records. That is multiplied by the alerts THIS home's own
+// being an hour at the DSP wage §2.2.4 records. That is multiplied by the alerts THIS residence's own
 // simulated day actually produces, so a plan with no sensors in the bedrooms claims no saving for
 // them, and the number moves when the plan does.
 public static class SensorCost
@@ -85,7 +85,7 @@ public static class SensorCost
     ///
     /// This walks every level's devices in ONE pass rather than adding up per-level estimates, and
     /// that is the point rather than a tidiness preference: §5.4 prices a bundle as hub + sensors +
-    /// ONE monthly system fee, so two summed estimates would charge a two-story home two
+    /// ONE monthly system fee, so two summed estimates would charge a two-story residence two
     /// subscriptions: the same per-system-not-per-device error this file exists to avoid, one level
     /// up. The hub-missing test has to see the whole building too: a hub downstairs routes a device
     /// upstairs perfectly well.
@@ -122,7 +122,7 @@ public static class SensorCost
 
             if (d.id == "central_hub")
             {
-                // The system fee is per SYSTEM. A second hub in a large home is more hardware on one
+                // The system fee is per SYSTEM. A second hub in a large residence is more hardware on one
                 // subscription, not a second subscription, so only the first one's monthly counts.
                 hasHub = true;
                 if (!feeCounted)

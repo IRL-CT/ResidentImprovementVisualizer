@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// How much of a home the sensing layer actually watches, and what it misses.
+// How much of a residence the sensing layer actually watches, and what it misses.
 //
-// The same shape as HomeMetrics, and the same job one step over: HomeMetrics answers "does a
+// The same shape as ResidenceMetrics, and the same job one step over: ResidenceMetrics answers "does a
 // wheelchair fit through here", this answers "would anyone know if something happened here". Both are
 // geometry over one level, both are pure, and both are what the rail, the overlay and the report all
 // read rather than each computing their own version.
 //
 // COVERAGE IS CLIPPED TO THE SENSOR'S OWN ROOM, and that is the one modelling decision in this file.
-// A PIR sensor's 9.1 m range (§4.3.1) is longer than most homes, so an unclipped disc would report a
+// A PIR sensor's 9.1 m range (§4.3.1) is longer than most residences, so an unclipped disc would report a
 // single sensor in the hall as covering five bedrooms through their walls: a coverage figure that
 // flatters a plan is worse than none, because the whole point of the figure is to find the gap. What
 // is deliberately NOT modelled is occlusion WITHIN a room: a sensor does not lose the far corner of an
@@ -102,7 +102,7 @@ public static class SensorCoverage
 
             // The room clip. See the file header. A sensor in no room at all (which nothing in the
             // tool allows, but a hand-edited file could) sees its bare radius.
-            return roomPoly == null || HomeMetrics.PointInPolygon(point, roomPoly);
+            return roomPoly == null || ResidenceMetrics.PointInPolygon(point, roomPoly);
         }
     }
 
@@ -154,7 +154,7 @@ public static class SensorCoverage
         for (float z = min.y; z <= max.y; z += Step)
         {
             var p = new Vector2(x, z);
-            if (!HomeMetrics.PointInPolygon(p, poly)) continue;
+            if (!ResidenceMetrics.PointInPolygon(p, poly)) continue;
 
             inside++;
             for (int i = 0; i < envelopes.Count; i++)
@@ -177,9 +177,9 @@ public static class SensorCoverage
     /// <summary>
     /// Floor area watched across the whole level, as a fraction of the total. The one number the
     /// report's before/after row shows, so it is area-weighted rather than a mean of room fractions,
-    /// a covered hall and an uncovered store cupboard are not half a home.
+    /// a covered hall and an uncovered store cupboard are not half a residence.
     /// </summary>
-    public static float WholeHomeCoverage(LevelDef level)
+    public static float WholeResidenceCoverage(LevelDef level)
     {
         if (level?.rooms == null || level.rooms.Count == 0) return 0f;
 
@@ -187,7 +187,7 @@ public static class SensorCoverage
         foreach (var room in level.rooms)
         {
             if (room == null) continue;
-            float area = HomeMetrics.RoomArea(room);
+            float area = ResidenceMetrics.RoomArea(room);
             if (area <= 0f) continue;
             total += area;
             covered += area * RoomCoverage(level, room);
@@ -196,15 +196,15 @@ public static class SensorCoverage
     }
 
     /// <summary>
-    /// The same figure for a home with more than one story, area-weighted across all of them.
+    /// The same figure for a residence with more than one story, area-weighted across all of them.
     ///
-    /// The single-level form is named "whole home" and answers for one floor, which was the same
-    /// thing until a home could have two. On a two-story dwelling with nothing upstairs it would
+    /// The single-level form is named "whole residence" and answers for one floor, which was the same
+    /// thing until a residence could have two. On a two-story dwelling with nothing upstairs it would
     /// report the ground floor's coverage as the building's: a figure that flatters the plan, in the
     /// row of the report someone reads to decide whether the package is worth funding. Weighting by
     /// area across every story is the same arithmetic the per-level form already does, one level up.
     /// </summary>
-    public static float WholeHomeCoverage(VariantDef variant)
+    public static float WholeResidenceCoverage(VariantDef variant)
     {
         if (variant?.levels == null) return 0f;
 
@@ -215,7 +215,7 @@ public static class SensorCoverage
             foreach (var room in level.rooms)
             {
                 if (room == null) continue;
-                float area = HomeMetrics.RoomArea(room);
+                float area = ResidenceMetrics.RoomArea(room);
                 if (area <= 0f) continue;
                 total += area;
                 covered += area * RoomCoverage(level, room);
@@ -242,14 +242,14 @@ public static class SensorCoverage
         if (wall == null) return false;
 
         var frame = WallMeshBuilder.BuildFrame(wall, level);
-        Vector2 on = HomeMetrics.PointOnWall(wall, opening.offset);
+        Vector2 on = ResidenceMetrics.PointOnWall(wall, opening.offset);
         var left = new Vector2(frame.left.x, frame.left.z);
 
         // Half a wall thickness clear of the centerline, plus enough to be unambiguously inside the
         // room rather than on its boundary polygon, which runs along that same centerline.
         float reach = 0.5f * frame.thickness + 0.25f;
-        bool roomLeft = HomeMetrics.RoomAt(on + left * reach, level) != null;
-        bool roomRight = HomeMetrics.RoomAt(on - left * reach, level) != null;
+        bool roomLeft = ResidenceMetrics.RoomAt(on + left * reach, level) != null;
+        bool roomRight = ResidenceMetrics.RoomAt(on - left * reach, level) != null;
 
         return roomLeft != roomRight;
     }
@@ -265,7 +265,7 @@ public static class SensorCoverage
     }
 
     /// <summary>
-    /// Every way out of the home that nothing is watching. This is the report's headline concern,
+    /// Every way out of the residence that nothing is watching. This is the report's headline concern,
     /// wandering and elopement, §4.4.1. Reduced to a list a care team can act on.
     /// </summary>
     public static List<OpeningDef> UnmonitoredExits(LevelDef level)
@@ -288,7 +288,7 @@ public static class SensorCoverage
     /// <summary>
     /// Ways out of the BUILDING, across every story. A first-floor balcony door is a way out, and a
     /// figure that counts only the ground floor's is the kind that flatters a plan: the report's
-    /// "ways out watched" row is read as a statement about the home, not about one floor of it.
+    /// "ways out watched" row is read as a statement about the residence, not about one floor of it.
     /// </summary>
     public static int ExitCount(VariantDef variant)
     {
@@ -311,7 +311,7 @@ public static class SensorCoverage
     /// <summary>One thing the package does not cover, said the way a person would say it.</summary>
     public struct Gap
     {
-        public string roomId;         // null when the gap is about the home rather than a room
+        public string roomId;         // null when the gap is about the residence rather than a room
         public string openingId;      // set when the gap is a doorway
         public string text;
         public string severity;       // SensorSeverity.*, so the rail and the console can rank them
@@ -393,7 +393,7 @@ public static class SensorCoverage
     public static bool CanPrompt(LevelDef level, RoomDef room)
     {
         if (level?.sensors == null || room == null) return false;
-        Vector2 center = HomeMetrics.LargestInscribedCircle(room).center;
+        Vector2 center = ResidenceMetrics.LargestInscribedCircle(room).center;
 
         foreach (var s in level.sensors)
         {
@@ -418,12 +418,12 @@ public static class SensorCoverage
         if (wall == null) return null;
 
         var frame = WallMeshBuilder.BuildFrame(wall, level);
-        Vector2 on = HomeMetrics.PointOnWall(wall, opening.offset);
+        Vector2 on = ResidenceMetrics.PointOnWall(wall, opening.offset);
         var left = new Vector2(frame.left.x, frame.left.z);
         float reach = 0.5f * frame.thickness + 0.25f;
 
-        return HomeMetrics.RoomAt(on + left * reach, level)
-            ?? HomeMetrics.RoomAt(on - left * reach, level);
+        return ResidenceMetrics.RoomAt(on + left * reach, level)
+            ?? ResidenceMetrics.RoomAt(on - left * reach, level);
     }
 
     private static void Bounds2(IReadOnlyList<Vector2> poly, out Vector2 min, out Vector2 max)

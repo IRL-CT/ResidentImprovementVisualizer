@@ -10,7 +10,7 @@ using UnityEngine;
 // Why it has to exist at all: WallMeshBuilder.ComputeExtensions closes a corner by extending each wall
 // half a neighbor-thickness past any endpoint that COINCIDES WITHIN ~1 mm. Two walls that merely
 // cross, with no shared endpoint, get no extension at either side of the crossing, so the plan renders
-// with a notch and nothing anywhere reports a problem. WallLayout also silently clamps, and HomeRenderer
+// with a notch and nothing anywhere reports a problem. WallLayout also silently clamps, and ResidenceRenderer
 // silently skips, which is the same reason PlanBuilder exists for the authored samples. This is that
 // guarantee for walls a user draws.
 //
@@ -37,7 +37,7 @@ public static class WallLinker
 
     // The OUTPUT precision floor. Must not exceed WallMeshBuilder.Near (EPS*EPS*100 as a sqrMagnitude,
     // i.e. 1 mm) or corners stop welding.
-    public const float WeldEps = HomeConventions.EPS * 10f;
+    public const float WeldEps = ResidenceConventions.EPS * 10f;
 
     // A 100 mm stub is a legitimate pilaster or door return; below that it is junk that renders as a
     // cube. FenceLinker uses 0.5 because a fence panel is ~2 m.
@@ -344,7 +344,7 @@ public static class WallLinker
     public static List<Vector2> Uncovered(LevelDef level, Vector2 a, Vector2 b, Options o)
     {
         float len = (b - a).magnitude;
-        if (len < HomeConventions.EPS) return new List<Vector2>();
+        if (len < ResidenceConventions.EPS) return new List<Vector2>();
         if (level?.walls == null) return new List<Vector2> { new Vector2(0f, len) };
 
         var covered = new List<Vector2>();
@@ -535,7 +535,7 @@ public static class WallLinker
         if (level?.openings == null) return spans;
         foreach (var op in level.openings)
         {
-            if (op == null || op.wallId != wall.id || op.width <= HomeConventions.EPS) continue;
+            if (op == null || op.wallId != wall.id || op.width <= ResidenceConventions.EPS) continue;
             float half = 0.5f * op.width + minEdge;
             spans.Add(new Vector2(op.offset - half, op.offset + half));
         }

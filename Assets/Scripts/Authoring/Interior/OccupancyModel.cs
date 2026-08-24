@@ -15,7 +15,7 @@ public static class OccupancyModel
     // Half the marker's 0.45 m diameter, plus a little breathing room.
     public const float PersonRadius = 0.26f;
 
-    // A wheelchair marker is a 0.66 x 1.22 m pad, not a capsule (HomeRenderer.BuildOccupantMarker), so
+    // A wheelchair marker is a 0.66 x 1.22 m pad, not a capsule (ResidenceRenderer.BuildOccupantMarker), so
     // it needs more floor than a standing person. Half the pad's WIDTH plus a margin, though: not half
     // its length: asking for 0.61 in every direction demands a 1.22 m clear circle, which none of the
     // 1.8 m bathrooms can offer, and would push every wheelchair user back out to the room center.
@@ -51,7 +51,7 @@ public static class OccupancyModel
     }
 
     // Keyed by the catalog id, which is the shared key space between FurnitureCatalog, PrefabRegistry
-    // and SampleFurniture, so this works for a home the user drew, not just the shipped six.
+    // and SampleFurniture, so this works for a residence the user drew, not just the shipped six.
     private static readonly HashSet<string> OccupiedItems = new HashSet<string>
     {
         "twin_bed", "full_bed", "hospital_bed", "sofa", "armchair", "recliner",
@@ -84,13 +84,13 @@ public static class OccupancyModel
         public ActivityDef activity;  // what they are doing, null when the schedule is empty
         public bool present;          // false => no marker on THIS level (out, upstairs, or unresolved)
 
-        // They are in the home, just not on the story being posed. `present` stays false. There is
+        // They are in the residence, just not on the story being posed. `present` stays false. There is
         // nothing to draw on this floor and no sensor here can see them, but "not on this floor" and
         // "not in the building" are different answers, and only one of them should be reported to a
         // caregiver as the resident having gone out.
         //
         // Always false when PoseAt is called without a variant, which is every single-story caller.
-        public bool elsewhereInHome;
+        public bool elsewhereInResidence;
     }
 
     // ---------------------------------------------------------------------------------------
@@ -144,16 +144,16 @@ public static class OccupancyModel
         pose.activity = ActivityAt(occupant, minutes);
         if (pose.activity == null) return pose;
 
-        // No room named means away from home: the expected, silent case for a work or errand block.
+        // No room named means away from residence: the expected, silent case for a work or errand block.
         if (string.IsNullOrEmpty(pose.activity.roomId)) return pose;
 
         pose.room = FindRoom(level, pose.activity.roomId);
         if (pose.room == null)
         {
             // The room may simply be on another story. Without this the only two answers available
-            // were "here" and "out", so on a two-story home everybody upstairs read as having left
+            // were "here" and "out", so on a two-story residence everybody upstairs read as having left
             // the building: in the console, on the timeline and in the roster.
-            pose.elsewhereInHome = variant != null && FindRoomAnyLevel(variant, pose.activity.roomId) != null;
+            pose.elsewhereInResidence = variant != null && FindRoomAnyLevel(variant, pose.activity.roomId) != null;
             return pose;   // Validate reports a genuinely missing room; here it just hides the marker.
         }
 
@@ -177,8 +177,8 @@ public static class OccupancyModel
 
         // Unanchored: the clearest floor in the room. NOT LargestInscribedCircle on its own: that
         // measures the bare room and would happily stand someone in the middle of the sofa.
-        HomeMetrics.Circle circle = HomeMetrics.LargestInscribedCircle(pose.room);
-        Vector2 preferred = circle.valid ? circle.center : HomeMetrics.RoomCentroid(pose.room);
+        ResidenceMetrics.Circle circle = ResidenceMetrics.LargestInscribedCircle(pose.room);
+        Vector2 preferred = circle.valid ? circle.center : ResidenceMetrics.RoomCentroid(pose.room);
 
         if (countInRoom > 1)
         {
@@ -190,7 +190,7 @@ public static class OccupancyModel
         pose.xz = ClearSpot(pose.room, level, poly, radius, preferred);
         // Face the room's center of mass, so a group on a ring looks at each other rather than at the
         // walls. Degenerate when someone is already standing on it, which is fine. Yaw is then 0.
-        pose.yaw = YawToward(pose.xz, HomeMetrics.RoomCentroid(pose.room));
+        pose.yaw = YawToward(pose.xz, ResidenceMetrics.RoomCentroid(pose.room));
         pose.present = true;
         return pose;
     }
@@ -246,7 +246,7 @@ public static class OccupancyModel
         if (pose.room != null) return RoomLabel(pose.room) + " · " + what;
         // Upstairs is not a broken reference. Saying "room missing" for it would report a correct
         // schedule as a fault in every roster, rail and console that shows this line.
-        if (pose.elsewhereInHome) return what + " · on another floor";
+        if (pose.elsewhereInResidence) return what + " · on another floor";
         if (pose.activity.roomId != null && pose.activity.roomId.Length > 0) return what + " · room missing";
         return what;
     }
@@ -345,7 +345,7 @@ public static class OccupancyModel
 
         if (string.IsNullOrEmpty(a.roomId))
         {
-            // Only a problem when the kind implies being home. "Out" with no room is the normal case.
+            // Only a problem when the kind implies being residence. "Out" with no room is the normal case.
             if (!ActivityKind.IsAway(a.kind))
                 warnings.Add($"'{who}' has no room for \"{what}\".");
             return;
@@ -358,7 +358,7 @@ public static class OccupancyModel
             // the whole point of having stories, and warning about it would make a correct plan noisy
             //: every activity on every other floor would report itself as broken.
             if (FindRoomAnyLevel(variant, a.roomId) == null)
-                warnings.Add($"'{who}' is scheduled into '{a.roomId}' for \"{what}\", which is not a room anywhere in this home.");
+                warnings.Add($"'{who}' is scheduled into '{a.roomId}' for \"{what}\", which is not a room anywhere in this residence.");
             return;
         }
 
@@ -368,12 +368,12 @@ public static class OccupancyModel
         if (item == null)
         {
             if (FindFurnitureAnyLevel(variant, a.anchorId) == null)
-                warnings.Add($"'{who}' is anchored to '{a.anchorId}' for \"{what}\", which is not an item anywhere in this home.");
+                warnings.Add($"'{who}' is anchored to '{a.anchorId}' for \"{what}\", which is not an item anywhere in this residence.");
             return;
         }
 
         var poly = PolygonTriangulator.ToVector2(room.polygon);
-        if (poly != null && poly.Count >= 3 && !HomeMetrics.PointInPolygon(XZ(item.position), poly))
+        if (poly != null && poly.Count >= 3 && !ResidenceMetrics.PointInPolygon(XZ(item.position), poly))
             warnings.Add($"'{who}' is anchored to an item outside '{RoomLabel(room)}' for \"{what}\".");
     }
 
@@ -451,14 +451,14 @@ public static class OccupancyModel
                                IReadOnlyList<Vector2> poly, ObjectInstance ignore)
     {
         float wall = 0.5f * WallLayout.EffectiveThickness(null, level);
-        if (HomeMetrics.SignedDistanceInside(p, poly) < radius + wall) return false;
+        if (ResidenceMetrics.SignedDistanceInside(p, poly) < radius + wall) return false;
 
         if (level?.furniture == null) return true;
         foreach (var f in level.furniture)
         {
             if (f == null || !f.included || ReferenceEquals(f, ignore)) continue;
-            if (HomeMetrics.HeightOf(f) < BlockingHeight) continue;
-            if (HomeMetrics.PointRectDistance(p, HomeMetrics.FootprintOf(f)) < radius) return false;
+            if (ResidenceMetrics.HeightOf(f) < BlockingHeight) continue;
+            if (ResidenceMetrics.PointRectDistance(p, ResidenceMetrics.FootprintOf(f)) < radius) return false;
         }
         return true;
     }
@@ -546,8 +546,8 @@ public static class OccupancyModel
         // per-frame path entirely.
         if (IsClear(preferred, radius, level, poly, null)) return true;
 
-        // Room ids repeat across homes ("r_bath1" exists in four of the six samples), so the cache has
-        // to be scoped to the level as well or one home's answer is served to another.
+        // Room ids repeat across residences ("r_bath1" exists in four of the six samples), so the cache has
+        // to be scoped to the level as well or one residence's answer is served to another.
         if (!ReferenceEquals(_cacheLevel, level))
         {
             _spotCache.Clear();
@@ -591,7 +591,7 @@ public static class OccupancyModel
     }
 
     /// <summary>
-    /// Drops the memoised free-floor spots. Called from HomeRenderer whenever the level is rebuilt,
+    /// Drops the memoised free-floor spots. Called from ResidenceRenderer whenever the level is rebuilt,
     /// because the search depends on the geometry but never on the clock. PoseAll runs every simulated
     /// minute AND from OnGUI, so re-running a grid per call would be felt.
     /// </summary>
@@ -650,7 +650,7 @@ public static class OccupancyModel
     private static float YawToward(Vector2 from, Vector2 to)
     {
         Vector2 d = to - from;
-        if (d.sqrMagnitude <= HomeConventions.EPS * HomeConventions.EPS) return 0f;
+        if (d.sqrMagnitude <= ResidenceConventions.EPS * ResidenceConventions.EPS) return 0f;
         return Mathf.Atan2(d.x, d.y) * Mathf.Rad2Deg;
     }
 

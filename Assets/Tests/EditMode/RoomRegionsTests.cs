@@ -8,7 +8,7 @@ using UnityEngine;
 // The first fixture is the property the design note calls the one that matters most: Find must
 // reproduce the rooms of all six sample plans exactly. PlanBuilder derives those walls from room
 // rectangles by a completely different (axis-aligned, span-union) route, so an arbitrary-angle face
-// walk agreeing corner for corner is the cheapest guarantee this cannot mangle a home someone has.
+// walk agreeing corner for corner is the cheapest guarantee this cannot mangle a residence someone has.
 //
 // The rest pin the 2026-08 room-split bug: WallLinker welds a T-junction onto the DRAWN endpoint (up
 // to ContactEps off the through-wall), and when SurvivingCuts refuses the cut, the through-wall stays
@@ -28,13 +28,13 @@ public class RoomRegionsTests
 
     private static IEnumerable<string> SampleKeys
     {
-        get { foreach (var s in SampleHomes.All) yield return s.key; }
+        get { foreach (var s in SampleResidences.All) yield return s.key; }
     }
 
     [Test, TestCaseSource(nameof(SampleKeys))]
     public void Find_ReproducesTheSamplePlanExactly(string key)
     {
-        var doc = SampleHomes.Build(key);
+        var doc = SampleResidences.Build(key);
         foreach (var level in doc.variants[0].levels)
         {
             var regions = RoomRegions.Find(level);
@@ -70,7 +70,7 @@ public class RoomRegionsTests
     [Test]
     public void Find_NeverMutatesTheWalls()
     {
-        var level = SampleHomes.Build("studio_apartment").variants[0].levels[0];
+        var level = SampleResidences.Build("studio_apartment").variants[0].levels[0];
         var before = new List<float[]>();
         foreach (var w in level.walls)
         {
@@ -231,10 +231,10 @@ public class RoomRegionsTests
         Assert.AreEqual(1f, regions[1].area, 1e-3f);
 
         var mid = new Vector2(2.5f, 1.5f);
-        Assert.IsFalse(HomeMetrics.PointInPolygon(mid, regions[0].ring),
+        Assert.IsFalse(ResidenceMetrics.PointInPolygon(mid, regions[0].ring),
             "A point inside the island must read as OUTSIDE the carved outer ring.");
-        Assert.IsTrue(HomeMetrics.PointInPolygon(mid, regions[1].ring));
-        Assert.IsTrue(HomeMetrics.PointInPolygon(new Vector2(0.5f, 0.5f), regions[0].ring));
+        Assert.IsTrue(ResidenceMetrics.PointInPolygon(mid, regions[1].ring));
+        Assert.IsTrue(ResidenceMetrics.PointInPolygon(new Vector2(0.5f, 0.5f), regions[0].ring));
     }
 
     [Test]
@@ -253,7 +253,7 @@ public class RoomRegionsTests
         Assert.AreEqual(2, regions.Count);
         Assert.AreEqual(22.5f, regions[0].area, 1e-3f, "The outer ring is carved at the shared corner.");
         Assert.AreEqual(1.5f, regions[1].area, 1e-3f);
-        Assert.IsFalse(HomeMetrics.PointInPolygon(new Vector2(1f, 1f), regions[0].ring),
+        Assert.IsFalse(ResidenceMetrics.PointInPolygon(new Vector2(1f, 1f), regions[0].ring),
             "The triangle's interior must not belong to the outer room.");
     }
 

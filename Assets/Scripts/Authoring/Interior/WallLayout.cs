@@ -61,7 +61,7 @@ public static class WallLayout
     public static List<Box> Build(float wallLength, float wallHeight, IReadOnlyList<OpeningDef> openings)
     {
         var boxes = new List<Box>();
-        if (wallLength <= HomeConventions.EPS || wallHeight <= HomeConventions.EPS)
+        if (wallLength <= ResidenceConventions.EPS || wallHeight <= ResidenceConventions.EPS)
             return boxes;   // degenerate wall: nothing to draw
 
         var spans = CollectSpans(wallLength, wallHeight, openings);
@@ -76,23 +76,23 @@ public static class WallLayout
         foreach (var s in spans)
         {
             // Full-height wall between the previous opening and this one.
-            if (s.t0 > cursor + HomeConventions.EPS)
+            if (s.t0 > cursor + ResidenceConventions.EPS)
                 AddBox(boxes, cursor, s.t0, 0f, wallHeight, Kind.Panel, null);
 
             // Header: the strip from the top of the opening to the top of the wall. Absent when the
             // opening runs to (or past) the ceiling, which is what makes a full-height pass-through
             // read as a genuine gap rather than a doorway.
-            if (s.top < wallHeight - HomeConventions.EPS)
+            if (s.top < wallHeight - ResidenceConventions.EPS)
                 AddBox(boxes, s.t0, s.t1, s.top, wallHeight, Kind.Header, s.id);
 
             // Sill: the strip below a window. Doors have sill 0 and produce nothing here.
-            if (s.sill > HomeConventions.EPS)
+            if (s.sill > ResidenceConventions.EPS)
                 AddBox(boxes, s.t0, s.t1, 0f, s.sill, Kind.Sill, s.id);
 
             cursor = Mathf.Max(cursor, s.t1);
         }
 
-        if (cursor < wallLength - HomeConventions.EPS)
+        if (cursor < wallLength - ResidenceConventions.EPS)
             AddBox(boxes, cursor, wallLength, 0f, wallHeight, Kind.Panel, null);
 
         return boxes;
@@ -132,16 +132,16 @@ public static class WallLayout
 
     public static float EffectiveHeight(WallDef w, LevelDef level)
     {
-        if (w != null && w.height > HomeConventions.EPS) return w.height;
-        if (level != null && level.ceilingHeight > HomeConventions.EPS) return level.ceilingHeight;
-        return HomeConventions.DEFAULT_CEILING_HEIGHT;
+        if (w != null && w.height > ResidenceConventions.EPS) return w.height;
+        if (level != null && level.ceilingHeight > ResidenceConventions.EPS) return level.ceilingHeight;
+        return ResidenceConventions.DEFAULT_CEILING_HEIGHT;
     }
 
     public static float EffectiveThickness(WallDef w, LevelDef level)
     {
-        if (w != null && w.thickness > HomeConventions.EPS) return w.thickness;
-        if (level != null && level.wallThickness > HomeConventions.EPS) return level.wallThickness;
-        return HomeConventions.DEFAULT_WALL_THICKNESS;
+        if (w != null && w.thickness > ResidenceConventions.EPS) return w.thickness;
+        if (level != null && level.wallThickness > ResidenceConventions.EPS) return level.wallThickness;
+        return ResidenceConventions.DEFAULT_WALL_THICKNESS;
     }
 
     // ---------------------------------------------------------------------------------------
@@ -155,17 +155,17 @@ public static class WallLayout
 
         foreach (var o in openings)
         {
-            if (o == null || o.width <= HomeConventions.EPS) continue;
+            if (o == null || o.width <= ResidenceConventions.EPS) continue;
 
             float half = 0.5f * o.width;
             float t0 = Mathf.Max(0f, o.offset - half);
             float t1 = Mathf.Min(wallLength, o.offset + half);
-            if (t1 - t0 <= HomeConventions.EPS) continue;   // sits entirely off the end of the wall
+            if (t1 - t0 <= ResidenceConventions.EPS) continue;   // sits entirely off the end of the wall
 
             float sill = Mathf.Clamp(o.sillHeight, 0f, wallHeight);
-            float rawHeight = o.height > HomeConventions.EPS ? o.height : wallHeight;
+            float rawHeight = o.height > ResidenceConventions.EPS ? o.height : wallHeight;
             float top = Mathf.Min(sill + rawHeight, wallHeight);
-            if (top - sill <= HomeConventions.EPS) continue;   // no vertical extent: not a void
+            if (top - sill <= ResidenceConventions.EPS) continue;   // no vertical extent: not a void
 
             spans.Add(new Span { t0 = t0, t1 = t1, sill = sill, top = top, id = o.id });
         }
@@ -176,7 +176,7 @@ public static class WallLayout
 
     private static void AddBox(List<Box> list, float t0, float t1, float y0, float y1, Kind kind, string openingId)
     {
-        if (t1 - t0 <= HomeConventions.EPS || y1 - y0 <= HomeConventions.EPS) return;
+        if (t1 - t0 <= ResidenceConventions.EPS || y1 - y0 <= ResidenceConventions.EPS) return;
         list.Add(new Box { t0 = t0, t1 = t1, y0 = y0, y1 = y1, kind = kind, openingId = openingId });
     }
 }

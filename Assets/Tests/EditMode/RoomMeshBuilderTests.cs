@@ -66,13 +66,13 @@ public class RoomMeshBuilderTests
     public void RoomCeilingHeightOverridesTheLevel()
     {
         var room = Room();
-        room.ceilingHeight = 3.0f;   // a vaulted living room in an otherwise 8-ft home
+        room.ceilingHeight = 3.0f;   // a vaulted living room in an otherwise 8-ft residence
 
         Assert.AreEqual(3.0f, RoomMeshBuilder.EffectiveCeilingHeight(room, Level()), 1e-4f);
 
         room.ceilingHeight = 0f;
         Assert.AreEqual(2.44f, RoomMeshBuilder.EffectiveCeilingHeight(room, Level()), 1e-4f);
-        Assert.AreEqual(HomeConventions.DEFAULT_CEILING_HEIGHT,
+        Assert.AreEqual(ResidenceConventions.DEFAULT_CEILING_HEIGHT,
                         RoomMeshBuilder.EffectiveCeilingHeight(room, new LevelDef()), 1e-4f);
     }
 

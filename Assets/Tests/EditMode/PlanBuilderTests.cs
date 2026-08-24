@@ -165,8 +165,8 @@ public class PlanBuilderTests
         CollectionAssert.IsEmpty(builder.Warnings);
         Assert.AreEqual(2, level.furniture.Count);
 
-        var a = HomeMetrics.FootprintOf(level.furniture[0]);
-        var b = HomeMetrics.FootprintOf(level.furniture[1]);
+        var a = ResidenceMetrics.FootprintOf(level.furniture[0]);
+        var b = ResidenceMetrics.FootprintOf(level.furniture[1]);
         Assert.IsFalse(a.Overlaps(b), "Items in two pieces of one room must not be placed on top "
                                     + "of each other.");
     }
@@ -298,7 +298,7 @@ public class PlanBuilderTests
 
         // twin_bed is 0.99 x 2.03; its head sits against z = 4 minus half a wall plus the inset.
         var item = SampleFurniture.Get("twin_bed");
-        float expectedZ = 4f - (0.5f * HomeConventions.DEFAULT_WALL_THICKNESS + 0.02f) - 0.5f * item.depth;
+        float expectedZ = 4f - (0.5f * ResidenceConventions.DEFAULT_WALL_THICKNESS + 0.02f) - 0.5f * item.depth;
         Assert.AreEqual(expectedZ, bed.position[2], 2e-3f);
         Assert.AreEqual(0f, bed.position[1], 1e-4f, "Ground floor items sit at the level elevation.");
         CollectionAssert.AreEqual(new[] { item.width, item.height, item.depth }, bed.boxSizeMeters);
@@ -323,7 +323,7 @@ public class PlanBuilderTests
     }
 
     // ===========================================================================================
-    // Shared assertions, also used by SampleHomesTests
+    // Shared assertions, also used by SampleResidencesTests
     // ===========================================================================================
 
     internal static WallDef FindWall(LevelDef level, string id)
@@ -347,7 +347,7 @@ public class PlanBuilderTests
                 if (ReferenceEquals(other, w)) continue;
                 foreach (var p in new[] { P(other.a), P(other.b) })
                 {
-                    float d = HomeMetrics.PointSegmentDistance(p, a, bb);
+                    float d = ResidenceMetrics.PointSegmentDistance(p, a, bb);
                     if (d > 1e-3f) continue;                       // not on this wall at all
                     if ((p - a).magnitude < 1e-3f) continue;       // shares the start
                     if ((p - bb).magnitude < 1e-3f) continue;      // shares the end

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 //
 // Storage is ALWAYS meters (1 Unity unit = 1 m, matching AuthoringConventions), and DISPLAY now
 // defaults to meters too. It used to default to feet-and-inches, because the audience is US shared
-// homes and assisted living, where every dimension that matters: a 32" clear doorway, a 60" turning
+// residences and assisted living, where every dimension that matters: a 32" clear doorway, a 60" turning
 // circle, a 34" counter. Is spoken in inches. Those figures have not stopped mattering and the chip
 // in the top bar is one click away; what changed is that numbers are now DRAGGED, and a value
 // scrubbing under the cursor from 3' 11 5/8" to 4' 0 1/8" changes four glyphs at once where 1.21 m to
@@ -35,8 +35,8 @@ public static class Units
     // How a number with no unit marker is interpreted.
     public enum BareUnit { Feet, Inches, Meters, FollowDisplay }
 
-    private const float IN_TO_M = HomeConventions.IN_TO_M;
-    private const float FT_TO_M = HomeConventions.FT_TO_M;
+    private const float IN_TO_M = ResidenceConventions.IN_TO_M;
+    private const float FT_TO_M = ResidenceConventions.FT_TO_M;
 
     // Imperial output is rounded to the nearest 1/8", the finest fraction anyone reads off a tape.
     private const int FRACTION_DEN = 8;

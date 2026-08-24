@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The 25 things that can be installed in a home, mirrored into the CXRAuthoring assembly.
+// The 25 things that can be installed in a residence, mirrored into the CXRAuthoring assembly.
 //
 // Sixteen of them sense, and every figure on those comes from the report cited below. The other nine
 // are the Everyday living category and come from nowhere but ordinary retail. See the banner over
@@ -11,7 +11,7 @@ using UnityEngine;
 // CXRAuthoring has no references, so SensorFit, SensorCoverage, SensorSim, SensorPackages and
 // PlanBuilder, all of which live here so they can be unit tested without a scene, cannot read the
 // .asset. This is the same unavoidable duplication SampleFurniture.cs carries against
-// FurnitureCatalog, and it is handled the same way: SampleHomeInstaller.VerifyAgainstCatalog compares
+// FurnitureCatalog, and it is handled the same way: SampleResidenceInstaller.VerifyAgainstCatalog compares
 // the two on seed, so drift is reported rather than discovered.
 //
 // EVERY SENSING NUMBER HERE COMES FROM THE REPORT, and the section is cited on the row. That is not
@@ -635,7 +635,7 @@ public static class SensorDevices
     }
 
     /// <summary>The device's display name, falling back to the raw key rather than to "Unknown
-    /// device": a home carrying a key this build does not know should still say which key.</summary>
+    /// device": a residence carrying a key this build does not know should still say which key.</summary>
     public static string LabelOf(SensorDef sensor)
     {
         if (sensor == null) return "Device";

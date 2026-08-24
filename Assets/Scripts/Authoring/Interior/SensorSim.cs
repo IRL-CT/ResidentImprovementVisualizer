@@ -6,7 +6,7 @@ using UnityEngine;
 // THIS IS WHY THE SENSORS HOST ON ELEMENTS. OccupancyModel already answers "where is everyone at
 // minute m" from the schedule and the plan; a sensor that names the opening, the bed or the range it
 // watches turns that into "did anyone go through the front door", "is the bed empty", "is the hob on".
-// Nothing is scripted per home: move a resident to a different bedroom in a proposal, and a different
+// Nothing is scripted per residence: move a resident to a different bedroom in a proposal, and a different
 // motion sensor is the one that goes quiet.
 //
 // PURE AND DETERMINISTIC. Given the same variant, level, mode and seed this returns the same day, every
@@ -25,7 +25,7 @@ using UnityEngine;
 //
 // But a package that raises nothing also SHOWS nothing, and the argument the report makes is entirely
 // about the exceptional day: the stove left on, the 3 AM door. Mode.Eventful injects a small set of
-// incidents drawn one-for-one from the report's own scenarios, each landing on this home's real
+// incidents drawn one-for-one from the report's own scenarios, each landing on this residence's real
 // people and real devices at a fixed time. It is a demonstration and it says so; the UI labels the
 // two "Typical day" and "Day with incidents" rather than letting anyone mistake the second for a
 // prediction.
@@ -35,7 +35,7 @@ public static class SensorSim
     {
         /// <summary>The household's ordinary day. A correct package raises nothing here.</summary>
         Routine,
-        /// <summary>Routine, plus the report's scenarios acted out on this home's own devices.</summary>
+        /// <summary>Routine, plus the report's scenarios acted out on this residence's own devices.</summary>
         Eventful,
     }
 
@@ -137,7 +137,7 @@ public static class SensorSim
         public int lastDoseIndex = -1;
 
         // Door hosts only, resolved on first use: which rooms this opening joins, and whether it is a
-        // way out of the home. Neither changes during a day, and IsExteriorDoor samples the plan.
+        // way out of the residence. Neither changes during a day, and IsExteriorDoor samples the plan.
         public HashSet<string> joins;
         public bool exterior;
     }
@@ -146,7 +146,7 @@ public static class SensorSim
     internal struct Move
     {
         public string occupantId;
-        public string fromRoomId;      // null => they were not in the home
+        public string fromRoomId;      // null => they were not in the residence
         public string toRoomId;        // null => they have left it
     }
 
@@ -194,7 +194,7 @@ public static class SensorSim
             string now = p.present ? p.room?.id : null;
 
             // First sighting is not a move: the day starts wherever the schedule says, and a passage
-            // out of nowhere at 00:00 would put a door event on every home at midnight.
+            // out of nowhere at 00:00 would put a door event on every residence at midnight.
             if (!previousRooms.TryGetValue(kv.Key, out string before))
             {
                 previousRooms[kv.Key] = now;
@@ -354,7 +354,7 @@ public static class SensorSim
 
     // A door reports the instant someone passes through it. Room changes are what the schedule gives,
     // so a transition into or out of the room this door serves is the passage. Including the one that
-    // matters most, coming home or leaving, which shows as present flipping on the exterior door.
+    // matters most, coming residence or leaving, which shows as present flipping on the exterior door.
     private static void StepDoor(Live live, int minute, List<Move> moves,
                                  LevelDef level, List<SensorEvent> events)
     {
@@ -503,29 +503,29 @@ public static class SensorSim
         if (wall == null) return rooms;
 
         var frame = WallMeshBuilder.BuildFrame(wall, level);
-        Vector2 on = HomeMetrics.PointOnWall(wall, opening.offset);
+        Vector2 on = ResidenceMetrics.PointOnWall(wall, opening.offset);
         var left = new Vector2(frame.left.x, frame.left.z);
         float reach = 0.5f * frame.thickness + 0.25f;
 
-        var a = HomeMetrics.RoomAt(on + left * reach, level);
-        var b = HomeMetrics.RoomAt(on - left * reach, level);
+        var a = ResidenceMetrics.RoomAt(on + left * reach, level);
+        var b = ResidenceMetrics.RoomAt(on - left * reach, level);
         if (a != null) rooms.Add(a.id);
         if (b != null) rooms.Add(b.id);
         return rooms;
     }
 
     // ---------------------------------------------------------------------------------------
-    // Incidents: the report's own scenarios, acted out on this home's own devices
+    // Incidents: the report's own scenarios, acted out on this residence's own devices
     // ---------------------------------------------------------------------------------------
     //
     // Each of the seven below is one numbered scenario from the report, and each happens only if the
-    // home actually has the device for it: a plan with no pressure pads gets no 3 AM bed exit, which
+    // residence actually has the device for it: a plan with no pressure pads gets no 3 AM bed exit, which
     // is the point: the demonstration day shows what THIS package would catch, not a fixed story.
     //
     // Times are fixed rather than random so the day is reproducible: the timeline, the console, the
     // report and the tests all describe one day, and a randomised one would make every screenshot and
     // every assertion describe a different afternoon. The seed picks WHO, not WHETHER or WHEN, so a
-    // five-resident home does not always single out the same person.
+    // five-resident residence does not always single out the same person.
 
     private const int NightDoorMinute = 2 * 60 + 40;      // §4.1: "If front door opens after 9 PM"
     private const int BedExitMinute = 3 * 60 + 10;        // §4.3.2: "Resident leaves bed at 3 AM"
@@ -544,7 +544,7 @@ public static class SensorSim
         string who = PickResident(variant, seed);
 
         // An incident happens ONCE, in one place. Injecting a leak into every water sensor in a
-        // four-bathroom home produced five simultaneous floods, which is not a demonstration of
+        // four-bathroom residence produced five simultaneous floods, which is not a demonstration of
         // anything except that the demonstration was written carelessly.
         bool leaked = false, fell = false, wandered = false;
 
@@ -616,7 +616,7 @@ public static class SensorSim
         }
     }
 
-    /// <summary>The resident an incident happens to. Seeded so a five-person home varies.</summary>
+    /// <summary>The resident an incident happens to. Seeded so a five-person residence varies.</summary>
     private static string PickResident(VariantDef variant, int seed)
     {
         var roster = new List<OccupantDef>();

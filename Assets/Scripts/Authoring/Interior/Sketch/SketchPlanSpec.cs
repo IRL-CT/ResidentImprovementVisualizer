@@ -6,7 +6,7 @@ using System.Text;
 //
 // WHY THIS SHAPE AND NOT LevelDef: nothing downstream of the schema complains about bad geometry,
 // WallLayout clamps an opening that hangs off its wall, WallMeshBuilder leaves a ~57 mm notch
-// wherever two wall endpoints miss each other, HomeRenderer skips an opening whose wallId does not
+// wherever two wall endpoints miss each other, ResidenceRenderer skips an opening whose wallId does not
 // resolve. Asking a model for raw WallDef/OpeningDef would produce exactly those failures, because
 // OpeningDef.offset is meters along a SPECIFIC wall AFTER T-junction splitting: a number that does
 // not exist until the wall graph has been derived, and therefore one nothing can be asked for up

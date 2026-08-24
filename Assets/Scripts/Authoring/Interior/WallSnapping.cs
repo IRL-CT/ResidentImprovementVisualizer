@@ -94,7 +94,7 @@ public static class WallSnapping
             TryAxis(raw, anchor.Value, opts, out Result ax)) return ax;
 
         // 6. Plain grid.
-        if (opts.gridSize > HomeConventions.EPS)
+        if (opts.gridSize > ResidenceConventions.EPS)
         {
             var g = new Vector2(
                 Mathf.Round(raw.x / opts.gridSize) * opts.gridSize,
@@ -168,7 +168,7 @@ public static class WallSnapping
             if (!Segments.TryEnds(w, out Vector2 a, out Vector2 b)) continue;
             if (!Segments.Intersect(anchor, far, a, b, WallLinker.ContactEps,
                                     out _, out _, out Vector2 p)) continue;
-            if (Vector2.Dot(p - anchor, dir) <= HomeConventions.EPS) continue;   // behind the run
+            if (Vector2.Dot(p - anchor, dir) <= ResidenceConventions.EPS) continue;   // behind the run
 
             float d = Vector2.Distance(raw, p);
             if (d >= bestD) continue;
@@ -243,7 +243,7 @@ public static class WallSnapping
             {
                 Vector2 end = e == 0 ? a : b;
                 float s = Vector2.Dot(end - anchor, dir);
-                if (s <= HomeConventions.EPS) continue;              // behind the run
+                if (s <= ResidenceConventions.EPS) continue;              // behind the run
                 float d = Mathf.Abs(projected - s);
                 if (d >= best) continue;
 
@@ -269,7 +269,7 @@ public static class WallSnapping
         result = default;
         if (!SnapAxis(raw, anchor, opts, out Vector2 dir, out float projected, out float ang)) return false;
 
-        if (opts.gridSize > HomeConventions.EPS)
+        if (opts.gridSize > ResidenceConventions.EPS)
             projected = Mathf.Round(projected / opts.gridSize) * opts.gridSize;
 
         result = new Result
@@ -294,7 +294,7 @@ public static class WallSnapping
 
         Vector2 d = raw - anchor;
         float len = d.magnitude;
-        if (len <= HomeConventions.EPS) return false;
+        if (len <= ResidenceConventions.EPS) return false;
 
         float step = opts.axisStepDeg > 1f ? opts.axisStepDeg : 90f;
         float ang = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
@@ -302,7 +302,7 @@ public static class WallSnapping
         float deltaRad = (snappedAngleDeg - ang) * Mathf.Deg2Rad;
 
         projected = len * Mathf.Cos(deltaRad);
-        if (projected <= HomeConventions.EPS) return false;
+        if (projected <= ResidenceConventions.EPS) return false;
 
         float rad = snappedAngleDeg * Mathf.Deg2Rad;
         dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));

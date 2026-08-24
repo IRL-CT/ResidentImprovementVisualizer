@@ -183,8 +183,8 @@ public class WallLayoutTests
         var level = new LevelDef { ceilingHeight = 0f, wallThickness = 0f };
         var wall = new WallDef { id = "w", a = new[] { 0f, 0f }, b = new[] { 3f, 0f } };
 
-        Assert.AreEqual(HomeConventions.DEFAULT_CEILING_HEIGHT, WallLayout.EffectiveHeight(wall, level), 1e-4f);
-        Assert.AreEqual(HomeConventions.DEFAULT_WALL_THICKNESS, WallLayout.EffectiveThickness(wall, level), 1e-4f);
+        Assert.AreEqual(ResidenceConventions.DEFAULT_CEILING_HEIGHT, WallLayout.EffectiveHeight(wall, level), 1e-4f);
+        Assert.AreEqual(ResidenceConventions.DEFAULT_WALL_THICKNESS, WallLayout.EffectiveThickness(wall, level), 1e-4f);
 
         level.ceilingHeight = 2.7f;
         level.wallThickness = 0.15f;

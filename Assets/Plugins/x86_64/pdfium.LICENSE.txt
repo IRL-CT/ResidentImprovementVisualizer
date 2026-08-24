@@ -1,4 +1,4 @@
-PDFium — native PDF rasterizer used by Assets/Scripts/HomeViz/PdfRaster.cs
+PDFium — native PDF rasterizer used by Assets/Scripts/ResidenceViz/PdfRaster.cs
 Build: bblanchon/pdfium-binaries chromium/8009 (pdfium 153.0.8009.0), win-x64
 Source: https://github.com/bblanchon/pdfium-binaries
 

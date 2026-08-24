@@ -128,27 +128,27 @@ public static class VariantDiff
         foreach (var kv in b)
             if (!a.ContainsKey(kv.Key))
                 changes.Add(Make(ElementKind.Wall, ChangeType.Added, kv.Key, "Wall",
-                                 Units.Format(HomeMetrics.WallLength(kv.Value)) + " long",
-                                 HomeMetrics.WallMidpoint(kv.Value)));
+                                 Units.Format(ResidenceMetrics.WallLength(kv.Value)) + " long",
+                                 ResidenceMetrics.WallMidpoint(kv.Value)));
 
         foreach (var kv in a)
         {
             if (!b.TryGetValue(kv.Key, out var w2))
             {
                 changes.Add(Make(ElementKind.Wall, ChangeType.Removed, kv.Key, "Wall",
-                                 null, HomeMetrics.WallMidpoint(kv.Value)));
+                                 null, ResidenceMetrics.WallMidpoint(kv.Value)));
                 continue;
             }
 
             var d = new DetailWriter();
-            d.Length("length", HomeMetrics.WallLength(kv.Value), HomeMetrics.WallLength(w2));
+            d.Length("length", ResidenceMetrics.WallLength(kv.Value), ResidenceMetrics.WallLength(w2));
             d.Length("thickness", kv.Value.thickness, w2.thickness);
             d.Length("height", kv.Value.height, w2.height);
             if (!Same(kv.Value.a, w2.a) || !Same(kv.Value.b, w2.b)) d.Add("moved");
 
             if (d.Any)
                 changes.Add(Make(ElementKind.Wall, ChangeType.Modified, kv.Key, "Wall",
-                                 d.ToString(), HomeMetrics.WallMidpoint(w2)));
+                                 d.ToString(), ResidenceMetrics.WallMidpoint(w2)));
         }
     }
 
@@ -174,7 +174,7 @@ public static class VariantDiff
 
             var d = new DetailWriter();
             d.Length("width", kv.Value.width, o2.width);
-            d.Length("clear width", HomeMetrics.ClearWidth(kv.Value), HomeMetrics.ClearWidth(o2));
+            d.Length("clear width", ResidenceMetrics.ClearWidth(kv.Value), ResidenceMetrics.ClearWidth(o2));
             d.Length("height", kv.Value.height, o2.height);
             d.Length("sill", kv.Value.sillHeight, o2.sillHeight);
 
@@ -182,8 +182,8 @@ public static class VariantDiff
             // point of a lot of these proposals, and "threshold removed (step-free)" says that.
             if (!Approximately(kv.Value.thresholdHeight, o2.thresholdHeight))
             {
-                if (o2.thresholdHeight <= HomeConventions.EPS) d.Add("threshold removed (step-free)");
-                else if (kv.Value.thresholdHeight <= HomeConventions.EPS)
+                if (o2.thresholdHeight <= ResidenceConventions.EPS) d.Add("threshold removed (step-free)");
+                else if (kv.Value.thresholdHeight <= ResidenceConventions.EPS)
                     d.Add("threshold added (" + Units.Format(o2.thresholdHeight) + ")");
                 else d.Length("threshold", kv.Value.thresholdHeight, o2.thresholdHeight);
             }
@@ -206,20 +206,20 @@ public static class VariantDiff
         foreach (var kv in b)
             if (!a.ContainsKey(kv.Key))
                 changes.Add(Make(ElementKind.Room, ChangeType.Added, kv.Key, RoomLabel(kv.Value),
-                                 Units.FormatArea(HomeMetrics.RoomArea(kv.Value)),
-                                 HomeMetrics.RoomCentroid(kv.Value)));
+                                 Units.FormatArea(ResidenceMetrics.RoomArea(kv.Value)),
+                                 ResidenceMetrics.RoomCentroid(kv.Value)));
 
         foreach (var kv in a)
         {
             if (!b.TryGetValue(kv.Key, out var r2))
             {
                 changes.Add(Make(ElementKind.Room, ChangeType.Removed, kv.Key, RoomLabel(kv.Value),
-                                 null, HomeMetrics.RoomCentroid(kv.Value)));
+                                 null, ResidenceMetrics.RoomCentroid(kv.Value)));
                 continue;
             }
 
             var d = new DetailWriter();
-            float aFrom = HomeMetrics.RoomArea(kv.Value), aTo = HomeMetrics.RoomArea(r2);
+            float aFrom = ResidenceMetrics.RoomArea(kv.Value), aTo = ResidenceMetrics.RoomArea(r2);
             if (!Approximately(aFrom, aTo, 0.01f))
                 d.Add($"area {Units.FormatArea(aFrom)} → {Units.FormatArea(aTo)}");
             if (kv.Value.name != r2.name) d.Add($"renamed to \"{r2.name}\"");
@@ -228,7 +228,7 @@ public static class VariantDiff
 
             if (d.Any)
                 changes.Add(Make(ElementKind.Room, ChangeType.Modified, kv.Key, RoomLabel(r2),
-                                 d.ToString(), HomeMetrics.RoomCentroid(r2)));
+                                 d.ToString(), ResidenceMetrics.RoomCentroid(r2)));
         }
     }
 
@@ -400,13 +400,13 @@ public static class VariantDiff
         var b = Index(to?.occupants, o => o.id);
         if (a.Count == 0 && b.Count == 0) return;
 
-        // The VARIANTS, not their first levels. A person's bedroom is wherever it is in the home;
+        // The VARIANTS, not their first levels. A person's bedroom is wherever it is in the residence;
         // asking levels[0] for it named "a room that is gone" for everybody upstairs.
 
         foreach (var kv in b)
             if (!a.ContainsKey(kv.Key))
                 changes.Add(MakeAt(ElementKind.Occupant, ChangeType.Added, kv.Key, PersonLabel(kv.Value),
-                                   HomeBase(kv.Value, to), Anchor(kv.Value, to)));
+                                   BaseRoom(kv.Value, to), Anchor(kv.Value, to)));
 
         foreach (var kv in a)
         {
@@ -471,7 +471,7 @@ public static class VariantDiff
         => !string.IsNullOrEmpty(p?.name) ? p.name : "Occupant";
 
     // A one-line summary for an added person, so the row says something more than their name.
-    private static string HomeBase(OccupantDef p, VariantDef variant)
+    private static string BaseRoom(OccupantDef p, VariantDef variant)
     {
         if (p?.schedule == null) return null;
         foreach (var act in p.schedule)
@@ -492,10 +492,10 @@ public static class VariantDiff
             if (act == null || string.IsNullOrEmpty(act.roomId)) continue;
             var room = OccupancyModel.FindRoomAnyLevel(variant, act.roomId);
             if (room == null) continue;
-            if (act.kind == ActivityKind.Sleep) return HomeMetrics.RoomCentroid(room);
+            if (act.kind == ActivityKind.Sleep) return ResidenceMetrics.RoomCentroid(room);
             best ??= room;
         }
-        return best != null ? HomeMetrics.RoomCentroid(best) : (Vector2?)null;
+        return best != null ? ResidenceMetrics.RoomCentroid(best) : (Vector2?)null;
     }
 
     private static string RoomName(string roomId, VariantDef variant)
@@ -613,7 +613,7 @@ public static class VariantDiff
     private static string OpeningLabel(OpeningDef o, LevelDef level)
     {
         string kind = Pretty(o.kind);
-        var room = level != null ? HomeMetrics.RoomAt(OpeningPos(o, level), level) : null;
+        var room = level != null ? ResidenceMetrics.RoomAt(OpeningPos(o, level), level) : null;
         return room != null ? $"{RoomLabel(room)} {kind.ToLowerInvariant()}" : kind;
     }
 
@@ -621,7 +621,7 @@ public static class VariantDiff
     {
         if (level?.walls == null) return Vector2.zero;
         foreach (var w in level.walls)
-            if (w != null && w.id == o.wallId) return HomeMetrics.PointOnWall(w, o.offset);
+            if (w != null && w.id == o.wallId) return ResidenceMetrics.PointOnWall(w, o.offset);
         return Vector2.zero;
     }
 
@@ -629,7 +629,7 @@ public static class VariantDiff
     {
         if (level?.walls == null) return Vector2.zero;
         foreach (var w in level.walls)
-            if (w != null && w.id == m.wallId) return HomeMetrics.PointOnWall(w, m.offset);
+            if (w != null && w.id == m.wallId) return ResidenceMetrics.PointOnWall(w, m.offset);
         return Vector2.zero;
     }
 

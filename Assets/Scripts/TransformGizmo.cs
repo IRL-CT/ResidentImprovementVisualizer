@@ -44,7 +44,7 @@ public class TransformGizmo : MonoBehaviour
     // but a small object still needs handles big enough to grab. Hence a minimum. 2 m is the
     // right floor at site scale (a tree, a building) and hopelessly wrong at room scale, where
     // it would draw a 0.51 m toilet's handles four times the size of the toilet and across the
-    // whole bathroom. HomeViz sets it to 0.35.
+    // whole bathroom. ResidenceViz sets it to 0.35.
     public float minHandleSize = 2f;
 
     public event Action<Vector3> MoveDelta;    // world-space ground-plane delta

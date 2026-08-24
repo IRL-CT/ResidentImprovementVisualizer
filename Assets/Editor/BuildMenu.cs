@@ -3,11 +3,11 @@ using UnityEngine;
 
 // One-click builds under a "Build" menu.
 //
-// HomeViz is the top-level item because this repo's product is CXRHomeViz; the Site and VR
-// builds still work but live under "Build → Legacy. Site", out of the way of the app people
-// actually ship from here. They are demoted, not deleted: the Site stack is still in this
-// repo and removing its menu items would leave it unbuildable. Its Python backend, however, now
-// lives OUTSIDE this repo at ../CXRLayoutGen/. See docs/SITE.md.
+// ResidenceViz is the top-level item because this repo's product is the Residence Improvement
+// Visualizer; the Site and VR builds still work but live under "Build → Legacy. Site", out of
+// the way of the app people actually ship from here. They are demoted, not deleted: the Site
+// stack is still in this repo and removing its menu items would leave it unbuildable. Its
+// Python backend, however, now lives OUTSIDE this repo at ../CXRLayoutGen/. See docs/SITE.md.
 //
 // The VR builds ship only the VRViewer scene; XR is started at runtime by XRBootstrap (XR Plug-in
 // Management has "Initialize XR on Startup" OFF), so no other build touches VR even though the XR
@@ -19,16 +19,17 @@ public static class BuildMenu
 {
     private const string DesktopScene = "Assets/Scenes/BasicModel.unity";
     private const string VrScene      = "Assets/Scenes/VRViewer.unity";
-    private const string HomeVizScene = "Assets/Scenes/HomeViz.unity";
+    private const string RivScene     = "Assets/Scenes/ResidenceViz.unity";
 
-    // CXRHomeViz: the interior/home visioning app. Ships ONLY the HomeViz scene, so the Site
-    // stack and the Python server are absent from this build: it is fully stand-alone, storing homes
-    // as local files under Application.persistentDataPath. Ctrl+Shift+H.
-    [MenuItem("Build/HomeViz (PC, Windows) %#h", priority = 0)]
-    public static void BuildHomeViz()
+    // The Residence Improvement Visualizer: the interior visioning app. Ships ONLY the
+    // ResidenceViz scene, so the Site stack and the Python server are absent from this build: it
+    // is fully stand-alone, storing residences as local files under
+    // Application.persistentDataPath. Ctrl+Shift+H.
+    [MenuItem("Build/ResidenceViz (PC, Windows) %#h", priority = 0)]
+    public static void BuildResidenceViz()
     {
-        Build(new[] { HomeVizScene }, BuildTarget.StandaloneWindows64,
-              "Builds/HomeViz/CXRHomeViz.exe");
+        Build(new[] { RivScene }, BuildTarget.StandaloneWindows64,
+              "Builds/ResidenceViz/ResidenceImprovementVisualizer.exe");
     }
 
     // The original Site PC app, unchanged (no VR). Still needs the server running:

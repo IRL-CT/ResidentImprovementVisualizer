@@ -88,7 +88,7 @@ public static class UITheme
     public static readonly Color Ok         = Hex(0x2E9E6B);  // --ok
     public static readonly Color Danger     = Hex(0xB3261E);  // delete red
     // Amber, between Ok and Danger: "this is consequential but not destructive". Its one job is the
-    // mode band's RECORDING THE EXISTING HOME state. Editing the record of reality is not an error,
+    // mode band's RECORDING THE EXISTING RESIDENCE state. Editing the record of reality is not an error,
     // so Danger would be a lie, and it is not routine either, so Accent would be too.
     public static readonly Color Warn       = Hex(0xB4711A);
     public static readonly Color WarnTint   = Hex(0xFBF1E0);  // the band wash for the above
@@ -963,7 +963,7 @@ public static class UITheme
     /// <summary>
     /// A text field wearing <see cref="DragNumber"/>'s chrome and carrying its name the same way.
     ///
-    /// This is the answer for the eight bare boxes: a home's name, a person's, a room's, a floor's,
+    /// This is the answer for the eight bare boxes: a residence's name, a person's, a room's, a floor's,
     /// the two search boxes, a person's note, a calibration distance, which were indistinguishable
     /// from one another with nothing on screen saying which was which. `PeopleTool` drew two of them
     /// in one panel.
@@ -1211,7 +1211,7 @@ public static class UITheme
     /// <summary>
     /// A multi-line text box wearing <see cref="TextRow"/>'s chrome: for the one piece of prose a
     /// rail holds that is the user's own (a proposal's description). It was the only control in
-    /// HomeViz drawn with no theme style at all.
+    /// ResidenceViz drawn with no theme style at all.
     /// </summary>
     public static string TextArea(string text, float height, string tooltip = null)
     {
@@ -1622,7 +1622,7 @@ public static class UITheme
 
     /// <summary>
     /// A trimmed label leads its own tooltip with the full text: <see cref="Fit"/>'s standing rule,
-    /// and the same thing HomeEditController.StageTips does for a shortened stage tab. It is what
+    /// and the same thing ResidenceEditController.StageTips does for a shortened stage tab. It is what
     /// makes the ellipsis cost nothing.
     /// </summary>
     static string[] LeadWithFullName(string[] full, string[] shown, string[] tips)
@@ -2130,14 +2130,14 @@ public static class UITheme
         _rowMuted = new GUIStyle { border = new RectOffset(8, 8, 8, 8), padding = pad, margin = mrg };
         _rowMuted.normal.background = _tileTex;     // backdrop row: neutral tile
         // A SURFACE, not bare text. The unselected row used to have no background and no rim, which
-        // left every list in the app (residents, rooms, proposals, homes) as clickable borderless
+        // left every list in the app (residents, rooms, proposals, residences) as clickable borderless
         // text, the exact thing the button rule forbids. The white field + BtnLine rim is the
         // BandButton surface: visibly a thing you press, still quieter than the tinted active row.
         _rowFlat = new GUIStyle { border = new RectOffset(8, 8, 8, 8), padding = pad, margin = mrg };
         _rowFlat.normal.background = _bandTex;
 
         // wordWrap TRUE, and that is a fix rather than a preference. This style draws every list title
-        // in the app. Home names, sample names, occupant names, proposal names, VariantDiff change
+        // in the app. Residence names, sample names, occupant names, proposal names, VariantDiff change
         // labels, and all of those are data. With no wrap they were cut mid-glyph with no ellipsis
         // and no tooltip: the two five-bedroom samples ship 37-character names ("Assisted living
         // house: 5 bed, 4 bath") in a box that holds about 28. StateRow gives it an explicit width,

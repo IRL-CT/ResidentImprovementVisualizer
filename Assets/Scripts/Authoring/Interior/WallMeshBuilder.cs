@@ -52,7 +52,7 @@ public static class WallMeshBuilder
         float length = WallLayout.WallLength(w);
         Vector3 a = new Vector3(w.a[0], level?.elevation ?? 0f, w.a[1]);
         Vector3 fwd = Vector3.forward;
-        if (length > HomeConventions.EPS)
+        if (length > ResidenceConventions.EPS)
             fwd = new Vector3(w.b[0] - w.a[0], 0f, w.b[1] - w.a[1]) / length;
 
         return new Frame
@@ -100,7 +100,7 @@ public static class WallMeshBuilder
         if (wall?.a == null || wall.b == null || level?.walls == null) return;
 
         float length = WallLayout.WallLength(wall);
-        if (length <= HomeConventions.EPS) return;
+        if (length <= ResidenceConventions.EPS) return;
 
         var a = new Vector2(wall.a[0], wall.a[1]);
         var b = new Vector2(wall.b[0], wall.b[1]);
@@ -113,7 +113,7 @@ public static class WallMeshBuilder
             if (other == null || other.id == wall.id) continue;
             if (other.a == null || other.b == null) continue;
             float otherLength = WallLayout.WallLength(other);
-            if (otherLength <= HomeConventions.EPS) continue;
+            if (otherLength <= ResidenceConventions.EPS) continue;
 
             var oa = new Vector2(other.a[0], other.a[1]);
             var ob = new Vector2(other.b[0], other.b[1]);
@@ -145,7 +145,7 @@ public static class WallMeshBuilder
     public static Mesh Build(WallDef wall, LevelDef level)
     {
         var frame = BuildFrame(wall, level);
-        if (frame.length <= HomeConventions.EPS) return null;
+        if (frame.length <= ResidenceConventions.EPS) return null;
 
         var boxes = WallLayout.Build(frame.length, frame.height, WallLayout.OpeningsFor(wall, level));
         ComputeExtensions(wall, level, out float startExt, out float endExt);
@@ -174,9 +174,9 @@ public static class WallMeshBuilder
     {
         // Only boxes actually touching an end get extended, so a door reveal in the middle of a wall
         // is never stretched and a header that reaches the corner still closes it.
-        float t0 = box.t0 <= HomeConventions.EPS ? -startExt : box.t0;
-        float t1 = box.t1 >= f.length - HomeConventions.EPS ? f.length + endExt : box.t1;
-        if (t1 - t0 <= HomeConventions.EPS) return;
+        float t0 = box.t0 <= ResidenceConventions.EPS ? -startExt : box.t0;
+        float t1 = box.t1 >= f.length - ResidenceConventions.EPS ? f.length + endExt : box.t1;
+        if (t1 - t0 <= ResidenceConventions.EPS) return;
 
         float h = 0.5f * f.thickness;
         float y0 = box.y0, y1 = box.y1;
@@ -235,5 +235,5 @@ public static class WallMeshBuilder
     }
 
     private static bool Near(Vector2 p, Vector2 q)
-        => (p - q).sqrMagnitude <= HomeConventions.EPS * HomeConventions.EPS * 100f;
+        => (p - q).sqrMagnitude <= ResidenceConventions.EPS * ResidenceConventions.EPS * 100f;
 }

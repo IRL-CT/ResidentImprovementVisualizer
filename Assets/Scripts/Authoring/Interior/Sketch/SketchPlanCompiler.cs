@@ -144,7 +144,7 @@ public sealed class SketchRoomsResult
 // which is the entire point of routing generation through that file rather than emitting the schema
 // directly. What this does is the three things PlanBuilder cannot: put the rectangles in the right
 // place on the floor, make almost-shared edges actually shared, and give the result ids that cannot
-// collide with anything already in the home.
+// collide with anything already in the residence.
 public static class SketchPlanCompiler
 {
     public static SketchCompileResult Compile(SketchPlanSpec spec, SketchFrame frame,
@@ -208,7 +208,7 @@ public static class SketchPlanCompiler
     ///
     /// PlanBuilder authors w_0, r_bath, o_3, f_7. Stable, readable, and identical every time. That
     /// is right for the samples, where each plan is its own document, and wrong the moment two
-    /// stories of ONE home are both generated: HomeRenderer.Mark keeps a single flat dictionary
+    /// stories of ONE residence are both generated: ResidenceRenderer.Mark keeps a single flat dictionary
     /// across every element type, so a second w_0 would take the first one's place and selection
     /// would start picking the wrong wall.
     /// </summary>
@@ -320,7 +320,7 @@ public static class SketchPlanCompiler
             if (o == null) continue;
 
             string kind = Known(SketchPlanSpec.OpeningKinds, o.kind) ? o.kind : OpeningKind.Door;
-            float width = o.widthMeters > 0f ? o.widthMeters : HomeConventions.DEFAULT_DOOR_WIDTH;
+            float width = o.widthMeters > 0f ? o.widthMeters : ResidenceConventions.DEFAULT_DOOR_WIDTH;
             float along = Mathf.Clamp01(o.alongFraction);
 
             if (o.IsInterior)
@@ -381,7 +381,7 @@ public static class SketchPlanCompiler
     ///
     /// The wall map is the part that matters: OpeningDef.wallId and WallMountDef.wallId are the only
     /// references in a LevelDef, and an opening whose wallId no longer resolves is skipped by
-    /// HomeRenderer without a word.
+    /// ResidenceRenderer without a word.
     /// </summary>
     public static void Reid(LevelDef level, string prefix)
     {

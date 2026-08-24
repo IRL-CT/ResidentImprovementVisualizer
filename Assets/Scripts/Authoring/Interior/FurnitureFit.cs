@@ -19,7 +19,7 @@ using UnityEngine;
 //   * Only openings the item can actually REACH block it. A window sill is 0.914 m and a sofa 0.84 m,
 //     so the sofa passes underneath and belongs there; a kitchen run belongs under a window too. Any
 //     rule that treats every opening as solid pushes correct layouts apart, which is why the test for
-//     this in SampleHomesTests is written against the sill and not against the opening.
+//     this in SampleResidencesTests is written against the sill and not against the opening.
 //   * Only walls the item is actually AGAINST are considered. Openings in perpendicular walls are
 //     left alone on purpose. PlanBuilder tried reserving an approach strip in front of them and it
 //     was reverted, because a counter run is supposed to reach the corner beside a cased opening.
@@ -30,7 +30,7 @@ public static class FurnitureFit
     private const float TOL = 0.002f;
 
     // How close the footprint has to come to a wall centerline to count as against it. The same gate
-    // SampleHomesTests uses, and comfortably clear of the ~0.077 m a flush item sits at.
+    // SampleResidencesTests uses, and comfortably clear of the ~0.077 m a flush item sits at.
     private const float NEAR = 0.10f;
 
     // A corner can put an item against two walls, and clearing a door on one can slide it into a door
@@ -109,7 +109,7 @@ public static class FurnitureFit
         var result = new MountResult { ok = true, offset = desiredOffset, moved = false, reason = null };
 
         float length = WallLength(wall);
-        if (length <= HomeConventions.EPS) return result;
+        if (length <= ResidenceConventions.EPS) return result;
 
         float w = Mathf.Max(0.02f, width);
         float min = 0.5f * w;
@@ -153,7 +153,7 @@ public static class FurnitureFit
     /// turned by <paramref name="yawDeg"/>.
     /// </summary>
     /// <remarks>
-    /// The true bound of the rotated rectangle, not the quarter-turn swap HomeMetrics.FootprintOf
+    /// The true bound of the rotated rectangle, not the quarter-turn swap ResidenceMetrics.FootprintOf
     /// does. Both agree on the axis-aligned cases every sample uses, but the Furniture tool hands out
     /// 15-degree steps and a continuous slider, and at 45 degrees the swap understates the extent by
     /// most of a diagonal. Overstating is the safe direction for a clearance test; understating puts
@@ -180,7 +180,7 @@ public static class FurnitureFit
 
         foreach (var w in level.walls)
         {
-            if (w == null || WallLength(w) <= HomeConventions.EPS) continue;
+            if (w == null || WallLength(w) <= ResidenceConventions.EPS) continue;
             if (!IsAgainst(center, fp, w, out float tMin, out float tMax)) continue;
 
             var spans = BlockedOn(w, level.openings, 0f, height);
@@ -262,10 +262,10 @@ public static class FurnitureFit
         foreach (var o in openings)
         {
             if (o == null || o.wallId != wall.id) continue;
-            if (o.width <= HomeConventions.EPS) continue;
+            if (o.width <= ResidenceConventions.EPS) continue;
 
             float sill = o.sillHeight;
-            float head = sill + (o.height > HomeConventions.EPS ? o.height : float.MaxValue);
+            float head = sill + (o.height > ResidenceConventions.EPS ? o.height : float.MaxValue);
             if (top <= sill + TOL) continue;
             if (bottom >= head - TOL) continue;
 
@@ -353,6 +353,6 @@ public static class FurnitureFit
         var a = new Vector2(w.a[0], w.a[1]);
         var b = new Vector2(w.b[0], w.b[1]);
         float len = WallLength(w);
-        return len <= HomeConventions.EPS ? Vector2.right : (b - a) / len;
+        return len <= ResidenceConventions.EPS ? Vector2.right : (b - a) / len;
     }
 }

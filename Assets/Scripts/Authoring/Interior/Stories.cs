@@ -4,21 +4,21 @@ using System.Collections.Generic;
 // Adding, removing and naming a story, and keeping each story's traced sketch attached to it.
 //
 // All of it is document surgery with no filesystem and no Unity in it, and it lives in CXRAuthoring
-// for exactly the reason SampleRefresh does: so it can be tested at all. HomeStore is in
+// for exactly the reason SampleRefresh does: so it can be tested at all. ResidenceStore is in
 // Assembly-CSharp, which asmdefs cannot reference, and its static constructor touches
 // Application.persistentDataPath, so anything left in that file is reachable only by running the
-// Editor. HomeStore delegates here and keeps the parts that genuinely need a disk.
+// Editor. ResidenceStore delegates here and keeps the parts that genuinely need a disk.
 //
 // THE RULE THIS FILE EXISTS TO HOLD: a story is a fact about the BUILDING, and what is in it is the
 // design option. So a level is added to every variant at once, sharing ONE id. That is the same split
-// HomeDoc.exteriorEnabled already makes against VariantDef.exterior, and it buys three things:
+// ResidenceDoc.exteriorEnabled already makes against VariantDef.exterior, and it buys three things:
 //
 //   * Level ids match across variants, which is what VariantDiff.MatchLevel pairs stories by and what
-//     UnderlayDef.levelId keys a sketch by. HomeStore.Clone is a JSON round trip, so a proposal
+//     UnderlayDef.levelId keys a sketch by. ResidenceStore.Clone is a JSON round trip, so a proposal
 //     branched from the baseline already carries the same ids; adding a floor to one variant only
 //     would break that on the very next comparison.
 //   * The new level is empty on both sides of every diff, so adding one reports NO change.
-//   * Because it asserts nothing about the home, it does not need the baseline unlocked. Drawing
+//   * Because it asserts nothing about the residence, it does not need the baseline unlocked. Drawing
 //     anything on the new floor still does, which is where the lock should bite.
 public static class Stories
 {
@@ -29,8 +29,8 @@ public static class Stories
         id = Guid.NewGuid().ToString(),
         name = name,
         elevation = elevation,
-        ceilingHeight = HomeConventions.DEFAULT_CEILING_HEIGHT,
-        wallThickness = HomeConventions.DEFAULT_WALL_THICKNESS,
+        ceilingHeight = ResidenceConventions.DEFAULT_CEILING_HEIGHT,
+        wallThickness = ResidenceConventions.DEFAULT_WALL_THICKNESS,
         walls = new List<WallDef>(),
         openings = new List<OpeningDef>(),
         rooms = new List<RoomDef>(),
@@ -39,7 +39,7 @@ public static class Stories
     };
 
     /// <summary>The variant the story list is counted from: the baseline, or the first there is.</summary>
-    public static List<LevelDef> Reference(HomeDoc doc)
+    public static List<LevelDef> Reference(ResidenceDoc doc)
     {
         if (doc?.variants == null || doc.variants.Count == 0) return null;
         foreach (var v in doc.variants)
@@ -47,10 +47,10 @@ public static class Stories
         return doc.variants[0]?.levels;
     }
 
-    public static int Count(HomeDoc doc) => Reference(doc)?.Count ?? 0;
+    public static int Count(ResidenceDoc doc) => Reference(doc)?.Count ?? 0;
 
     /// <summary>Adds a story to every variant, sharing one id, and returns its index.</summary>
-    public static int Add(HomeDoc doc, string name = null)
+    public static int Add(ResidenceDoc doc, string name = null)
     {
         var reference = Reference(doc);
         if (reference == null) return 0;
@@ -63,7 +63,7 @@ public static class Stories
         if (reference.Count > 0)
         {
             var below = reference[reference.Count - 1];
-            float h = below.ceilingHeight > 0f ? below.ceilingHeight : HomeConventions.DEFAULT_CEILING_HEIGHT;
+            float h = below.ceilingHeight > 0f ? below.ceilingHeight : ResidenceConventions.DEFAULT_CEILING_HEIGHT;
             elevation = below.elevation + h;
         }
 
@@ -81,10 +81,10 @@ public static class Stories
     }
 
     /// <summary>
-    /// Removes a story from every variant, and the sketch traced for it. Refuses the last one: a home
+    /// Removes a story from every variant, and the sketch traced for it. Refuses the last one: a residence
     /// with no story has nowhere to draw and nothing to render.
     /// </summary>
-    public static bool Remove(HomeDoc doc, int index, out string error)
+    public static bool Remove(ResidenceDoc doc, int index, out string error)
     {
         error = null;
         var reference = Reference(doc);
@@ -95,7 +95,7 @@ public static class Stories
         }
         if (reference.Count <= 1)
         {
-            error = "A home has to have at least one floor.";
+            error = "A residence has to have at least one floor.";
             return false;
         }
 
@@ -121,7 +121,7 @@ public static class Stories
     /// a proposal rename its own copy would make "Floor 2" mean different things in the change list and
     /// in the report depending on which variant was open.
     /// </summary>
-    public static void Rename(HomeDoc doc, string levelId, string name)
+    public static void Rename(ResidenceDoc doc, string levelId, string name)
     {
         if (doc?.variants == null || string.IsNullOrEmpty(levelId)) return;
         foreach (var v in doc.variants)
@@ -134,7 +134,7 @@ public static class Stories
     // ---------------------------------------------------------------------------------------
 
     /// <summary>The sketch traced for one story, or null.</summary>
-    public static UnderlayDef UnderlayFor(HomeDoc doc, string levelId)
+    public static UnderlayDef UnderlayFor(ResidenceDoc doc, string levelId)
     {
         if (doc?.underlays == null || string.IsNullOrEmpty(levelId)) return null;
         foreach (var u in doc.underlays)
@@ -143,7 +143,7 @@ public static class Stories
     }
 
     /// <summary>Replaces (or adds) the sketch for one story. Passing null removes it.</summary>
-    public static void SetUnderlay(HomeDoc doc, string levelId, UnderlayDef underlay)
+    public static void SetUnderlay(ResidenceDoc doc, string levelId, UnderlayDef underlay)
     {
         if (doc == null || string.IsNullOrEmpty(levelId)) return;
         doc.underlays ??= new List<UnderlayDef>();
@@ -153,8 +153,8 @@ public static class Stories
         doc.underlays.Add(underlay);
     }
 
-    /// <summary>True when any story of this home has a traced sketch.</summary>
-    public static bool HasAnyUnderlay(HomeDoc doc)
+    /// <summary>True when any story of this residence has a traced sketch.</summary>
+    public static bool HasAnyUnderlay(ResidenceDoc doc)
     {
         if (doc == null) return false;
         if (doc.underlay != null && !string.IsNullOrEmpty(doc.underlay.imageFileName)) return true;
@@ -164,18 +164,18 @@ public static class Stories
     }
 
     /// <summary>
-    /// Folds the pre-story single <see cref="HomeDoc.underlay"/> into the list, and stamps every entry
+    /// Folds the pre-story single <see cref="ResidenceDoc.underlay"/> into the list, and stamps every entry
     /// with the story it belongs to.
     ///
-    /// Called at the END of HomeStore.Migrate, once every level has an id: that id is the key. The
+    /// Called at the END of ResidenceStore.Migrate, once every level has an id: that id is the key. The
     /// legacy field is cleared once carried across, so the fold happens exactly once and the next save
     /// writes only the new shape. The field itself stays DECLARED, because removing it would make
-    /// Newtonsoft silently drop the traced sketch of every home already on disk, which is the one
-    /// thing in a home that cannot be reconstructed.
+    /// Newtonsoft silently drop the traced sketch of every residence already on disk, which is the one
+    /// thing in a residence that cannot be reconstructed.
     ///
     /// Idempotent, because Migrate runs on every load and on every import.
     /// </summary>
-    public static void MigrateUnderlays(HomeDoc doc)
+    public static void MigrateUnderlays(ResidenceDoc doc)
     {
         if (doc == null) return;
         doc.underlays ??= new List<UnderlayDef>();
@@ -186,7 +186,7 @@ public static class Stories
             doc.underlay = null;
         }
 
-        // A sketch naming no story belongs to the ground floor: the only story any home that
+        // A sketch naming no story belongs to the ground floor: the only story any residence that
         // predates this had.
         var reference = Reference(doc);
         string groundId = reference != null && reference.Count > 0 ? reference[0]?.id : null;

@@ -67,7 +67,7 @@ public static class SketchPlanValidator
             return issues;
         }
 
-        float ceiling = ceilingHeight > 0f ? ceilingHeight : HomeConventions.DEFAULT_CEILING_HEIGHT;
+        float ceiling = ceilingHeight > 0f ? ceilingHeight : ResidenceConventions.DEFAULT_CEILING_HEIGHT;
 
         var byKey = RoomsByKey(rooms, issues);
         RoomIssues(spec, rooms, byKey, issues);
@@ -154,7 +154,7 @@ public static class SketchPlanValidator
             issues.Add($"The whole plan comes to {total:0.0} m², which is too small to be a dwelling. "
                      + "The room rectangles are probably not covering the sketch.");
         else if (total > MAX_FOOTPRINT)
-            issues.Add($"The whole plan comes to {total:0} m², which is far larger than a home. "
+            issues.Add($"The whole plan comes to {total:0} m², which is far larger than a residence. "
                      + "The room rectangles are probably not in 0-1000 image units.");
     }
 
@@ -368,12 +368,12 @@ public static class SketchPlanValidator
                 issues.Add($"{what} has no width.");
             else if (o.widthMeters > MAX_OPENING_WIDTH)
                 issues.Add($"{what} is {o.widthMeters:0.00} m wide, which is wider than any opening "
-                         + "in a home. Widths are in meters.");
+                         + "in a residence. Widths are in meters.");
 
             if (o.sillMeters < 0f)
                 issues.Add($"{what} has a sill below the floor.");
 
-            float height = o.heightMeters > 0f ? o.heightMeters : HomeConventions.DEFAULT_DOOR_HEIGHT;
+            float height = o.heightMeters > 0f ? o.heightMeters : ResidenceConventions.DEFAULT_DOOR_HEIGHT;
             if (o.sillMeters + height > ceiling + 0.001f)
                 issues.Add($"{what} reaches {o.sillMeters + height:0.00} m, which is through a "
                          + $"{ceiling:0.00} m ceiling.");
@@ -527,7 +527,7 @@ public static class SketchPlanValidator
             if (reached.Contains(room) || isolated.Contains(room)) continue;
 
             issues.Add(hasOutside
-                ? $"'{room}' has doors, but none of them lead back to a way out of the home. Every "
+                ? $"'{room}' has doors, but none of them lead back to a way out of the residence. Every "
                 + "room has to connect, through other rooms, to a door in an exterior wall."
                 : $"'{room}' is cut off from the rest of the plan. Its doors only reach rooms that "
                 + "are cut off too. Every room has to connect to the others.");

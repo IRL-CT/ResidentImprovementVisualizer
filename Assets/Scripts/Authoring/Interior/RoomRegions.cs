@@ -308,7 +308,7 @@ public static class RoomRegions
         {
             Vector2 prev = ring[(i - 1 + ring.Count) % ring.Count];
             Vector2 next = ring[(i + 1) % ring.Count];
-            if (HomeMetrics.PointSegmentDistance(ring[i], prev, next) <= Flat) ring.RemoveAt(i);
+            if (ResidenceMetrics.PointSegmentDistance(ring[i], prev, next) <= Flat) ring.RemoveAt(i);
             else i++;
         }
     }
@@ -367,7 +367,7 @@ public static class RoomRegions
             for (int i = 0; i < regions.Count; i++)
             {
                 if (i == j || regions[i].area <= regions[j].area) continue;
-                if (!HomeMetrics.PointInPolygon(regions[j].inside, regions[i].ring)) continue;
+                if (!ResidenceMetrics.PointInPolygon(regions[j].inside, regions[i].ring)) continue;
                 if (parent[j] < 0 || regions[i].area < regions[parent[j]].area) parent[j] = i;
             }
         }
@@ -521,7 +521,7 @@ public static class RoomRegions
         {
             var poly = PolygonTriangulator.ToVector2(level.rooms[i]?.polygon);
             if (poly.Count < 3) continue;
-            var c = HomeMetrics.LargestInscribedCircle(poly);
+            var c = ResidenceMetrics.LargestInscribedCircle(poly);
             claim[i] = RegionAt(regions, c.valid ? c.center : Centroid(poly));
         }
 
@@ -544,7 +544,7 @@ public static class RoomRegions
             for (int r = 0; r < regions.Count; r++)
             {
                 int hits = 0;
-                foreach (var v in poly) if (HomeMetrics.PointInPolygon(v, regions[r].ring)) hits++;
+                foreach (var v in poly) if (ResidenceMetrics.PointInPolygon(v, regions[r].ring)) hits++;
                 bool better = hits > bestHits
                            || (hits == bestHits && hits > 0 && best >= 0 && regions[r].area > regions[best].area);
                 if (better) { bestHits = hits; best = r; }
@@ -578,7 +578,7 @@ public static class RoomRegions
         }
 
         // Rooms nothing claims are gone: their walls no longer enclose an area. This is also the path
-        // that fires the first time somebody edits a wall in a home whose rooms were traced by hand
+        // that fires the first time somebody edits a wall in a residence whose rooms were traced by hand
         // under the old tool. It is destructive, and it is undoable only because Sync runs inside the
         // caller's RecordEdit, which every call site must therefore keep doing.
         for (int i = 0; i < n; i++)
@@ -720,7 +720,7 @@ public static class RoomRegions
     private static int RegionAt(List<Region> regions, Vector2 p)
     {
         for (int r = 0; r < regions.Count; r++)
-            if (HomeMetrics.PointInPolygon(p, regions[r].ring)) return r;
+            if (ResidenceMetrics.PointInPolygon(p, regions[r].ring)) return r;
         return -1;
     }
 
@@ -728,7 +728,7 @@ public static class RoomRegions
     /// True exactly when <see cref="Sync"/> would leave every stored polygon untouched: same count,
     /// and each region's ring is float-identical to some distinct stored room polygon. The Rooms
     /// rail's Detect button is gated on this rather than on counts alone, so stored rooms that have
-    /// drifted in SHAPE (a pre-fix save, a hand-traced home) still surface the repair handle.
+    /// drifted in SHAPE (a pre-fix save, a hand-traced residence) still surface the repair handle.
     /// </summary>
     public static bool RoomsMatch(LevelDef level, List<Region> regions)
     {
@@ -816,7 +816,7 @@ public static class RoomRegions
     }
 
     // ---- polygon helpers -----------------------------------------------------------------------
-    // Local rather than HomeMetrics' RoomDef-shaped overloads: a Region has no RoomDef yet.
+    // Local rather than ResidenceMetrics' RoomDef-shaped overloads: a Region has no RoomDef yet.
 
     private static Vector2 Centroid(List<Vector2> poly)
     {
@@ -829,7 +829,7 @@ public static class RoomRegions
             cx += (p.x + q.x) * cross;
             cy += (p.y + q.y) * cross;
         }
-        if (Mathf.Abs(a) < HomeConventions.EPS)
+        if (Mathf.Abs(a) < ResidenceConventions.EPS)
         {
             Vector2 sum = Vector2.zero;
             foreach (var p in poly) sum += p;
@@ -840,7 +840,7 @@ public static class RoomRegions
 
     private static Vector2 InsideOf(List<Vector2> poly)
     {
-        var c = HomeMetrics.LargestInscribedCircle(poly);
+        var c = ResidenceMetrics.LargestInscribedCircle(poly);
         return c.valid ? c.center : Centroid(poly);
     }
 }

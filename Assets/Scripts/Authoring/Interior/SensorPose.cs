@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Where an installed sensor actually is, derived from the element it hosts on.
 //
-// The counterpart of HomeRenderer.MountPose, and lifted out here for the same two reasons that one
+// The counterpart of ResidenceRenderer.MountPose, and lifted out here for the same two reasons that one
 // was: the ghost overlay has to place a REMOVED sensor from the variant that still has its host, and
 // the renderer, the plan overlay, the change list's marker anchor and the report all have to agree
 // about where a device is down to the millimetre. One function, five callers, no drift.
@@ -91,7 +91,7 @@ public static class SensorPose
             // Looking out of the mounting face, plus whatever the device was turned by. A doorbell
             // pointed the wrong way through its own door would draw its cone into the wall.
             yaw = YawOf(outward) + sensor.facingYaw,
-            room = HomeMetrics.RoomAt(xz, level),
+            room = ResidenceMetrics.RoomAt(xz, level),
             hostLabel = OpeningLabel(opening, level),
         };
     }
@@ -118,7 +118,7 @@ public static class SensorPose
                                          item.rotationY);
             xz = new Vector2(item.position[0] + world.x, item.position[2] + world.y);
             float half = 0.5f * Mathf.Max(0.03f, SensorDevices.Get(sensor.deviceType).height);
-            y = level.elevation + HomeMetrics.HeightOf(item) + half;
+            y = level.elevation + ResidenceMetrics.HeightOf(item) + half;
         }
         else
         {
@@ -132,7 +132,7 @@ public static class SensorPose
             position = new Vector3(xz.x, y, xz.y),
             xz = xz,
             yaw = item.rotationY + sensor.facingYaw,
-            room = HomeMetrics.RoomAt(xz, level),
+            room = ResidenceMetrics.RoomAt(xz, level),
             hostLabel = ItemLabel(item, level),
         };
     }
@@ -158,8 +158,8 @@ public static class SensorPose
             position = p,
             xz = xz,
             yaw = YawOf(outward) + sensor.facingYaw,
-            room = HomeMetrics.RoomAt(xz, level),
-            hostLabel = RoomName(HomeMetrics.RoomAt(xz, level)),
+            room = ResidenceMetrics.RoomAt(xz, level),
+            hostLabel = RoomName(ResidenceMetrics.RoomAt(xz, level)),
         };
     }
 
@@ -174,7 +174,7 @@ public static class SensorPose
 
         Vector2 xz = sensor.position != null && sensor.position.Length >= 2
             ? new Vector2(sensor.position[0], sensor.position[1])
-            : HomeMetrics.LargestInscribedCircle(room).center;
+            : ResidenceMetrics.LargestInscribedCircle(room).center;
 
         return new Pose
         {
@@ -192,7 +192,7 @@ public static class SensorPose
         if (sensor.position == null || sensor.position.Length < 2) return default;
 
         var xz = new Vector2(sensor.position[0], sensor.position[1]);
-        var room = HomeMetrics.RoomAt(xz, level);
+        var room = ResidenceMetrics.RoomAt(xz, level);
 
         return new Pose
         {
@@ -223,7 +223,7 @@ public static class SensorPose
     {
         float wanted = SensorDevices.MountHeightOf(sensor);
         float head = opening.sillHeight + opening.height;
-        float ceiling = level.ceilingHeight > 0f ? level.ceilingHeight : HomeConventions.DEFAULT_CEILING_HEIGHT;
+        float ceiling = level.ceilingHeight > 0f ? level.ceilingHeight : ResidenceConventions.DEFAULT_CEILING_HEIGHT;
         return Mathf.Clamp(Mathf.Min(wanted, head), 0.1f, ceiling - 0.05f);
     }
 
@@ -240,7 +240,7 @@ public static class SensorPose
         if (SensorDevices.CeilingMounted(sensor.deviceType))
         {
             float ceiling = level.ceilingHeight > 0f ? level.ceilingHeight
-                                                     : HomeConventions.DEFAULT_CEILING_HEIGHT;
+                                                     : ResidenceConventions.DEFAULT_CEILING_HEIGHT;
             return ceiling - half;
         }
         return Mathf.Max(SensorDevices.MountHeightOf(sensor), half);
@@ -294,7 +294,7 @@ public static class SensorPose
         var wall = Find(level?.walls, w => w.id, opening.wallId);
         if (wall != null)
         {
-            var room = HomeMetrics.RoomAt(HomeMetrics.PointOnWall(wall, opening.offset), level);
+            var room = ResidenceMetrics.RoomAt(ResidenceMetrics.PointOnWall(wall, opening.offset), level);
             if (room != null) return $"{RoomName(room)} {kind}";
         }
         return char.ToUpperInvariant(kind[0]) + kind.Substring(1);
@@ -312,14 +312,14 @@ public static class SensorPose
 
         bool placed = item.position != null && item.position.Length >= 3;
         var room = placed
-            ? HomeMetrics.RoomAt(new Vector2(item.position[0], item.position[2]), level)
+            ? ResidenceMetrics.RoomAt(new Vector2(item.position[0], item.position[2]), level)
             : null;
 
         return room != null ? $"{name} in {RoomName(room)}" : name;
     }
 
     public static string RoomName(RoomDef room)
-        => room == null ? "the home" : string.IsNullOrEmpty(room.name) ? "a room" : room.name;
+        => room == null ? "the residence" : string.IsNullOrEmpty(room.name) ? "a room" : room.name;
 
     private static string Prettify(string key)
     {

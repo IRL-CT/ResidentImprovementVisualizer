@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-// The people who live in the home, and what they are doing at a given hour.
+// The people who live in the residence, and what they are doing at a given hour.
 //
 // Everything else in this schema describes what a dwelling IS. This describes what it is FOR, which is
 // where every accessibility argument the tool exists to make actually lives: two wheelchairs needing to
@@ -24,7 +24,7 @@ public class OccupantDef
     public string name;               // "Alice": what appears on the marker and in the change list
     public string note;               // free text: "transfers independently", "night carer"
 
-    // Drives a seated marker at HomeConventions.EYE_HEIGHT_SEATED over a wheelchair-sized pad. This is
+    // Drives a seated marker at ResidenceConventions.EYE_HEIGHT_SEATED over a wheelchair-sized pad. This is
     // the whole point of the seated view, so it is a field on the person rather than a note to read.
     public bool usesWheelchair;
 
@@ -52,7 +52,7 @@ public class ActivityDef
     public int endMinutes;
 
     // RoomDef.id. authoritative. `kind` only suggests a default when the activity is created; what
-    // actually places the person is this. Null or empty means away from home, and the marker hides.
+    // actually places the person is this. Null or empty means away from residence, and the marker hides.
     public string roomId;
 
     // Optional ObjectInstance.instanceId to stand beside: the range while cooking, the bed while
@@ -91,7 +91,7 @@ public static class ActivityKind
         Work => "Working",
         Care => "Care",
         Out => "Out",
-        _ => "At home",
+        _ => "At residence",
     };
 
     /// <summary>

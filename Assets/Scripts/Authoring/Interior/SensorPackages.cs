@@ -9,7 +9,7 @@ using UnityEngine;
 // UI is gone, so a user now installs device by device and this authors only what ships. What the
 // removal did not touch is the rule that matters: a shipped package is DERIVED from the plan rather
 // than listed by hand, so improving these rules improves both samples on the next
-// SampleHomes.Generation bump rather than leaving them describing an older opinion.
+// SampleResidences.Generation bump rather than leaving them describing an older opinion.
 //
 // The rules below are the report's own placement guidance, read off §3.1.2 and the §4 subsections:
 // motion sensors in hallways and living areas, door sensors on exits, water sensors under sinks and
@@ -23,9 +23,9 @@ public static class SensorPackages
     {
         /// <summary>The four devices that address the report's headline risks, and the hub.</summary>
         Essential,
-        /// <summary>Adds movement sensing, water, and a doorbell. A home with one or two residents.</summary>
+        /// <summary>Adds movement sensing, water, and a doorbell. A residence with one or two residents.</summary>
         Standard,
-        /// <summary>A supported home: pads, pendants, prompts and medication. §2.2.2's group home.</summary>
+        /// <summary>A supported residence: pads, pendants, prompts and medication. §2.2.2's group home.</summary>
         Care,
     }
 
@@ -90,7 +90,7 @@ public static class SensorPackages
 
         if (main == null) return;
 
-        // §4.5.2 puts one camera on the home, at the entrance, and nowhere else. Following that
+        // §4.5.2 puts one camera on the residence, at the entrance, and nowhere else. Following that
         // exactly is what makes the console's Family role able to say "no camera can see you".
         if (tier != Tier.Essential) made.Add(OnOpening("video_doorbell", main, level, ids));
         if (tier == Tier.Care) made.Add(OnOpening("smart_lock", main, level, ids));
@@ -106,8 +106,8 @@ public static class SensorPackages
 
         if (tier != Tier.Care) return;
 
-        var wall = HomeMetrics.NearestWall(new Vector2(range.position[0], range.position[2]),
-                                           level.walls, HomeConventions.MOUNT_REACH,
+        var wall = ResidenceMetrics.NearestWall(new Vector2(range.position[0], range.position[2]),
+                                           level.walls, ResidenceConventions.MOUNT_REACH,
                                            out float offset, out int side);
         if (wall != null) made.Add(OnWall("smart_switch", wall, offset, side, ids));
     }
@@ -125,7 +125,7 @@ public static class SensorPackages
                 && room.roomType != RoomType.Laundry) continue;
 
             var fixture = FirstItemIn(level, room, WetFixtures);
-            Vector2 center = HomeMetrics.LargestInscribedCircle(room).center;
+            Vector2 center = ResidenceMetrics.LargestInscribedCircle(room).center;
             Vector2 at = fixture != null ? FootOf(fixture, room, center) : center;
 
             made.Add(AtPoint("water_sensor", room, at, ids));
@@ -173,7 +173,7 @@ public static class SensorPackages
         return Mathf.Max(max.x - min.x, max.y - min.y);
     }
 
-    // The supported-home layer: what §5.3 describes and what the two five-bedroom samples ship.
+    // The supported-residence layer: what §5.3 describes and what the two five-bedroom samples ship.
     private static void AddCare(LevelDef level, VariantDef variant, IdFactory ids, List<SensorDef> made)
     {
         // §4.3.2: a pad under every bed.
@@ -209,16 +209,16 @@ public static class SensorPackages
     {
         var s = New(type, SensorHost.Opening, opening.id, ids);
 
-        // Face out of the home, so a doorbell's cone covers the approach rather than the hallway.
+        // Face out of the residence, so a doorbell's cone covers the approach rather than the hallway.
         // The stored fact is the mounting FACE; SensorPose derives the yaw from it, so the yaw delta
         // stays zero rather than doubling the base as an absolute yaw here used to.
         var wall = SensorPose.Find(level.walls, w => w.id, opening.wallId);
         if (wall != null)
         {
             var frame = WallMeshBuilder.BuildFrame(wall, level);
-            Vector2 on = HomeMetrics.PointOnWall(wall, opening.offset);
+            Vector2 on = ResidenceMetrics.PointOnWall(wall, opening.offset);
             var left = new Vector2(frame.left.x, frame.left.z);
-            bool roomLeft = HomeMetrics.RoomAt(on + left * (0.5f * frame.thickness + 0.25f), level) != null;
+            bool roomLeft = ResidenceMetrics.RoomAt(on + left * (0.5f * frame.thickness + 0.25f), level) != null;
             s.hostSide = roomLeft ? WallSide.Right : WallSide.Left;
         }
         return s;
@@ -242,7 +242,7 @@ public static class SensorPackages
     private static SensorDef InRoom(string type, RoomDef room, LevelDef level, IdFactory ids)
     {
         var s = New(type, SensorHost.Room, room.id, ids);
-        Vector2 at = HomeMetrics.LargestInscribedCircle(room).center;
+        Vector2 at = ResidenceMetrics.LargestInscribedCircle(room).center;
         s.position = new[] { at.x, at.y };
         return s;
     }
@@ -264,7 +264,7 @@ public static class SensorPackages
         var s = New(type, SensorHost.Room, room.id, ids);
 
         var poly = PolygonTriangulator.ToVector2(room.polygon);
-        Vector2 center = HomeMetrics.LargestInscribedCircle(room).center;
+        Vector2 center = ResidenceMetrics.LargestInscribedCircle(room).center;
         Vector2 best = center;
         float bestScore = -1f;
 
@@ -277,7 +277,7 @@ public static class SensorPackages
                 if (inward.sqrMagnitude < 1e-6f) continue;
 
                 Vector2 at = corner + inward.normalized * 0.35f;
-                if (!HomeMetrics.PointInPolygon(at, poly)) continue;
+                if (!ResidenceMetrics.PointInPolygon(at, poly)) continue;
 
                 // Furthest from the center normally; furthest from the FIRST sensor when there is
                 // one, so a second in a long room goes to the other end rather than beside it.
@@ -319,7 +319,7 @@ public static class SensorPackages
             monitored = true,
             included = true,
             // Left null on purpose: SensorDevices.EffectiveRules reads the defaults, so a package
-            // installed today picks up an improved threshold tomorrow, while a home whose staff have
+            // installed today picks up an improved threshold tomorrow, while a residence whose staff have
             // tuned one keeps theirs. Baking them in here would freeze every package at this build.
             rules = null,
         };
@@ -357,7 +357,7 @@ public static class SensorPackages
         foreach (var r in level.rooms)
         {
             if (r == null) continue;
-            float a = HomeMetrics.RoomArea(r);
+            float a = ResidenceMetrics.RoomArea(r);
             if (a <= bestArea) continue;
             bestArea = a;
             best = r;
@@ -383,7 +383,7 @@ public static class SensorPackages
         {
             if (f == null || !f.included || !types.Contains(f.prefabType)) continue;
             if (f.position == null || f.position.Length < 3) continue;
-            if (!HomeMetrics.PointInPolygon(new Vector2(f.position[0], f.position[2]), poly)) continue;
+            if (!ResidenceMetrics.PointInPolygon(new Vector2(f.position[0], f.position[2]), poly)) continue;
             return f;
         }
         return null;
@@ -395,13 +395,13 @@ public static class SensorPackages
     /// </summary>
     /// <remarks>
     /// Stepping a fixed distance off one edge of the rect is what the first version did, and it put
-    /// two of a five-bathroom home's water sensors in the room next door: a basin against the far wall
+    /// two of a five-bathroom residence's water sensors in the room next door: a basin against the far wall
     /// steps straight through it. Offsetting TOWARD the room's own center cannot leave the room, and
     /// the result is checked against the polygon anyway.
     /// </remarks>
     private static Vector2 FootOf(ObjectInstance item, RoomDef room, Vector2 center)
     {
-        var rect = HomeMetrics.FootprintOf(item);
+        var rect = ResidenceMetrics.FootprintOf(item);
         Vector2 from = rect.center;
 
         Vector2 toCenter = center - from;
@@ -411,7 +411,7 @@ public static class SensorPackages
         Vector2 at = from + toCenter.normalized * reach;
 
         var poly = PolygonTriangulator.ToVector2(room.polygon);
-        return HomeMetrics.PointInPolygon(at, poly) ? at : center;
+        return ResidenceMetrics.PointInPolygon(at, poly) ? at : center;
     }
 
     // Deterministic ids for authored samples, GUIDs for anything a user adds. The distinction matters

@@ -40,9 +40,9 @@ public static class RoomMeshBuilder
 
     public static float EffectiveCeilingHeight(RoomDef room, LevelDef level)
     {
-        if (room != null && room.ceilingHeight > HomeConventions.EPS) return room.ceilingHeight;
-        if (level != null && level.ceilingHeight > HomeConventions.EPS) return level.ceilingHeight;
-        return HomeConventions.DEFAULT_CEILING_HEIGHT;
+        if (room != null && room.ceilingHeight > ResidenceConventions.EPS) return room.ceilingHeight;
+        if (level != null && level.ceilingHeight > ResidenceConventions.EPS) return level.ceilingHeight;
+        return ResidenceConventions.DEFAULT_CEILING_HEIGHT;
     }
 
     /// <summary>Floor area in square meters: the number shown in the room inspector.</summary>

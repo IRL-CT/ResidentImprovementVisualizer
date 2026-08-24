@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-// CXRHomeViz interior authoring schema: the home/apartment analogue of AuthoringTypes.cs.
+// Residence Improvement Visualizer interior authoring schema: the residence/apartment
+// analogue of AuthoringTypes.cs.
 //
 // Where AuthoringTypes.cs models an outdoor SITE (terrain, paths, fences, building massing) at ~200 m
 // scale, this file models the INSIDE of a dwelling at ~10 m scale: rooms as polygons, walls as
@@ -19,10 +20,10 @@ using System.Collections.Generic;
 // rotations in euler degrees. IDs are stable GUID strings. Serialized with Newtonsoft.Json. JsonUtility
 // cannot round-trip the float[][] fields used here (same constraint the generation pipeline hit).
 //
-// Display is feet-and-inches by default (US shared-home / assisted-living context); storage is always
+// Display is feet-and-inches by default (US shared-residence / assisted-living context); storage is always
 // meters. Every conversion goes through Units.cs: never inline a magic 3.28.
 
-public static class HomeConventions
+public static class ResidenceConventions
 {
     public const float IN_TO_M = 0.0254f;
     public const float FT_TO_M = 0.3048f;   // mirrors AuthoringConventions.FT_TO_M
@@ -51,7 +52,7 @@ public static class HomeConventions
     public const float MIN_OPENING_HEIGHT = 0.30f;
     public const float MAX_OPENING_HEIGHT = 3.0f;    // tool-side cap; the inspector bounds by the wall
     public const float MAX_WINDOW_SILL    = 2.0f;    // above this it is a clerestory nobody sees out of
-    public const float MAX_THRESHOLD      = 0.20f;   // ~8": an existing home's worst entry step
+    public const float MAX_THRESHOLD      = 0.20f;   // ~8": an existing residence's worst entry step
 
     // Camera eye heights for the walkthrough view. The seated value is the reason this constant exists:
     // toggling to it shows a wheelchair user's actual sightline over counters and through windows,
@@ -111,14 +112,14 @@ public class OpeningDef
     public float width;               // rough opening width, meters
     public float height;              // rough opening height, meters
     // The ACTUAL clear passage once a door leaf and stops are in place. Always less than `width`.
-    // <= 0 means "not specified"; HomeMetrics.ClearWidth then derives it from width and kind. Stored
+    // <= 0 means "not specified"; ResidenceMetrics.ClearWidth then derives it from width and kind. Stored
     // separately because clear width is the number an accessibility rule would test, and a user who
     // measured it on site should be able to enter the real value rather than a derived guess.
     public float clearWidth;
     public float sillHeight;          // meters above finished floor; 0 for doors
     public string kind;               // OpeningKind.*
     // Height of the threshold strip at the floor, meters. 0 = step-free. A non-zero threshold is one
-    // of the most common trip / wheelchair obstacles in an existing home, so it is a first-class field.
+    // of the most common trip / wheelchair obstacles in an existing residence, so it is a first-class field.
     public float thresholdHeight;
 }
 
@@ -231,7 +232,7 @@ public static class WallSide
 // Levels
 // ---------------------------------------------------------------------------------------------
 
-// One story of the dwelling. Multi-level homes are representable (elevation is real and per-level),
+// One story of the dwelling. Multi-level residences are representable (elevation is real and per-level),
 // but this pass edits and renders exactly one level at a time. Stairs and inter-level circulation
 // are deferred. The schema is shaped so adding them later does not migrate anything.
 [Serializable]
@@ -240,8 +241,8 @@ public class LevelDef
     public string id;
     public string name;               // "Ground floor"
     public float elevation;           // meters above the building datum; 0 for the ground floor
-    public float ceilingHeight;       // meters; <= 0 => HomeConventions.DEFAULT_CEILING_HEIGHT
-    public float wallThickness;       // meters; <= 0 => HomeConventions.DEFAULT_WALL_THICKNESS
+    public float ceilingHeight;       // meters; <= 0 => ResidenceConventions.DEFAULT_CEILING_HEIGHT
+    public float wallThickness;       // meters; <= 0 => ResidenceConventions.DEFAULT_WALL_THICKNESS
 
     public List<WallDef>    walls;
     public List<OpeningDef> openings;
@@ -259,7 +260,7 @@ public class LevelDef
     // element it watches (an opening, a bed, a room), so widening a doorway in a proposal carries its
     // door sensor with it. The two worn devices reference OccupantDef.id on the parent variant.
     //
-    // Null on every home saved before this existed. Everything that reads it must tolerate that, the
+    // Null on every residence saved before this existed. Everything that reads it must tolerate that, the
     // way the renderer already tolerates a level with no furniture.
     public List<SensorDef> sensors;
 }
@@ -280,16 +281,16 @@ public class LevelDef
 [Serializable]
 public class UnderlayDef
 {
-    // Which STOREY this is the sketch of. Null on every home written before homes had more than one,
-    // which HomeStore.Migrate fills in from the baseline's first level.
+    // Which STOREY this is the sketch of. Null on every residence written before residences had more than one,
+    // which ResidenceStore.Migrate fills in from the baseline's first level.
     //
-    // A level id rather than an index, because HomeStore.Clone is a JSON round trip and so a proposal
+    // A level id rather than an index, because ResidenceStore.Clone is a JSON round trip and so a proposal
     // deep-copied from the baseline carries the SAME level ids, which is the same property
     // VariantDiff.MatchLevel already relies on. An index would break the moment stories were
     // reordered, and would quietly point a sketch at the wrong floor rather than at none.
     public string levelId;
 
-    public string imageFileName;      // bare filename; resolved under <storage>/underlays/<homeId>/
+    public string imageFileName;      // bare filename; resolved under <storage>/underlays/<residenceId>/
     public float[] originMeters;      // [x, z] world position of the image's bottom-left corner
     public float metersPerPixel;      // <= 0 => not yet calibrated; tracing is blocked until it is
     public float rotationDeg;         // to square up a photographed / skewed plan
@@ -297,7 +298,7 @@ public class UnderlayDef
     public bool locked;               // stop accidental nudging while tracing over it
 
     // Where this sketch came from, when it was a page of a PDF: the PDF's own filename, and the
-    // 1-based page. Both are null/0 for an image import and for every home written before PDFs were
+    // 1-based page. Both are null/0 for an image import and for every residence written before PDFs were
     // readable, which Newtonsoft leaves at their defaults with no migration.
     //
     // These are not provenance for its own sake. PdfRaster renders every page of a document at ONE
@@ -312,10 +313,10 @@ public class UnderlayDef
 // Variants
 // ---------------------------------------------------------------------------------------------
 
-// One design option for a home: the as-built baseline, or a named proposal such as "widen bathroom
+// One design option for a residence: the as-built baseline, or a named proposal such as "widen bathroom
 // door + add grab bars".
 //
-// A variant holds a FULL copy of the levels rather than a delta against its parent. A home is a few
+// A variant holds a FULL copy of the levels rather than a delta against its parent. A residence is a few
 // hundred walls at most, so a copy costs kilobytes, while a delta would need conflict handling every
 // time the baseline changed, which is exactly the drift problem variants exist to prevent. Compare
 // works by matching element `id`s between two variants (see VariantDiff), and duplication preserves
@@ -329,17 +330,17 @@ public class VariantDef
     public string basedOnVariantId;   // provenance; null for the baseline
     public bool isBaseline;
     // Read-only guard, same semantics as EnvironmentDef.locked: the baseline is the record of how the
-    // home actually is, so it is locked by default and every tool refuses to edit it until unlocked.
+    // residence actually is, so it is locked by default and every tool refuses to edit it until unlocked.
     public bool locked;
 
-    // True only for a variant SampleHomes itself authored. It exists so SampleRefresh can tell a
+    // True only for a variant SampleResidences itself authored. It exists so SampleRefresh can tell a
     // proposal the app shipped from one a user branched: the refresh rule used to be "exactly one
     // variant", which the two care samples break the day they ship a smart home package, freezing
     // them at whatever generation they were installed at forever. Refresh now asks whether every
     // variant is still one of ours and still locked, which is the same question in a form that
     // survives a sample having more than one.
     //
-    // Defaults to false, so every home already on disk keeps taking the old path with no migration,
+    // Defaults to false, so every residence already on disk keeps taking the old path with no migration,
     // and so does anything a user makes, which is exactly the signal that they have started working.
     public bool fromSample;
 
@@ -350,7 +351,7 @@ public class VariantDef
     // FenceDef a railing, SurfaceStrokeDef/TerrainZoneDef a patio or deck, gradePoints the slope the
     // ramp has to overcome. Rendered through ExteriorBridge -> the existing WorldRenderer.
     //
-    // This lives on the VARIANT rather than the home because an outdoor addition IS a proposed
+    // This lives on the VARIANT rather than the residence because an outdoor addition IS a proposed
     // improvement: the baseline has no ramp, Proposal B does.
     public SiteDef exterior;
 
@@ -369,15 +370,15 @@ public class VariantDef
 // The document
 // ---------------------------------------------------------------------------------------------
 
-// One home or apartment, with all of its design variants. This is the unit of save/load, of the
+// One residence or apartment, with all of its design variants. This is the unit of save/load, of the
 // library list, and of export/import: the whole file is what you email to a colleague.
 [Serializable]
-public class HomeDoc
+public class ResidenceDoc
 {
     public string id;
     public string name;               // "Maple St. Unit 2"
-    public int version;               // bumped by HomeStore.Save
-    public string schemaVersion = HomeSchema.CURRENT;
+    public int version;               // bumped by ResidenceStore.Save
+    public string schemaVersion = ResidenceSchema.CURRENT;
     public List<string> tags;
     public bool favorite;
 
@@ -392,16 +393,16 @@ public class HomeDoc
     // multi-page PDF import produces.
     public List<UnderlayDef> underlays;
 
-    // LEGACY, and read-only: the single sketch every home carried before stories. HomeStore.Migrate
+    // LEGACY, and read-only: the single sketch every residence carried before stories. ResidenceStore.Migrate
     // folds it into `underlays` and clears it, so nothing else in the app may read this field. It
-    // stays declared purely so Newtonsoft can still deserialize a home written before the change,
-    // dropping it would silently discard the traced sketch of every home already on disk.
+    // stays declared purely so Newtonsoft can still deserialize a residence written before the change,
+    // dropping it would silently discard the traced sketch of every residence already on disk.
     public UnderlayDef underlay;
 
     public List<VariantDef> variants;
     public string activeVariantId;
 
-    // Which SampleHomes plan this was installed from, and which revision of it. Null/0 on every home
+    // Which SampleResidences plan this was installed from, and which revision of it. Null/0 on every residence
     // a user made, and 0 on any sample seeded before the stamp existed, which is exactly the signal
     // SampleRefresh needs, because those are the ones carrying the oldest geometry. Newtonsoft leaves
     // both at their defaults when the field is missing from the file, so no migration is required.
@@ -409,15 +410,15 @@ public class HomeDoc
     public int sampleGeneration;
 }
 
-public static class HomeSchema
+public static class ResidenceSchema
 {
-    public const string CURRENT = "homeviz/1";
+    public const string CURRENT = "residenceviz/1";
 }
 
 // Lightweight row for the library list. Mirrors EnvironmentSummary's role, but built locally by
-// HomeStore from the file's header rather than returned by a server.
+// ResidenceStore from the file's header rather than returned by a server.
 [Serializable]
-public class HomeSummary
+public class ResidenceSummary
 {
     public string id;
     public string name;

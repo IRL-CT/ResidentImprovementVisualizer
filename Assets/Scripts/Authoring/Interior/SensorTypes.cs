@@ -74,7 +74,7 @@ public class SensorDef
 
     public string privacy;            // SensorPrivacy.*; <= see the role tiers in §3.1.4 / §5.5
 
-    // False => the device still senses and still drives prompts in the home, but nothing it notices
+    // False => the device still senses and still drives prompts in the residence, but nothing it notices
     // is routed to the console. §5.5's "monitoring without compromising dignity" is a per-device
     // decision in practice, not a whole-system one, so it is a field on the device.
     public bool monitored = true;
@@ -87,8 +87,8 @@ public class SensorDef
 
     // Per-device thresholds. Empty or null means "use the catalog's defaults for this device", which
     // is the normal case: the list only exists because the report's own thresholds are starting
-    // points ("customizable threshold like 30-60 minutes", §4.4.2) and a home that keeps tripping a
-    // rule needs to move it without every other home moving with it.
+    // points ("customizable threshold like 30-60 minutes", §4.4.2) and a residence that keeps tripping a
+    // rule needs to move it without every other residence moving with it.
     public List<SensorRuleDef> rules;
 }
 
@@ -197,7 +197,7 @@ public static class SensorPrivacy
 
 // One condition that turns sensor events into an alert. The report states these as prose with numbers
 // in it: "if the stovetop is left unattended for 45 minutes", "If front door opens after 9 PM", and
-// this is that prose made data so a home can move the number without a code change.
+// this is that prose made data so a residence can move the number without a code change.
 //
 // A window that wraps past midnight is the normal case here, not the odd one: every night-time rule
 // runs from evening to morning. So `windowStart`/`windowEnd` go through Clock.Spans, the same wrap

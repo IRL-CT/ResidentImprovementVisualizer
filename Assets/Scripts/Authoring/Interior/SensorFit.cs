@@ -14,7 +14,7 @@ using UnityEngine;
 // lets a proposal that widens that doorway carry its sensor with it. So the primary output is a host
 // kind plus a host id, and a coordinate only appears for the two devices that genuinely have one.
 //
-// The search is nearest-first within a generous reach, exactly as HomeMetrics.NearestWall is
+// The search is nearest-first within a generous reach, exactly as ResidenceMetrics.NearestWall is
 // deliberately generous: a click in a bathroom that finds the only door in it is right even when the
 // cursor was two metres away, because there was never another candidate.
 public static class SensorFit
@@ -110,7 +110,7 @@ public static class SensorFit
                 if (wall == null) continue;
 
                 bool isWindow = o.kind == OpeningKind.Window;
-                float d = Vector2.Distance(at, HomeMetrics.PointOnWall(wall, o.offset));
+                float d = Vector2.Distance(at, ResidenceMetrics.PointOnWall(wall, o.offset));
                 if (d > HostReach) continue;
 
                 if (isWindow && !windowsAllowed)
@@ -139,7 +139,7 @@ public static class SensorFit
                 : "Click on a doorway to install this.");
 
         var frame = WallMeshBuilder.BuildFrame(bestWall, level);
-        Vector2 on = HomeMetrics.PointOnWall(bestWall, best.offset);
+        Vector2 on = ResidenceMetrics.PointOnWall(bestWall, best.offset);
 
         // Install on whichever face of the wall the click came from, so the box sits proud of that
         // face and a doorbell's cone covers the approach the user was pointing at rather than the
@@ -177,7 +177,7 @@ public static class SensorFit
                 var here = new Vector2(item.position[0], item.position[2]);
                 // Distance to the item's FOOTPRINT, not its center: a click on the foot of a 2.03 m
                 // bed is a click on the bed, and a center test would rank a nightstand beside it higher.
-                float d = HomeMetrics.PointRectDistance(at, HomeMetrics.FootprintOf(item));
+                float d = ResidenceMetrics.PointRectDistance(at, ResidenceMetrics.FootprintOf(item));
                 if (d > ItemReach) continue;
 
                 sawSomething = true;
@@ -208,7 +208,7 @@ public static class SensorFit
     private static Result OnItemTop(SensorDevices.Device device, Vector2 at, ObjectInstance item,
                                     LevelDef level)
     {
-        var rect = HomeMetrics.FootprintOf(item);
+        var rect = ResidenceMetrics.FootprintOf(item);
         Vector2 on = ClampInto(rect, at, 0.5f * Mathf.Max(device.width, device.depth));
         var center = new Vector2(item.position[0], item.position[2]);
 
@@ -228,11 +228,11 @@ public static class SensorFit
 
     private static Result OnWall(SensorDevices.Device device, Vector2 at, LevelDef level)
     {
-        var wall = HomeMetrics.NearestWall(at, level.walls, HomeConventions.MOUNT_REACH,
+        var wall = ResidenceMetrics.NearestWall(at, level.walls, ResidenceConventions.MOUNT_REACH,
                                            out float offset, out int side);
         if (wall == null) return Fail("Move closer to a wall to install this.");
 
-        Vector2 on = HomeMetrics.PointOnWall(wall, offset);
+        Vector2 on = ResidenceMetrics.PointOnWall(wall, offset);
         var frame = WallMeshBuilder.BuildFrame(wall, level);
         Vector3 outward = side == WallSide.Left ? frame.left : -frame.left;
 
@@ -253,7 +253,7 @@ public static class SensorFit
 
     private static Result InRoom(SensorDevices.Device device, Vector2 at, LevelDef level)
     {
-        var room = HomeMetrics.RoomAt(at, level);
+        var room = ResidenceMetrics.RoomAt(at, level);
         if (room == null) return Fail("Click inside a room to install this.");
 
         // A device with a cone gets pushed off the wall it was clicked against and turned to face into
@@ -279,7 +279,7 @@ public static class SensorFit
 
     private static Result AtPoint(SensorDevices.Device device, Vector2 at, LevelDef level)
     {
-        var room = HomeMetrics.RoomAt(at, level);
+        var room = ResidenceMetrics.RoomAt(at, level);
         if (room == null) return Fail("Click inside a room to put this on the floor.");
 
         // Water pools at the fixture, so a click near one snaps to its foot. The report puts these
@@ -291,7 +291,7 @@ public static class SensorFit
         var fixtureItem = NearestOf(level, PlumbingItems, at, ItemReach, out float d);
         if (fixtureItem != null && d > 0.05f)
         {
-            var rect = HomeMetrics.FootprintOf(fixtureItem);
+            var rect = ResidenceMetrics.FootprintOf(fixtureItem);
             snapped = ClosestOn(rect, at, 0.12f);
             moved = $"Moved to the foot of the {SensorPose.ItemLabel(fixtureItem, level).ToLowerInvariant()}.";
         }
@@ -309,7 +309,7 @@ public static class SensorFit
 
     // A pendant, a sock aid and a key turner belong to a PERSON, and while the roster was the only
     // route to one, this whole half of the catalog was gated behind the People tab. That is a hard
-    // stop in a tool used to lay a home out BEFORE deciding who moves into it, and it refused the one
+    // stop in a tool used to lay a residence out BEFORE deciding who moves into it, and it refused the one
     // gesture every other entry in the grid answers: click, and something appears in the plan.
     //
     // So there are two answers, and the caller picks between them purely by whether it names a
@@ -319,9 +319,9 @@ public static class SensorFit
     // a bedside drawer or a pendant on its charger actually is.
     //
     // Nothing downstream needed a line for the second answer, which is the whole reason it is cheap:
-    // Furniture is the stove sensor's host and the dispenser's, so HomeRenderer draws it, the delete
+    // Furniture is the stove sensor's host and the dispenser's, so ResidenceRenderer draws it, the delete
     // cascade removes it with its host, VariantRevert restores it and VariantDiff reports it. And no
-    // figure this app prints about what a home can SEE moves either, because every one of these items
+    // figure this app prints about what a residence can SEE moves either, because every one of these items
     // has a zero envelope and no rules: the two properties SensorCoverageTests and SensorSimTests
     // already pin.
     private static Result Personal(SensorDevices.Device device, Vector2 at, LevelDef level,
@@ -334,7 +334,7 @@ public static class SensorFit
             // A detour rather than a dead end, on VariantRevert's rule: the resident this was aimed at
             // has left the household, and putting it down in a room is still available.
             if (person == null)
-                return Fail("That resident is not in this home. Pick another, or leave it unassigned "
+                return Fail("That resident is not in this residence. Pick another, or leave it unassigned "
                           + "and click a room to put it down there.");
 
             return new Result
@@ -363,7 +363,7 @@ public static class SensorFit
     // ---------------------------------------------------------------------------------------
 
     // Catalog ids, the key space shared by FurnitureCatalog, PrefabRegistry and SampleFurniture, so
-    // these work on a home the user drew, not only on the shipped six.
+    // these work on a residence the user drew, not only on the shipped six.
     private static readonly HashSet<string> BedsAndSeats = new HashSet<string>
     {
         "twin_bed", "full_bed", "hospital_bed", "recliner", "armchair", "sofa",
@@ -406,12 +406,12 @@ public static class SensorFit
         if (device.id == "stove_sensor")
             return sawSomething
                 ? "A stove sensor goes on a range. This is not one."
-                : "A stove sensor goes on a range. This home has none.";
+                : "A stove sensor goes on a range. This residence has none.";
 
         if (device.id == "bed_chair_pad")
             return sawSomething
                 ? "A pad goes under a bed or a chair. This is neither."
-                : "A pad goes under a bed or a chair. This home has neither.";
+                : "A pad goes under a bed or a chair. This residence has neither.";
 
         return "Click on the piece of furniture this installs on.";
     }
@@ -430,7 +430,7 @@ public static class SensorFit
             if (item == null || !item.included || !wanted.Contains(item.prefabType)) continue;
             if (item.position == null || item.position.Length < 3) continue;
 
-            float d = HomeMetrics.PointRectDistance(at, HomeMetrics.FootprintOf(item));
+            float d = ResidenceMetrics.PointRectDistance(at, ResidenceMetrics.FootprintOf(item));
             if (d > reach || d >= distance) continue;
 
             distance = d;
@@ -445,7 +445,7 @@ public static class SensorFit
     /// </summary>
     private static ObjectInstance NearestInRoom(LevelDef level, HashSet<string> wanted, Vector2 at)
     {
-        var room = HomeMetrics.RoomAt(at, level);
+        var room = ResidenceMetrics.RoomAt(at, level);
         if (room == null || level.furniture == null) return null;
 
         ObjectInstance best = null;
@@ -454,10 +454,10 @@ public static class SensorFit
         {
             if (item == null || !item.included || !wanted.Contains(item.prefabType)) continue;
             if (item.position == null || item.position.Length < 3) continue;
-            if (HomeMetrics.RoomAt(new Vector2(item.position[0], item.position[2]), level) != room)
+            if (ResidenceMetrics.RoomAt(new Vector2(item.position[0], item.position[2]), level) != room)
                 continue;
 
-            float d = HomeMetrics.PointRectDistance(at, HomeMetrics.FootprintOf(item));
+            float d = ResidenceMetrics.PointRectDistance(at, ResidenceMetrics.FootprintOf(item));
             if (d >= bestDist) continue;
             bestDist = d;
             best = item;
@@ -515,7 +515,7 @@ public static class SensorFit
     /// </summary>
     private static Vector2 InwardFrom(Vector2 at, RoomDef room)
     {
-        Vector2 center = HomeMetrics.LargestInscribedCircle(room).center;
+        Vector2 center = ResidenceMetrics.LargestInscribedCircle(room).center;
         Vector2 d = center - at;
         return d.sqrMagnitude < 1e-4f ? Vector2.up : d.normalized;
     }

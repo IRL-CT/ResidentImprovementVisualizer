@@ -22,7 +22,7 @@ using System.Collections.Generic;
 // rests on, and it should be readable rather than implied.
 //
 // This lives in CXRAuthoring so it can be tested at all: the same reason SampleRefresh does, and
-// the same reason it cannot reach HomeStore.Clone (Assembly-CSharp, which asmdefs cannot reference).
+// the same reason it cannot reach ResidenceStore.Clone (Assembly-CSharp, which asmdefs cannot reference).
 public static class VariantRevert
 {
     /// <summary>
@@ -50,7 +50,7 @@ public static class VariantRevert
         // addresses the same level the change was reported from.
         //
         // This used to say exactly that and then call FirstLevel on both sides, which was the same
-        // thing only while every home had one story. On two, reverting an upstairs change reached
+        // thing only while every residence had one story. On two, reverting an upstairs change reached
         // into the ground floor, found no element with that id, and silently did nothing. Breaking
         // the property this file is specified by: revert every change in a diff and the diff comes
         // back empty. VariantDiff.Change now carries the level it was reported from.
@@ -108,7 +108,7 @@ public static class VariantRevert
             // The proposal added this wall: take it away, and with it everything it hosts. The cascade
             // mirrors SelectTool.DeleteSelected exactly, so the two cannot disagree about what
             // removing a wall means: an opening whose wallId no longer resolves is silently skipped
-            // by HomeRenderer, with no warning anywhere.
+            // by ResidenceRenderer, with no warning anywhere.
             //
             // Sensors ride two levels down: a door sensor hosts on an OPENING, and that opening is
             // about to go with the wall. Collecting the doomed openings before removing them is what
@@ -142,7 +142,7 @@ public static class VariantRevert
 
         // The one genuine refusal in this file. Restoring an opening onto a wall the proposal has
         // since removed would write an OpeningDef whose wallId resolves to nothing, which
-        // WallLayout clamps and HomeRenderer skips, silently, producing a door that exists in the
+        // WallLayout clamps and ResidenceRenderer skips, silently, producing a door that exists in the
         // data and nowhere on screen. Refusing and saying why is the only honest answer, and the
         // user's route out is the obvious one.
         if (Find(to.walls, w => w.id, original.wallId) == null)
@@ -271,7 +271,7 @@ public static class VariantRevert
         }
 
         // No wall check here, and none is wanted: an activity naming a room the proposal removed
-        // reads as "away from home" rather than as broken geometry (OccupancyModel treats an
+        // reads as "away from residence" rather than as broken geometry (OccupancyModel treats an
         // unresolvable roomId exactly as it treats a null one), so restoring the person is always
         // better than refusing to.
         var list = proposal.occupants ??= new List<OccupantDef>();

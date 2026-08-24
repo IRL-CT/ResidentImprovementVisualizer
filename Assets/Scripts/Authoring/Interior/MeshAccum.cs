@@ -84,7 +84,7 @@ public class MeshAccum
     /// <summary>
     /// Produces the Mesh. Returns null when nothing was accumulated, so callers can skip creating an
     /// empty renderer. Uses a 32-bit index buffer when needed: a fully traced floor of a large group
-    /// home can exceed 65k vertices once every wall face is a hard-normal quad.
+    /// residence can exceed 65k vertices once every wall face is a hard-normal quad.
     /// </summary>
     public Mesh ToMesh(string name = "Interior")
     {

@@ -8,31 +8,31 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Binds the furniture packs in this project to <see cref="FurnitureCatalog"/> ids, by generating one
-/// wrapper prefab per bound id and registering it in HomeCatalogRegistry.
+/// wrapper prefab per bound id and registering it in ResidenceCatalogRegistry.
 /// </summary>
 /// <remarks>
 /// <para><b>The table below is the source of truth, not the prefabs.</b> A wrapper under
-/// Assets/Prefabs/HomeViz/Catalog/ is a derived artifact and <see cref="GenerateWrappers"/> overwrites
+/// Assets/Prefabs/ResidenceViz/Catalog/ is a derived artifact and <see cref="GenerateWrappers"/> overwrites
 /// it, so a hand edit inside one is lost on the next run. Corrections belong in <see cref="Rows"/>;
 /// the escape hatch for a genuine one-off is <see cref="CatalogArtFit.handTuned"/>, which makes the
 /// generator refresh only the registry row and leave the prefab alone.</para>
 ///
 /// <para><b>Ids with no plausible donor stay placeholders, deliberately.</b> They are listed at the
-/// bottom of the table with the reason so the decision does not get re-litigated. HomeRenderer already
+/// bottom of the table with the reason so the decision does not get re-litigated. ResidenceRenderer already
 /// draws a correctly sized labeled box for anything the registry does not know, so "no art" is a
 /// supported state rather than a gap.</para>
 ///
 /// <para><b>Aspect is the selection criterion, appearance second.</b> The fit stretches each axis
 /// independently: the deliberate choice, so the picture keeps agreeing with the numbers FurnitureFit
-/// and HomeMetrics report, which means a donor whose footprint aspect is far from the catalog's looks
+/// and ResidenceMetrics report, which means a donor whose footprint aspect is far from the catalog's looks
 /// squashed however handsome it is. <see cref="MeasureFamily"/> exists to turn 50 candidates into a
 /// dozen on that basis before a single screenshot is taken.</para>
 /// </remarks>
 public class CatalogArtBinder : EditorWindow
 {
     private const string CatalogPath  = "Assets/Resources/FurnitureCatalog.asset";
-    private const string RegistryPath = "Assets/Resources/HomeCatalogRegistry.asset";
-    private const string WrapperDir   = "Assets/Prefabs/HomeViz/Catalog";
+    private const string RegistryPath = "Assets/Resources/ResidenceCatalogRegistry.asset";
+    private const string WrapperDir   = "Assets/Prefabs/ResidenceViz/Catalog";
 
     private const string C = "Assets/Prefabs/Furniture/Cute_Furniture_Free/Prefabs/";
     private const string M = "Assets/Prefabs/Furniture 2/Prefabs/";
@@ -148,7 +148,7 @@ public class CatalogArtBinder : EditorWindow
     private int    _familyTop    = 12;
     private Vector2 _scroll;
 
-    [MenuItem("Tools/HomeViz/Catalog Art Binder")]
+    [MenuItem("Tools/ResidenceViz/Catalog Art Binder")]
     private static void Open() => GetWindow<CatalogArtBinder>("Catalog Art Binder");
 
     private void OnGUI()
@@ -375,7 +375,7 @@ public class CatalogArtBinder : EditorWindow
                 var root = new GameObject(row.id);
                 SceneManager.MoveGameObjectToScene(root, scene);
 
-                var art = new GameObject(HomeRenderer.ART_CHILD);
+                var art = new GameObject(ResidenceRenderer.ART_CHILD);
                 art.transform.SetParent(root.transform, false);
                 art.transform.localPosition = fit.basePosition;
                 art.transform.localRotation = Quaternion.identity;
@@ -427,7 +427,7 @@ public class CatalogArtBinder : EditorWindow
     // ---------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Rewrites HomeCatalogRegistry's rows from the wrappers on disk.
+    /// Rewrites ResidenceCatalogRegistry's rows from the wrappers on disk.
     /// </summary>
     /// <remarks>
     /// This asset is generator-owned, which is why a wholesale rebuild is safe. The Site tool's
@@ -625,7 +625,7 @@ public class CatalogArtBinder : EditorWindow
             cell.transform.SetParent(root.transform, false);
             cell.transform.localPosition = new Vector3((i % 4) * pitch, 0f, -(i / 4) * pitch);
 
-            var art = new GameObject(HomeRenderer.ART_CHILD);
+            var art = new GameObject(ResidenceRenderer.ART_CHILD);
             art.transform.SetParent(cell.transform, false);
 
             var inst = (GameObject)PrefabUtility.InstantiatePrefab(donor);

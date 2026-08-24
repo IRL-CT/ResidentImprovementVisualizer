@@ -3,7 +3,7 @@ using UnityEngine;
 
 // 2-D segment primitives in world XZ meters (Vector2 = (x, z)).
 //
-// These did not exist anywhere in the project. HomeMetrics has PointSegmentDistance and PointInPolygon,
+// These did not exist anywhere in the project. ResidenceMetrics has PointSegmentDistance and PointInPolygon,
 // WallSnapping has a point-on-segment projection inlined (and so do OpeningTool and FurnitureTool,
 // three copies of the same six lines), but nothing could answer "do these two segments cross, and
 // where". Every wall in a plan is a segment, so a wall tool that divides and joins needs exactly that.

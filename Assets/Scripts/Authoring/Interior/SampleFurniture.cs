@@ -6,7 +6,7 @@ using UnityEngine;
 // WHY THIS DUPLICATES THE CATALOG: FurnitureCatalog is a ScriptableObject in Assembly-CSharp, and
 // CXRAuthoring has no references, so PlanBuilder, which lives here so the sample plans can be unit
 // tested, cannot read the .asset. The numbers below are transcribed from Assets/Resources/
-// FurnitureCatalog.asset and SampleHomeInstaller re-checks them against the live catalog on seed, so
+// FurnitureCatalog.asset and SampleResidenceInstaller re-checks them against the live catalog on seed, so
 // drift is reported rather than discovered.
 //
 // Field order matches FurnitureCatalog.Entry: widthM is across the item's front (local X), depthM is
@@ -30,7 +30,7 @@ public static class SampleFurniture
         public float[] BoxSize => new[] { width, height, depth };
     }
 
-    /// <summary>Fallback for an unknown key. Matches HomeRenderer.ItemSize's own last resort.</summary>
+    /// <summary>Fallback for an unknown key. Matches ResidenceRenderer.ItemSize's own last resort.</summary>
     public static readonly Item Unknown = new Item
     {
         id = null, width = 0.6f, depth = 0.6f, height = 0.8f,
