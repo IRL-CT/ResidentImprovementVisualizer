@@ -228,14 +228,14 @@ public class DecorPlacementTests
             instanceId = "a", prefabType = "window",
             localPos = new[] { 1f, 2f, 3f }, rotationY = 45f,
             hostGridX = 0, hostGridZ = 0, hostFloor = 0, hostFace = "north",
-            // decorWidthFrac == 0: pre-change JSON — replay verbatim.
+            // decorWidthFrac == 0: pre-change JSON. Replay verbatim.
         };
         var legacyNoHost = new EmbeddedObjectDef
         {
             instanceId = "b", prefabType = "window",
             localPos = new[] { 4f, 5f, 6f }, rotationY = 90f,
             decorWidthFrac = 0.8f, decorHeightFrac = 0.9f,
-            // hostFace == null: freeform prop — replay verbatim.
+            // hostFace == null: freeform prop. Replay verbatim.
         };
         b.embeddedObjects = new List<EmbeddedObjectDef> { legacyNoRules, legacyNoHost };
 

@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 // BrushGeometry lives in the CXRAuthoring assembly (referenced by this test asmdef). These are the
-// angle rules the ground-surface brush shares between its live preview and the splatmap rasterizer —
+// angle rules the ground-surface brush shares between its live preview and the splatmap rasterizer,
 // if the two ever disagree, a stroke would jump orientation on reload.
 [TestFixture]
 public class BrushGeometryTests

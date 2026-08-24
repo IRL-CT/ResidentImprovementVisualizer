@@ -3,10 +3,10 @@ using UnityEngine;
 
 // Turns a wall's WallLayout boxes into renderable geometry.
 //
-// JUNCTIONS — the deliberate simplification. Where two walls meet, the textbook solution is a miter:
+// JUNCTIONS: the deliberate simplification. Where two walls meet, the textbook solution is a miter:
 // solve the intersection of the two pairs of face lines and trim both walls to it. That is a lot of
 // fiddly maths with degenerate cases at shallow angles, T-junctions, and three-way corners. Instead
-// each wall is EXTENDED half a neighbour-thickness past any endpoint it shares with another wall, so
+// each wall is EXTENDED half a neighbor-thickness past any endpoint it shares with another wall, so
 // the two boxes simply overlap inside the corner:
 //
 //        miter (not done)              overlap (done)
@@ -15,10 +15,16 @@ using UnityEngine;
 //        │   ╱ │                       ├─────┤
 //        │  ╱  │                       │█████│
 //
-// For opaque solids the overlap is invisible — you cannot see inside a wall — and it is robust at
+// For opaque solids the overlap is invisible (you cannot see inside a wall) and it is robust at
 // every angle and valence with no special cases. The cost is deferred, not avoided: cutaway views,
 // transparent walls, and exported geometry for a contractor would all reveal the overlap and would
 // need real mitering. That trade is recorded in the plan under Deferred.
+//
+// "Invisible" holds only while the overlap is a genuine overlap. Two coplanar faces at the SAME depth
+// are not hidden, they Z-FIGHT, and the extension above walked straight into that twice. See
+// ComputeExtensions for both cases and for the two rules that fix them (a collinear run is not a
+// corner and gets nothing; every other extension stops JunctionBias short of the face it would
+// otherwise land on).
 //
 // Geometry is emitted in WORLD-AXIS offsets from the wall's start point, so the host GameObject sits
 // at that point with identity rotation. No rotation maths at the call site, and normals need no
@@ -63,10 +69,29 @@ public static class WallMeshBuilder
     }
 
     /// <summary>
+    /// How far short of the neighbor's far face an extended end stops. Landing exactly ON that face
+    /// is the one arrangement in this whole scheme that Z-FIGHTS, and it used to be the arrangement at
+    /// every corner: the end cap is SUB_EDGE and the face it lands on is SUB_LEFT/RIGHT, so a corner
+    /// drew two different materials at identical depth over a full-height strip a wall thick. A
+    /// millimetre back and the cap is INSIDE the neighbor, which occludes it outright.
+    ///
+    /// 1 mm is ~10x the worst depth resolution this scene can produce (near 0.05, far 500) and small
+    /// enough that the notch it leaves (1 mm square, at the tip of an outside corner) cannot be seen.
+    /// </summary>
+    public const float JunctionBias = 0.001f;
+
+    /// <summary>
     /// How far each end of this wall should push past its endpoint so shared corners close. Returns
-    /// half the thickest connected wall at each end (0 for a free end). Using the NEIGHBOUR's
-    /// thickness is what actually fills the notch: a thin wall meeting a thick one still has to reach
-    /// the thick wall's outer face.
+    /// half the thickest connected wall at each end, less <see cref="JunctionBias"/>; 0 for a free end
+    /// and 0 where the run simply continues. Using the NEIGHBOUR's thickness is what actually fills the
+    /// notch: a thin wall meeting a thick one still has to reach the thick wall's outer face.
+    ///
+    /// A COLLINEAR neighbor is not a corner and gets no extension at all. That is the common case, not
+    /// the odd one: every crossing in this app is split at the crossing point (PlanBuilder derives the
+    /// walls that way, WallLinker enforces it for hand-drawn ones), so a plan is full of collinear
+    /// pieces sharing an endpoint. Their boxes already abut exactly, and extending them only buries a
+    /// wall's thickness of duplicate coplanar face inside the neighbor. Invisible while both pieces
+    /// carry the same finish, and a flickering band the moment they do not.
     /// </summary>
     public static void ComputeExtensions(WallDef wall, LevelDef level, out float startExt, out float endExt)
     {
@@ -74,22 +99,46 @@ public static class WallMeshBuilder
         endExt = 0f;
         if (wall?.a == null || wall.b == null || level?.walls == null) return;
 
+        float length = WallLayout.WallLength(wall);
+        if (length <= HomeConventions.EPS) return;
+
         var a = new Vector2(wall.a[0], wall.a[1]);
         var b = new Vector2(wall.b[0], wall.b[1]);
+        Vector2 dir = (b - a) / length;
+
+        bool startContinues = false, endContinues = false;
 
         foreach (var other in level.walls)
         {
             if (other == null || other.id == wall.id) continue;
             if (other.a == null || other.b == null) continue;
-            if (WallLayout.WallLength(other) <= HomeConventions.EPS) continue;
+            float otherLength = WallLayout.WallLength(other);
+            if (otherLength <= HomeConventions.EPS) continue;
 
-            float halfT = 0.5f * WallLayout.EffectiveThickness(other, level);
             var oa = new Vector2(other.a[0], other.a[1]);
             var ob = new Vector2(other.b[0], other.b[1]);
 
-            if (Near(a, oa) || Near(a, ob)) startExt = Mathf.Max(startExt, halfT);
-            if (Near(b, oa) || Near(b, ob)) endExt   = Mathf.Max(endExt, halfT);
+            bool atStart = Near(a, oa) || Near(a, ob);
+            bool atEnd   = Near(b, oa) || Near(b, ob);
+            if (!atStart && !atEnd) continue;
+
+            // Same test WallLinker uses to decide a contact is overlap rather than a junction, so the
+            // two cannot drift apart on what counts as "the same run".
+            Vector2 odir = (ob - oa) / otherLength;
+            if (Mathf.Abs(dir.x * odir.y - dir.y * odir.x) < WallLinker.MinJunctionSin)
+            {
+                if (atStart) startContinues = true;
+                if (atEnd) endContinues = true;
+                continue;
+            }
+
+            float halfT = 0.5f * WallLayout.EffectiveThickness(other, level);
+            if (atStart) startExt = Mathf.Max(startExt, halfT);
+            if (atEnd)   endExt   = Mathf.Max(endExt, halfT);
         }
+
+        startExt = startContinues ? 0f : Mathf.Max(0f, startExt - JunctionBias);
+        endExt   = endContinues   ? 0f : Mathf.Max(0f, endExt   - JunctionBias);
     }
 
     /// <summary>Everything at once: layout, junctions, mesh. The normal entry point.</summary>

@@ -17,9 +17,9 @@ public class ModelRequesterUI : MonoBehaviour
     [Header("Model Requester")]
     public ModelRequester modelRequester;
     public WorldGenerator worldGenerator;
-    public WorldRenderer  worldRenderer;   // USER WIRES THIS IN INSPECTOR (optional — enables library integration)
-    public LibraryClient  libraryClient;   // USER WIRES THIS IN INSPECTOR (optional — enables library integration)
-    public LibraryBrowser libraryBrowser;  // USER WIRES THIS IN INSPECTOR (optional — adopts generated envs as loaded)
+    public WorldRenderer  worldRenderer;   // USER WIRES THIS IN INSPECTOR (optional, enables library integration)
+    public LibraryClient  libraryClient;   // USER WIRES THIS IN INSPECTOR (optional, enables library integration)
+    public LibraryBrowser libraryBrowser;  // USER WIRES THIS IN INSPECTOR (optional, adopts generated envs as loaded)
 
     [Header("Panel")]
     [SerializeField] private int panelWidth = 360;   // top-center panel, between the left/right tool panels
@@ -29,7 +29,7 @@ public class ModelRequesterUI : MonoBehaviour
     private int _selectedInput = -1;
 
     [Header("Debug")]
-    [SerializeField] private bool useDummyLayout = false;
+    [SerializeField] private bool useSampleLayout = false;
 
     // ---- IMGUI panel state (replaces the old wired Buttons/Text/Slider) ----
     private string  _status   = "Ready";
@@ -98,7 +98,7 @@ public class ModelRequesterUI : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // IMGUI panel — mirrors the LibraryBrowser / EditController look (UITheme).
+    // IMGUI panel. Mirrors the LibraryBrowser / EditController look (UITheme).
     // Anchored top-center so it sits between the left (library) and right (edit) panels.
     // -----------------------------------------------------------------------
 
@@ -265,9 +265,9 @@ public class ModelRequesterUI : MonoBehaviour
 
     public void OnGenerateLayoutClicked()
     {
-        if (useDummyLayout)
+        if (useSampleLayout)
         {
-            ApplyDummyLayout();
+            ApplySampleLayout();
             return;
         }
 
@@ -326,7 +326,7 @@ public class ModelRequesterUI : MonoBehaviour
                     },
                     err => UpdateStatusText($"Upload error: {err}"));
             },
-            () => UpdateStatusText("Upload cancelled."),
+            () => UpdateStatusText("Upload canceled."),
             FileBrowser.PickMode.Files, false, null, null, "Select a sketch image", "Upload");
     }
 
@@ -350,14 +350,14 @@ public class ModelRequesterUI : MonoBehaviour
         modelRequester.GenerateLayoutFromImage(imageName);
     }
 
-    // Load the bundled local sample (Resources/DummyLayout) into the scene as an editable env,
-    // exactly like a server environment — tracked in the Loaded list and active — but unsaved.
+    // Load the bundled local sample (Resources/SampleLayout) into the scene as an editable env,
+    // exactly like a server environment (tracked in the Loaded list and active) but unsaved.
     public void OnTestLocalSampleClicked()
     {
-        var asset = Resources.Load<TextAsset>("DummyLayout");
+        var asset = Resources.Load<TextAsset>("SampleLayout");
         if (asset == null)
         {
-            UpdateStatusText("ERROR: Assets/Resources/DummyLayout.json not found.");
+            UpdateStatusText("ERROR: Assets/Resources/SampleLayout.json not found.");
             return;
         }
         if (libraryBrowser == null)
@@ -403,23 +403,23 @@ public class ModelRequesterUI : MonoBehaviour
         foreach (var b in conv.Buildings)
             if (!string.IsNullOrEmpty(b.id)) buildingDefs[b.id] = b;
         libraryBrowser.AdoptLocalEnvironment(conv.Environment, buildingDefs);
-        UpdateStatusText($"Loaded local sample '{envName}' ({conv.Buildings.Count} building(s)). Editable — press Save to persist.");
+        UpdateStatusText($"Loaded local sample '{envName}' ({conv.Buildings.Count} building(s)). Editable, press Save to persist.");
     }
 
-    private void ApplyDummyLayout()
+    private void ApplySampleLayout()
     {
-        var asset = Resources.Load<TextAsset>("DummyLayout");
+        var asset = Resources.Load<TextAsset>("SampleLayout");
         if (asset == null)
         {
-            UpdateStatusText("ERROR: Assets/Resources/DummyLayout.json not found.");
+            UpdateStatusText("ERROR: Assets/Resources/SampleLayout.json not found.");
             return;
         }
 
-        UpdateStatusText("Applying dummy layout...");
+        UpdateStatusText("Applying sample layout...");
         SetProgressVisible(true);
-        UpdateProgress(0.1f, "Loading dummy data...");
+        UpdateProgress(0.1f, "Loading sample data...");
 
-        string envelopeJson = "{\"status\":\"success\",\"message\":\"Dummy layout.\",\"selected_sketch\":\"sample_output.json\",\"layout\":" + asset.text + "}";
+        string envelopeJson = "{\"status\":\"success\",\"message\":\"Sample layout.\",\"selected_sketch\":\"sample_output.json\",\"layout\":" + asset.text + "}";
         OnLayoutGenerated(envelopeJson);
     }
     
@@ -476,8 +476,8 @@ public class ModelRequesterUI : MonoBehaviour
         }
         catch (Exception e)
         {
-            Debug.LogError($"[ModelRequesterUI] Layout parse FAILED — nothing applied. Raw JSON is archived under layouts/. {e}");
-            UpdateStatusText("Layout parse FAILED — not applied. See Console.");
+            Debug.LogError($"[ModelRequesterUI] Layout parse FAILED. Nothing applied. Raw JSON is archived under layouts/. {e}");
+            UpdateStatusText("Layout parse FAILED. See Console.");
             UpdateResultsText($"Parse error: {e.Message}");
             return;
         }
@@ -643,7 +643,7 @@ public class ModelRequesterUI : MonoBehaviour
         _results = message;
     }
 
-    // Newtonsoft-parsed response envelope — handles float[][] in SiteScale.lot_boundary.
+    // Newtonsoft-parsed response envelope. Handles float[][] in SiteScale.lot_boundary.
     private class NewtonLayoutEnvelope
     {
         public string         status;

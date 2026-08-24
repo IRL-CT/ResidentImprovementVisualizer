@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 // Adapts a HomeViz variant's optional outdoor layer into the shape the existing WorldRenderer expects.
 //
-// This tiny file IS the exterior feature. Because VariantDef.exterior is a SiteDef — the Brownfield
-// type, reused verbatim rather than re-invented — everything an outdoor additive needs already exists
+// This tiny file IS the exterior feature. Because VariantDef.exterior is a SiteDef: the Site tool's
+// type, reused verbatim rather than re-invented: everything an outdoor additive needs already exists
 // and is already tested:
 //
 //     PathDef                        walkway, entry ramp, driveway apron
@@ -19,7 +19,7 @@ public static class ExteriorBridge
 {
     /// <summary>
     /// True when this variant has any outdoor content worth rendering. A SiteDef that exists but is
-    /// empty does not count — otherwise merely opening the exterior panel once would make every
+    /// empty does not count. Otherwise merely opening the exterior panel once would make every
     /// later comparison report "added an exterior".
     /// </summary>
     public static bool HasContent(VariantDef variant)
@@ -47,7 +47,7 @@ public static class ExteriorBridge
 
         SiteDef site = variant.exterior ?? new SiteDef();
 
-        // A home lot, not a 200 m brownfield site: default the ground to something house-sized so an
+        // A home lot, not a 200 m industrial site: default the ground to something house-sized so an
         // enabled-but-unsized exterior does not stretch a 500 m terrain around a bungalow.
         if (site.terrainSize == null || site.terrainSize.Length < 2 ||
             site.terrainSize[0] <= 0f || site.terrainSize[1] <= 0f)
@@ -55,10 +55,10 @@ public static class ExteriorBridge
 
         return new EnvironmentDef
         {
-            // Namespaced so a published exterior can never collide with a real Brownfield environment
+            // Namespaced so a published exterior can never collide with a real Site environment
             // id in WorldRenderer's per-environment render map.
             id = "homeviz:" + doc.id + ":" + variant.id,
-            name = doc.name + " — " + variant.name,
+            name = doc.name + " · " + variant.name,
             version = doc.version,
             tags = new List<string> { "homeviz-exterior" },
             locked = false,
@@ -82,8 +82,8 @@ public static class ExteriorBridge
             surfaceStrokes = new List<SurfaceStrokeDef>(),
             gradePoints = new List<GradePointDef>(),
             scaleNote = "Residential lot around the home.",
-            maxGradeHeight = 4f,          // a garden grade, not a brownfield landform
+            maxGradeHeight = 4f,          // a garden grade, not a site-scale landform
             lotBoundary = null,
-            outsideTerrainType = "grass", // not "water" — a home's surroundings are not a river
+            outsideTerrainType = "grass", // not "water": a home's surroundings are not a river
         };
 }

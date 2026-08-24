@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-// Editable authoring schema — the persistent, interactive layer above the generation pipeline.
+// Editable authoring schema: the persistent, interactive layer above the generation pipeline.
 // Separate from DataTypes.cs (generation/ingest schema). Uses Newtonsoft.Json throughout.
 // Conventions: 1 Unity unit = 1 meter. ft → m: multiply by AuthoringConventions.FT_TO_M.
 // IDs: stable GUID strings. Building-local coords for tiles; world coords for environment instances.
@@ -23,7 +23,7 @@ public static class AuthoringConventions
 // Offsets are in CELL units and apply to the tile's 4 vertical edges (plan corners), indexed in
 // this fixed order: [0]=(-x,-z), [1]=(+x,-z), [2]=(+x,+z), [3]=(-x,+z). A tile occupies the unit
 // cell [0..1] on x and z (× cellSize); these offsets push each corner post off that square and the
-// interior bilinearly blends them. Because neighbouring tiles share corner posts, writing offsets as
+// interior bilinearly blends them. Because neighboring tiles share corner posts, writing offsets as
 // a smooth function of grid-corner position (see TileDeformField) keeps the wall gap-free.
 [Serializable]
 public class TileDeform
@@ -65,7 +65,7 @@ public class EmbeddedObjectDef
     public float rotationZ;             // skewed faces; old data (X=Z=0) keeps the yaw-only behavior.
     public float scale;
     // Smart-paint host tracking + placement rules (all default/empty for legacy & generated data).
-    // hostFace == null means "no recorded host" — such props don't count toward per-tile constraints.
+    // hostFace == null means "no recorded host": such props don't count toward per-tile constraints.
     public int    hostGridX;            // host tile grid coords (building-local)
     public int    hostGridZ;
     public int    hostFloor;
@@ -75,7 +75,7 @@ public class EmbeddedObjectDef
     // Deform-aware placement rules, captured from the DecorPalette entry at paint time so render
     // paths can RE-DERIVE localPos/rotation/scale from the host tile's current TileDeform
     // (DecorPlacement.TryReseat / ReseatAll). decorWidthFrac <= 0 (the default for all legacy and
-    // generated data) means "no rules recorded" — the baked localPos/rotationXYZ are replayed
+    // generated data) means "no rules recorded": the baked localPos/rotationXYZ are replayed
     // verbatim, exactly as before.
     public float decorWidthFrac;        // fraction of the face width the prop may span (0 = legacy)
     public float decorHeightFrac;       // fraction of the face height
@@ -151,7 +151,7 @@ public class PathDef
 // A fence run: a polyline (same point convention as PathDef) along which WorldRenderer.RenderFences
 // repeats a panel prefab end-to-end (with posts at the joints), draped onto the terrain. The fence
 // type chooses which prefabs/panel-length/height to use from the FencePalette. Like PathDef, the
-// control points are the single source of truth — the segment GameObjects are derived geometry
+// control points are the single source of truth: the segment GameObjects are derived geometry
 // rebuilt on every render, never stored.
 [Serializable]
 public class FenceDef
@@ -179,14 +179,14 @@ public class SurfaceStrokeDef
     public string shape = "circle";
     // Fixed stamp angle in degrees, pinning every stamp to one orientation (e.g. a plaza laid on the
     // same grid as the buildings around it) instead of following the run. < 0 ⇒ auto: each stamp
-    // takes its segment's heading. Only meaningful for "square" — a disc has no orientation.
+    // takes its segment's heading. Only meaningful for "square": a disc has no orientation.
     // See BrushGeometry.ResolveStampAngleRad.
     public float angleDeg = -1f;
 }
 
 // One control point for the optional terrain heightmap: at world (x, z) meters the ground is raised
 // to `height` meters. WorldRenderer.ApplyHeightmap interpolates a low-res heightmap from the set.
-// Sparse — a few points describe a gentle grade; null/empty list ⇒ flat terrain (the default).
+// Sparse: a few points describe a gentle grade; null/empty list ⇒ flat terrain (the default).
 [Serializable]
 public class GradePointDef
 {
@@ -224,8 +224,8 @@ public class EnvironmentDef
     public int version;
     public List<string> tags;
     // Persistent read-only flag for a "digital twin" backdrop: a locked env can still be
-    // loaded and made active (it owns/paints the shared terrain), but every mutation —
-    // edit tools, Save, auto-save, Archive — refuses until it is unlocked. Distinct from
+    // loaded and made active (it owns/paints the shared terrain), but every mutation,
+    // edit tools, Save, auto-save, Archive. Refuses until it is unlocked. Distinct from
     // WorldRenderer's transient backdrop dim/collider lock, which is just "not active".
     // Round-trips through the server JSON like every other field; old records default false.
     public bool locked;

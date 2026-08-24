@@ -3,7 +3,7 @@ using UnityEngine;
 
 // The winding decision lives here rather than in the triangulator, so this is where it gets checked.
 // Looking down at the XZ plane from +Y, a counter-clockwise (x, z) polygon also reads
-// counter-clockwise on screen — the wrong way round for an up-facing floor under Unity's
+// counter-clockwise on screen: the wrong way round for an up-facing floor under Unity's
 // clockwise-is-front rule. Floors therefore reverse the triangulator's order and ceilings keep it.
 //
 // An inverted floor is invisible from above and solid from below, which in a first-person walkthrough
@@ -109,7 +109,7 @@ public class RoomMeshBuilderTests
     // ---------------------------------------------------------------------------------------
 
     // Under Unity's left-handed cross product, Cross(p1 - p0, p2 - p0) yields the outward normal of a
-    // correctly wound front face — the same relation MeshAccum's AddQuad convention is built on.
+    // correctly wound front face: the same relation MeshAccum's AddQuad convention is built on.
     private static void AssertEveryTriangleFaces(Mesh mesh, Vector3 expected)
     {
         var v = mesh.vertices;

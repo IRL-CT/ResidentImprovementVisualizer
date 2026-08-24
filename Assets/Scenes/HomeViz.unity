@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.62, g: 0.64, b: 0.68, a: 1}
-  m_AmbientEquatorColor: {r: 0.5, g: 0.5, b: 0.52, a: 1}
-  m_AmbientGroundColor: {r: 0.32, g: 0.31, b: 0.3, a: 1}
+  m_AmbientSkyColor: {r: 0.48, g: 0.5, b: 0.54, a: 1}
+  m_AmbientEquatorColor: {r: 0.39, g: 0.39, b: 0.41, a: 1}
+  m_AmbientGroundColor: {r: 0.24, g: 0.235, b: 0.23, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -165,7 +165,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ViewController
   cam: {fileID: 302760336}
   homeRenderer: {fileID: 488259710}
-  orbitSpeed: 0.25
+  editController: {fileID: 0}
+  lookSensitivity: 0.12
   panSpeed: 0.01
   zoomSpeed: 0.6
   keyPanSpeed: 6
@@ -173,7 +174,7 @@ MonoBehaviour:
   maxDistance: 80
   walkSpeed: 1.4
   lookSpeed: 0.12
-  bodyRadius: 0.25
+  bodyRadius: 0.2
 --- !u!1 &207171255
 GameObject:
   m_ObjectHideFlags: 0
@@ -305,7 +306,7 @@ Camera:
   near clip plane: 0.05
   far clip plane: 500
   field of view: 60
-  orthographic: 1
+  orthographic: 0
   orthographic size: 10
   m_Depth: -1
   m_CullingMask:
@@ -489,7 +490,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HomeRenderer
   materialPalette: {fileID: 11400000, guid: 6d80e8d80b36ec6499ffa0d022b53c0b, type: 2}
   furnitureCatalog: {fileID: 11400000, guid: a89f8658e7bfea54486f32821b52f035, type: 2}
-  prefabRegistry: {fileID: 11400000, guid: 370304202d43f44a1ba8c65ca927931d, type: 2}
+  sensorCatalog: {fileID: 11400000, guid: b2f4d6083ae5c7146b1d9e0f4c825a73, type: 2}
+  prefabRegistry: {fileID: 11400000, guid: c4a71f0e9b8d4a2eb6f35d1c07a94e83, type: 2}
   exteriorRoot: {fileID: 1988743399}
   worldRenderer: {fileID: 1174159505}
   groundPad: {fileID: 411689477}
@@ -710,7 +712,7 @@ Light:
   serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1.1
+  m_Intensity: 0.8
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208

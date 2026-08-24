@@ -95571,7 +95571,7 @@ MonoBehaviour:
   libraryClient: {fileID: 1624537040}
   libraryBrowser: {fileID: 1624537039}
   panelWidth: 360
-  useDummyLayout: 1
+  useSampleLayout: 1
 --- !u!114 &1381680489
 MonoBehaviour:
   m_ObjectHideFlags: 0

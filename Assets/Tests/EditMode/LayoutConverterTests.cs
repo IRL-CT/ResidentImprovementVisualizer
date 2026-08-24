@@ -152,7 +152,7 @@ public class LayoutConverterTests
         var binst = result.Environment.buildingInstances[0];
         Assert.AreEqual(bdef.id, binst.buildingId);
         // Sketch yaw 45° CCW-as-drawn → Unity yaw −45° = 315° (the [y,x]→(X,Z) transpose
-        // reflects the ground plane, flipping rotation sense — see LayoutConverter header).
+        // reflects the ground plane, flipping rotation sense. See LayoutConverter header).
         Assert.AreEqual(315f, binst.rotationY, 0.001f);
         Assert.IsTrue(binst.included);
     }
@@ -409,7 +409,7 @@ public class LayoutConverterTests
     [Test]
     public void Convert_AsymmetricBuildingRotation_MapsToUnityYaw()
     {
-        // 2:1 asymmetric footprint at sketch yaw 30° — the case the old passthrough got wrong.
+        // 2:1 asymmetric footprint at sketch yaw 30°: the case the old passthrough got wrong.
         var data = MinimalData();
         data.generated_buildings.Add(new GeneratedBuilding
         {

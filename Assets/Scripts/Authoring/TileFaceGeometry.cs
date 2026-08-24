@@ -9,7 +9,7 @@ using UnityEngine;
 // Geometry note: WarpVertex applies (dx, dz) independent of Y and dyTop as a pure vertical lift, so
 // WALL faces stay exactly planar under any deform (the quad's vertical plane is set by its two bottom
 // corners; the top corners differ only by a lift within that plane). Only top/bottom faces can go
-// non-planar (bilinear cage) — there the average plane through the 4 corners is used, which matches
+// non-planar (bilinear cage). There the average plane through the 4 corners is used, which matches
 // the visual surface closely for the gentle slopes the Skew tool produces.
 public static class TileFaceGeometry
 {
@@ -18,7 +18,7 @@ public static class TileFaceGeometry
     {
         public Vector3 center;   // centroid of the 4 deformed face corners
         public Vector3 normal;   // outward unit normal of the (average) face plane
-        public Vector3 up;       // DecorAlignment.FaceUp(normal, isRoof) — in-plane reference "up"
+        public Vector3 up;       // DecorAlignment.FaceUp(normal, isRoof). In-plane reference "up"
         public Vector3 right;    // in-plane across axis (sign arbitrary; used only for extents)
         public float   width;    // SAFE width: the shorter of the bottom/top edges projected on right
         public float   height;   // uTop - uBottom: the vertical band guaranteed inside the face
@@ -43,7 +43,7 @@ public static class TileFaceGeometry
 
     // Corner-post ordering matches TileDeform: plan corners [0]=(-x,-z) [1]=(+x,-z) [2]=(+x,+z)
     // [3]=(-x,+z); +4 = the top vertex of the same post. Per face: (bl, br, tl, tr) as seen from
-    // OUTSIDE, chosen so bl/br are the face's bottom edge and bl/tl share one vertical post — the
+    // OUTSIDE, chosen so bl/br are the face's bottom edge and bl/tl share one vertical post: the
     // frame math only relies on that pairing (normal sign is fixed against BaselineDir below).
     // Top/bottom use +Z as their "up" edge, matching DecorAlignment.FaceUp's roof reference.
     private static bool FaceQuad(string face, out int bl, out int br, out int tl, out int tr)
@@ -71,13 +71,13 @@ public static class TileFaceGeometry
         if (!FaceQuad(face, out int bl, out int br, out int tl, out int tr)) return false;
 
         // The 8 undeformed corner posts in cell-local meters (cell centered on the origin, floor
-        // plane at y = -h) — the same convention as TileDeformField.BuildDeformedMesh.
+        // plane at y = -h): the same convention as TileDeformField.BuildDeformedMesh.
         float h = cellSize * 0.5f;
         float[] xs = { -h, +h, +h, -h };
         float[] zs = { -h, -h, +h, +h };
 
         // Tile rotation, mirroring TileSpawner: a deformed SQUARE is built procedurally in grid space
-        // (rotation ignored — see TileSpawner.SpawnDeformedBox); everything else rotates the cell.
+        // (rotation ignored, see TileSpawner.SpawnDeformedBox); everything else rotates the cell.
         bool ignoreRotation = tile.deform != null && tile.shapeId == "square";
         Quaternion rot = ignoreRotation
             ? Quaternion.identity
@@ -100,7 +100,7 @@ public static class TileFaceGeometry
 
         Vector3 center = (cBL + cBR + cTL + cTR) * 0.25f;
 
-        // Average plane through the 4 corners (exact for walls — see header note). The normal's sign
+        // Average plane through the 4 corners (exact for walls, see header note). The normal's sign
         // is fixed against the face's rotated baseline axis so it always points OUTWARD.
         Vector3 rightRaw = (cBR + cTR - cBL - cTL) * 0.5f;
         Vector3 upRaw    = (cTL + cTR - cBL - cBR) * 0.5f;
@@ -115,7 +115,7 @@ public static class TileFaceGeometry
 
         // Safe extents: project the corners into the frame about the center. The shorter of the
         // bottom/top edges bounds the width (a trapezoid's short edge wins), and the highest bottom
-        // corner / lowest top corner bound the vertical band — so a prop fit inside (width × height)
+        // corner / lowest top corner bound the vertical band, so a prop fit inside (width × height)
         // never pokes past the deformed face edges (shrink-to-fit).
         float rBL = Vector3.Dot(cBL - center, right), rBR = Vector3.Dot(cBR - center, right);
         float rTL = Vector3.Dot(cTL - center, right), rTR = Vector3.Dot(cTR - center, right);

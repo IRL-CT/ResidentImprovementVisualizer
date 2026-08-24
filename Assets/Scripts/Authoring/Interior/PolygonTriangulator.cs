@@ -3,13 +3,13 @@ using UnityEngine;
 
 // Ear-clipping triangulation for simple polygons (concave allowed, holes not).
 //
-// Room floors are authored as free polygons, so a fan triangulation is not enough — an L-shaped
+// Room floors are authored as free polygons, so a fan triangulation is not enough: an L-shaped
 // living room or a bathroom with a bumped-out shower is concave, and a fan would fill across the
 // notch. Ear clipping is the standard answer at this scale: O(n²) worst case, which is irrelevant
 // when n is the dozen-or-so corners a real room has.
 //
 // OUTPUT WINDING: triangles come out in the same counter-clockwise (x, z) order as the input. That
-// is deliberately NOT "ready to render" — which way a triangle must wind depends on whether it ends
+// is deliberately NOT "ready to render", which way a triangle must wind depends on whether it ends
 // up as a floor (normal +Y) or a ceiling (normal -Y), so RoomMeshBuilder makes that decision. See
 // the note there.
 //
@@ -66,7 +66,7 @@ public static class PolygonTriangulator
                 break;
             }
 
-            // No ear found — the polygon is self-intersecting or numerically degenerate. Keep the
+            // No ear found: the polygon is self-intersecting or numerically degenerate. Keep the
             // triangles produced so far rather than discarding the user's whole room.
             if (!clipped) break;
         }
@@ -145,7 +145,7 @@ public static class PolygonTriangulator
     //     an ear, and skipping them is both faster and avoids false blocks.
     //   * Containment is INCLUSIVE (>= 0, not > 0). On an L-shaped room the reflex corner frequently
     //     lands exactly on the candidate ear's hypotenuse; with a strict test it fails to block the
-    //     ear, and the clip cuts straight across the notch — filling the whole bounding box.
+    //     ear, and the clip cuts straight across the notch. Filling the whole bounding box.
     private static bool IsEar(IReadOnlyList<Vector2> poly, List<int> idx, int i)
     {
         int n = idx.Count;

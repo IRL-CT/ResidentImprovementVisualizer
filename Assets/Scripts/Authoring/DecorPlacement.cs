@@ -8,7 +8,7 @@ using UnityEngine;
 // spawning, so decor follows the building whenever its skew changes (Skew tool, undo, server data)
 // while the actual spawn code keeps replaying the baked fields exactly as before.
 //
-// Legacy data (decorWidthFrac == 0 or no hostFace — all pre-existing and generated JSON) is never
+// Legacy data (decorWidthFrac == 0 or no hostFace: all pre-existing and generated JSON) is never
 // touched: its baked localPos/rotation replay verbatim.
 public static class DecorPlacement
 {
@@ -17,7 +17,7 @@ public static class DecorPlacement
         emb != null && !string.IsNullOrEmpty(emb.hostFace) && emb.decorWidthFrac > 0f;
 
     // Recomputes emb.localPos / rotationXYZ / scale from the host tile's current deform and writes
-    // them back into the def. False (def untouched) when the face frame can't be derived — unknown
+    // them back into the def. False (def untouched) when the face frame can't be derived. Unknown
     // face name, degenerate face, or a legacy def.
     public static bool TryReseat(TileDef host, EmbeddedObjectDef emb, float cellSize,
                                  DecorAlignment.PropBasis basis)
@@ -68,7 +68,7 @@ public static class DecorPlacement
         }
     }
 
-    // Measures the prop's bounds in the post-authored frame (prefab.transform.rotation applied — the
+    // Measures the prop's bounds in the post-authored frame (prefab.transform.rotation applied: the
     // frame embRot acts on) and returns its mount basis. Measured off-screen to avoid a one-frame
     // flash of the throwaway instance. Returns false (and an identity-ish basis) for a missing prefab.
     public static bool MeasurePropBasis(GameObject prefab, DecorAlignment.MountAxis axis, bool flip,

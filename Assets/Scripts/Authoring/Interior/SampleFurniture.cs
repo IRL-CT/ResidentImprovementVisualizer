@@ -4,14 +4,14 @@ using UnityEngine;
 // Footprints for the FurnitureCatalog ids, mirrored into the CXRAuthoring assembly.
 //
 // WHY THIS DUPLICATES THE CATALOG: FurnitureCatalog is a ScriptableObject in Assembly-CSharp, and
-// CXRAuthoring has no references — so PlanBuilder, which lives here so the sample plans can be unit
+// CXRAuthoring has no references, so PlanBuilder, which lives here so the sample plans can be unit
 // tested, cannot read the .asset. The numbers below are transcribed from Assets/Resources/
 // FurnitureCatalog.asset and SampleHomeInstaller re-checks them against the live catalog on seed, so
 // drift is reported rather than discovered.
 //
 // Field order matches FurnitureCatalog.Entry: widthM is across the item's front (local X), depthM is
 // front-to-back (local Z), heightM is up (local Y). Note that ObjectInstance.boxSizeMeters wants
-// [w, h, d] — see BoxSize, which does that reorder so callers never get it wrong.
+// [w, h, d]. See BoxSize, which does that reorder so callers never get it wrong.
 public static class SampleFurniture
 {
     public struct Item
@@ -30,7 +30,7 @@ public static class SampleFurniture
         public float[] BoxSize => new[] { width, height, depth };
     }
 
-    /// <summary>Fallback for an unknown key — matches HomeRenderer.ItemSize's own last resort.</summary>
+    /// <summary>Fallback for an unknown key. Matches HomeRenderer.ItemSize's own last resort.</summary>
     public static readonly Item Unknown = new Item
     {
         id = null, width = 0.6f, depth = 0.6f, height = 0.8f,
@@ -98,7 +98,9 @@ public static class SampleFurniture
             Floor("refrigerator",    0.91f, 0.76f, 1.78f),
             Floor("range",           0.76f, 0.66f, 0.91f),
             Floor("island",          1.22f, 0.76f, 0.91f),
-            Wall ("wall_cabinet",    0.76f, 0.33f, 0.76f, 1.37f),
+            // 1.75 is the CENTRE, which is what mountHeight means everywhere. That puts the cabinet's
+            // bottom back at the standard 1.37 m: 0.46 m of clear splashback over a 0.91 m counter.
+            Wall ("wall_cabinet",    0.76f, 0.33f, 0.76f, 1.75f),
 
             // living
             Floor("sofa",            1.83f, 0.89f, 0.84f),
@@ -125,7 +127,7 @@ public static class SampleFurniture
 
     /// <summary>
     /// The item's axis-aligned footprint in world XZ once rotated by <paramref name="yaw"/> degrees.
-    /// Only multiples of 90 are used by the samples, so this snaps rather than building a full OBB —
+    /// Only multiples of 90 are used by the samples, so this snaps rather than building a full OBB,
     /// an approximate box would make the "furniture is inside its room" test approximate too.
     /// </summary>
     public static Vector2 FootprintXZ(Item item, float yaw)

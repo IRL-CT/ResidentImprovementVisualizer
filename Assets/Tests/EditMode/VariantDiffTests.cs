@@ -6,7 +6,7 @@ using NUnit.Framework;
 // sentences is the half that gets read aloud in a meeting, so the strings are part of the contract.
 //
 // Everything hinges on element ids surviving a variant duplication. If they don't, every comparison
-// degenerates into "removed everything, added everything" — which is why several tests below assert
+// degenerates into "removed everything, added everything", which is why several tests below assert
 // on Modified specifically rather than just on the change count.
 [TestFixture]
 public class VariantDiffTests
@@ -83,7 +83,7 @@ public class VariantDiffTests
         to.levels[0].openings.Add(new OpeningDef
         {
             id = "o2", wallId = "w1", offset = 3f, width = 0.9f, height = 2.032f,
-            kind = OpeningKind.Window, swing = OpeningSwing.None, sillHeight = 0.9f,
+            kind = OpeningKind.Window, sillHeight = 0.9f,
         });
 
         var added = Single(VariantDiff.Compare(Baseline(), to), VariantDiff.ElementKind.Opening);
@@ -177,7 +177,7 @@ public class VariantDiffTests
     // ---- the optional exterior layer ----
 
     [Test]
-    public void AddedExteriorRamp_IsSummarisedNotEnumerated()
+    public void AddedExteriorRamp_IsSummarizedNotEnumerated()
     {
         var to = Baseline();
         to.exterior = new SiteDef
@@ -259,7 +259,7 @@ public class VariantDiffTests
                         id = "o1", wallId = "w1", offset = 2.5f,
                         width = 0.8128f,          // 32"
                         height = 2.032f,
-                        kind = OpeningKind.Door, swing = OpeningSwing.LeftIn,
+                        kind = OpeningKind.Door,
                     },
                 },
                 rooms = new List<RoomDef>(),

@@ -13,7 +13,7 @@ using UnityEngine;
 //   terrainHeightM = site_height_ft × FT_TO_M
 // - Conversion runs Unity-side; caller POSTs result to /api/environments.
 //
-// Coordinate convention (RESOLVED — was the build-plan audit's open item):
+// Coordinate convention (RESOLVED, was the build-plan audit's open item):
 //   The LLM schema labels coordinates [ymin, xmin, ymax, xmax] / center_point [y, x]; this converter
 //   (and the Python visualize_output) map index [0] → Unity X and index [1] → Unity Z. That swap is a
 //   REFLECTION of the ground plane, which reverses rotation sense: a rotation_y_deg of θ, defined in
@@ -256,7 +256,7 @@ public static class LayoutConverter
 
     // Generated paths → editable PathDefs. Same canvas→meters transform as zones/placement
     // (index [0] → X, index [1] → Z); width is given in feet (like target_dimensions_ft) → meters.
-    // See the file-header coordinate-transpose caveat — applies here identically.
+    // See the file-header coordinate-transpose caveat. Applies here identically.
     private static List<PathDef> ConvertPaths(
         FullTerrainData src, float canvasW, float canvasH,
         float terrainWidthM, float terrainHeightM)

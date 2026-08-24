@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
-// PlanBuilder exists because the render path never complains about bad geometry — it clamps, skips, or
+// PlanBuilder exists because the render path never complains about bad geometry. It clamps, skips, or
 // leaves a notch. These tests pin the three derivations that make hand-authored plans safe: shared
 // walls collapse, overlapping walls resolve, and T-junctions split so corners can weld.
 [TestFixture]
@@ -39,6 +39,153 @@ public class PlanBuilderTests
         Assert.AreEqual(6f, total, 1e-3f, "The runs must cover the union exactly, with no overlap.");
 
         AssertNoOverlaps(level);
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // Rooms built from more than one rectangle
+    //
+    // An L-shaped room described as two ROOMS gets a full-height wall along the edge between them,
+    // it renders, it encloses, and nothing anywhere reports it, which is the exact class of silent
+    // failure this whole file exists to close. Declared as a room and a PART of it instead, the wall
+    // has to disappear and the two rectangles have to come out as one floor.
+    // -------------------------------------------------------------------------------------------
+
+    [Test]
+    public void TwoRoomsSharingAnEdge_KeepTheWallBetweenThem()
+    {
+        // The control for the case below: same two rectangles, declared as separate rooms.
+        var level = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 5f, 4f)
+            .Room("nook", "Nook", RoomType.Living, 5f, 0f, 3f, 2f)
+            .Build();
+
+        // The line x = 5 splits at z = 2 where the nook's north wall T-joins it, so it is two pieces
+        //, but they cover the whole 4 m, because every stretch of it is a wall between two rooms or
+        // between a room and the outside. The part case below is what has to differ: 2 m, not 4.
+        var onLine = WallsOnVerticalLine(level, 5f);
+        float total = 0f;
+        foreach (var w in onLine) total += WallLayout.WallLength(w);
+        Assert.AreEqual(4f, total, 1e-3f, "Two separate rooms must be walled off from each other.");
+
+        Assert.AreEqual(2, level.rooms.Count);
+    }
+
+    [Test]
+    public void APartOfARoom_HasNoWallBetweenItAndTheRestOfTheRoom()
+    {
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 5f, 4f);
+        builder.RoomPart("living_nook", "living", 5f, 0f, 3f, 2f);
+        var level = builder.Build();
+
+        CollectionAssert.IsEmpty(builder.Warnings);
+
+        // x = 5 is shared between the two pieces for z 0..2, and is the room's own east wall above
+        // that. The shared stretch must be gone; the rest must survive.
+        var onLine = WallsOnVerticalLine(level, 5f);
+        Assert.AreEqual(1, onLine.Count, "Only the part of x = 5 outside the room should remain.");
+        Assert.AreEqual(2f, WallLayout.WallLength(onLine[0]), 1e-3f,
+                        "The surviving piece is z 2..4; the shared stretch z 0..2 is interior.");
+
+        AssertNoOverlaps(level);
+        AssertNoInteriorEndpoints(level);
+    }
+
+    [Test]
+    public void APartOfARoom_ComesOutAsOneRoomWithTheUnionAsItsFloor()
+    {
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 5f, 4f);
+        builder.RoomPart("living_nook", "living", 5f, 0f, 3f, 2f);
+        var level = builder.Build();
+
+        Assert.AreEqual(1, level.rooms.Count, "Two rectangles, one room.");
+        Assert.AreEqual("r_living", level.rooms[0].id, "The room keeps the parent's id.");
+        Assert.AreEqual("Living", level.rooms[0].name);
+
+        var poly = PolygonTriangulator.ToVector2(level.rooms[0].polygon);
+        Assert.AreEqual(6, poly.Count, "An L has six corners once collinear points are stripped.");
+        Assert.AreEqual(5f * 4f + 3f * 2f, Mathf.Abs(PolygonTriangulator.SignedArea(poly)), 1e-3f);
+        Assert.Greater(PolygonTriangulator.SignedArea(poly), 0f,
+                       "CCW, like every other room polygon this builder emits.");
+
+        // Every corner of the union, and no corner that is only a corner of one rectangle.
+        AssertHasCorner(poly, new Vector2(0f, 0f));
+        AssertHasCorner(poly, new Vector2(8f, 0f));
+        AssertHasCorner(poly, new Vector2(8f, 2f));
+        AssertHasCorner(poly, new Vector2(5f, 2f));
+        AssertHasCorner(poly, new Vector2(5f, 4f));
+        AssertHasCorner(poly, new Vector2(0f, 4f));
+    }
+
+    [Test]
+    public void APartThatOnlyTouchesAtACorner_IsRefusedWithAWarning()
+    {
+        // A corner meeting pinches the room to nothing there. It is not a shape that can be walked
+        // through, and inventing a bounding box would claim floor the plan does not show.
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 4f, 4f);
+        builder.RoomPart("living_odd", "living", 4f, 4f, 3f, 3f);
+        var level = builder.Build();
+
+        Assert.AreEqual(1, builder.Warnings.Count, string.Join(" / ", builder.Warnings));
+        StringAssert.Contains("do not join", builder.Warnings[0]);
+
+        var poly = PolygonTriangulator.ToVector2(level.rooms[0].polygon);
+        Assert.AreEqual(4f * 4f, Mathf.Abs(PolygonTriangulator.SignedArea(poly)), 1e-3f,
+                        "It falls back to the rectangle it was declared with.");
+    }
+
+    [Test]
+    public void APartOfAnUnknownRoom_IsRefusedRatherThanBecomingItsOwnRoom()
+    {
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 4f, 4f);
+        builder.RoomPart("orphan", "conservatory", 4f, 0f, 3f, 3f);
+        var level = builder.Build();
+
+        Assert.AreEqual(1, builder.Warnings.Count, string.Join(" / ", builder.Warnings));
+        StringAssert.Contains("conservatory", builder.Warnings[0]);
+        Assert.AreEqual(1, level.rooms.Count);
+    }
+
+    [Test]
+    public void FurnitureInOnePart_StillCountsAsAnObstacleInAnother()
+    {
+        // The two pieces are one room, so two items sliding toward the shared corner have to see each
+        // other. Keying the bookkeeping on the rectangle rather than on the room would let them
+        // overlap, and nothing downstream would say so.
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 5f, 4f);
+        builder.RoomPart("living_nook", "living", 5f, 0f, 3f, 2f);
+        builder.Against("sofa", "living", PlanEdge.South, 1f);
+        builder.Against("armchair", "living_nook", PlanEdge.South, 0f);
+        var level = builder.Build();
+
+        CollectionAssert.IsEmpty(builder.Warnings);
+        Assert.AreEqual(2, level.furniture.Count);
+
+        var a = HomeMetrics.FootprintOf(level.furniture[0]);
+        var b = HomeMetrics.FootprintOf(level.furniture[1]);
+        Assert.IsFalse(a.Overlaps(b), "Items in two pieces of one room must not be placed on top "
+                                    + "of each other.");
+    }
+
+    [Test]
+    public void APartIsAddressableForOpeningsOnItsOwnWalls()
+    {
+        var builder = new PlanBuilder()
+            .Room("living", "Living", RoomType.Living, 0f, 0f, 5f, 4f);
+        builder.RoomPart("living_nook", "living", 5f, 0f, 3f, 2f);
+        builder.Window("living_nook", PlanEdge.East, 0.5f, 1.2f);
+        var level = builder.Build();
+
+        CollectionAssert.IsEmpty(builder.Warnings);
+        Assert.AreEqual(1, level.openings.Count, "A window on the nook's own east wall.");
+
+        var host = level.walls.Find(w => w.id == level.openings[0].wallId);
+        Assert.IsNotNull(host, "The opening has to resolve to a wall, or the renderer skips it.");
+        Assert.AreEqual(8f, host.a[0], 1e-3f, "That wall is the nook's east edge, x = 8.");
     }
 
     [Test]
@@ -85,7 +232,7 @@ public class PlanBuilderTests
         Assert.AreEqual(4, poly.Count);
         Assert.Greater(PolygonTriangulator.SignedArea(poly), 0f, "Polygons must wind CCW.");
         Assert.AreEqual(12f, RoomMeshBuilder.FloorArea(room), 1e-3f);
-        Assert.AreEqual("floor_carpet", room.floorMaterial, "Bedrooms follow RoomTool's default.");
+        Assert.AreEqual(RoomType.Bedroom, room.roomType, "The type is what picks the floor finish.");
     }
 
     [Test]
@@ -121,7 +268,7 @@ public class PlanBuilderTests
         Assert.IsNotNull(wall, "The opening must reference a real wall.");
         Assert.IsTrue(OpeningFit.IsValid(opening, wall, level));
 
-        // Centred in the 3 m overlap, on the wall that spans exactly that overlap.
+        // Centered in the 3 m overlap, on the wall that spans exactly that overlap.
         Assert.AreEqual(3f, WallLayout.WallLength(wall), 1e-3f);
         Assert.AreEqual(1.5f, opening.offset, 1e-3f);
     }
@@ -170,7 +317,7 @@ public class PlanBuilderTests
         var wall = FindWall(level, mount.wallId);
         Assert.IsNotNull(wall);
 
-        // The shared wall runs +Z, so its "left" face is -X — the bathroom side.
+        // The shared wall runs +Z, so its "left" face is -X: the bathroom side.
         Assert.AreEqual(WallSide.Left, mount.side);
         Assert.AreEqual(0.84f, mount.mountHeight, 1e-3f, "Mount height comes from the catalog entry.");
     }
@@ -205,7 +352,7 @@ public class PlanBuilderTests
                     if ((p - a).magnitude < 1e-3f) continue;       // shares the start
                     if ((p - bb).magnitude < 1e-3f) continue;      // shares the end
                     Assert.Fail($"Wall {other.id}'s endpoint {p} lands mid-span of wall {w.id} "
-                              + $"({a} -> {bb}) — that T-junction will not weld.");
+                              + $"({a} -> {bb}), so that T-junction will not weld.");
                 }
             }
         }
@@ -277,6 +424,12 @@ public class PlanBuilderTests
         foreach (var w in level.walls)
             if (Mathf.Abs(w.a[1] - z) < 1e-3f && Mathf.Abs(w.b[1] - z) < 1e-3f) list.Add(w);
         return list;
+    }
+
+    private static void AssertHasCorner(IReadOnlyList<Vector2> poly, Vector2 want)
+    {
+        foreach (var p in poly) if ((p - want).sqrMagnitude < 1e-6f) return;
+        Assert.Fail($"No corner at {want}. Got: {string.Join(", ", poly)}");
     }
 
     private static Vector2 P(float[] v) => new Vector2(v[0], v[1]);

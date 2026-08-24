@@ -1,10 +1,10 @@
 using UnityEngine;
 
 // A toggleable, true-scale ground grid drawn with immediate-mode GL lines (so it shows in play mode
-// and in a VR mirror, unlike Gizmos). Three tiers — 1 m (faint), 5 m (brighter), 10 m (boldest, with
-// metre labels at intersections). The grid is centred on the camera and culled to a radius so the
+// and in a VR mirror, unlike Gizmos). Three tiers: 1 m (faint), 5 m (brighter), 10 m (boldest, with
+// metre labels at intersections). The grid is centered on the camera and culled to a radius so the
 // line count stays bounded regardless of site size; the 1 m tier drops out beyond a closer radius to
-// keep it cheap for VR. Purely a viewing aid — it reads nothing from and writes nothing to the
+// keep it cheap for VR. Purely a viewing aid. It reads nothing from and writes nothing to the
 // environment data. Toggle state lives in PlayerPrefs (a UI preference, not site data).
 [RequireComponent(typeof(Camera))]
 public class ScaleGridOverlay : MonoBehaviour
@@ -40,7 +40,7 @@ public class ScaleGridOverlay : MonoBehaviour
     private void EnsureMaterial()
     {
         if (_lineMat != null) return;
-        // Built-in unlit, vertex-coloured, alpha-blended material — the standard pattern for GL lines.
+        // Built-in unlit, vertex-coloured, alpha-blended material: the standard pattern for GL lines.
         var shader = Shader.Find("Hidden/Internal-Colored");
         _lineMat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
         _lineMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);

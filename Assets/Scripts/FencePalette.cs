@@ -14,8 +14,8 @@ public class FencePalette : ScriptableObject
     public class Entry
     {
         public string     fenceType;        // e.g. "picket", "lattice", "chain_link"
-        public GameObject panelPrefab;      // USER WIRES — one fence panel, modeled along +X (run dir), base at y=0
-        public GameObject postPrefab;       // USER WIRES — optional post placed at each joint/corner (may be null)
+        public GameObject panelPrefab;      // USER WIRES: one fence panel, modeled along +X (run dir), base at y=0
+        public GameObject postPrefab;       // USER WIRES. Optional post placed at each joint/corner (may be null)
         public float      panelLength = 2f; // modeled length of one panel in meters (centerline resample spacing)
         public float      height     = 1.2f;// default fence height in meters (used when FenceDef.height <= 0)
         public bool       scalePanelToFit = true; // stretch each panel along its run axis to span its gap exactly

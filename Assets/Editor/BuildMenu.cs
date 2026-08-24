@@ -3,11 +3,11 @@ using UnityEngine;
 
 // One-click builds under a "Build" menu.
 //
-// HomeViz is the top-level item because this repo's product is CXRHomeViz; the Brownfield and VR
-// builds still work but live under "Build → Legacy — Brownfield", out of the way of the app people
-// actually ship from here. They are demoted, not deleted: the Brownfield stack is still in this
+// HomeViz is the top-level item because this repo's product is CXRHomeViz; the Site and VR
+// builds still work but live under "Build → Legacy. Site", out of the way of the app people
+// actually ship from here. They are demoted, not deleted: the Site stack is still in this
 // repo and removing its menu items would leave it unbuildable. Its Python backend, however, now
-// lives OUTSIDE this repo at ../CXRLayoutGen/ — see docs/BROWNFIELD.md.
+// lives OUTSIDE this repo at ../CXRLayoutGen/. See docs/SITE.md.
 //
 // The VR builds ship only the VRViewer scene; XR is started at runtime by XRBootstrap (XR Plug-in
 // Management has "Initialize XR on Startup" OFF), so no other build touches VR even though the XR
@@ -21,7 +21,7 @@ public static class BuildMenu
     private const string VrScene      = "Assets/Scenes/VRViewer.unity";
     private const string HomeVizScene = "Assets/Scenes/HomeViz.unity";
 
-    // CXRHomeViz — the interior/home visioning app. Ships ONLY the HomeViz scene, so the Brownfield
+    // CXRHomeViz: the interior/home visioning app. Ships ONLY the HomeViz scene, so the Site
     // stack and the Python server are absent from this build: it is fully stand-alone, storing homes
     // as local files under Application.persistentDataPath. Ctrl+Shift+H.
     [MenuItem("Build/HomeViz (PC, Windows) %#h", priority = 0)]
@@ -31,9 +31,9 @@ public static class BuildMenu
               "Builds/HomeViz/CXRHomeViz.exe");
     }
 
-    // The original Brownfield PC app, unchanged (no VR). Still needs the server running:
+    // The original Site PC app, unchanged (no VR). Still needs the server running:
     // `cd ../CXRLayoutGen && python server/server.py`. Ctrl+Shift+D.
-    [MenuItem("Build/Legacy — Brownfield/Desktop (PC, Windows) %#d", priority = 100)]
+    [MenuItem("Build/Legacy Site/Desktop (PC, Windows) %#d", priority = 100)]
     public static void BuildDesktop()
     {
         Build(new[] { DesktopScene }, BuildTarget.StandaloneWindows64,
@@ -41,7 +41,7 @@ public static class BuildMenu
     }
 
     // Quest / standalone-Android headset. OpenXR is already enabled for the Android target.
-    [MenuItem("Build/Legacy — Brownfield/VR — Quest (Android) %#q", priority = 101)]
+    [MenuItem("Build/Legacy Site/VR Quest (Android) %#q", priority = 101)]
     public static void BuildVRQuest()
     {
         Build(new[] { VrScene }, BuildTarget.Android,
@@ -51,7 +51,7 @@ public static class BuildMenu
     // Tethered PCVR (Windows). NOTE: requires OpenXR enabled for the *Standalone* target in
     // Project Settings → XR Plug-in Management (the Android target already has it). Without that this
     // produces a flat Windows app.
-    [MenuItem("Build/Legacy — Brownfield/VR — PCVR (Windows)", priority = 102)]
+    [MenuItem("Build/Legacy Site/VR PCVR (Windows)", priority = 102)]
     public static void BuildVRPC()
     {
         Build(new[] { VrScene }, BuildTarget.StandaloneWindows64,

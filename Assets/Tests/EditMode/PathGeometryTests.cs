@@ -43,7 +43,7 @@ public class PathGeometryTests
         var curved = PathGeometry.Smooth(pts, 1f);
 
         // The spline still passes through the control points (interpolating), but between them it must
-        // bow off the straight two-segment polyline — that bow is the smoothing.
+        // bow off the straight two-segment polyline: that bow is the smoothing.
         float maxDev = 0f;
         foreach (var p in curved)
         {
@@ -72,7 +72,7 @@ public class PathGeometryTests
     [Test]
     public void Smooth_RoundFit_StretchesSpacingToNearestCount()
     {
-        // 10m at step 3: round(10/3)=3 subdivisions of 3.333m — spacing stretches past the step.
+        // 10m at step 3: round(10/3)=3 subdivisions of 3.333m. Spacing stretches past the step.
         var pts = new List<Vector2> { new(0, 0), new(10, 0) };
         var outPts = PathGeometry.Smooth(pts, 0f, step: 3f, roundFit: true);
 
@@ -84,7 +84,7 @@ public class PathGeometryTests
     [Test]
     public void Smooth_DefaultCeilFit_NeverExceedsStep()
     {
-        // Guard: without roundFit the ceil behavior is unchanged — 10m at step 3 gives 4 subdivisions
+        // Guard: without roundFit the ceil behavior is unchanged: 10m at step 3 gives 4 subdivisions
         // of 2.5m (this locks in the path-ribbon resample the fences no longer share).
         var pts = new List<Vector2> { new(0, 0), new(10, 0) };
         var outPts = PathGeometry.Smooth(pts, 0f, step: 3f);
@@ -142,7 +142,7 @@ public class PathGeometryTests
     [Test]
     public void RoundCorners_GentleCorner_Unchanged()
     {
-        // ~11° bend — below the 30° threshold, so it passes through untouched.
+        // ~11° bend. Below the 30° threshold, so it passes through untouched.
         var pts = new List<Vector2> { new(0, 0), new(10, 0), new(20, 2) };
         var outPts = PathGeometry.RoundCorners(pts, radius: 2f, minTurnDeg: 30f);
 

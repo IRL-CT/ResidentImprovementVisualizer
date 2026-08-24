@@ -4,7 +4,7 @@ using UnityEngine;
 
 // Room floors are free polygons, so the triangulator meets concave shapes (an L-shaped living room),
 // sloppy input (duplicate and collinear points from a drag), and briefly self-intersecting shapes
-// while a polygon is being drawn. It must degrade rather than throw or hang — a hung editor during a
+// while a polygon is being drawn. It must degrade rather than throw or hang: a hung editor during a
 // visioning session is worse than a slightly wrong floor.
 [TestFixture]
 public class PolygonTriangulatorTests
@@ -62,7 +62,7 @@ public class PolygonTriangulatorTests
     [Test]
     public void CollinearPoints_DoNotDeadlockTheClipLoop()
     {
-        // A midpoint dropped on a straight edge — exactly what a stray click produces.
+        // A midpoint dropped on a straight edge: exactly what a stray click produces.
         var poly = new List<Vector2>
         {
             new Vector2(0, 0), new Vector2(2, 0), new Vector2(4, 0),
@@ -146,6 +146,55 @@ public class PolygonTriangulatorTests
         Assert.AreEqual(4f, back[1][0], 1e-4f);
     }
 
+    [Test]
+    public void KeyholePolygon_TriangulatesToOuterMinusHole()
+    {
+        // A 3x3 outer ring with a 1x1 hole, expressed as ONE ring via a bridge cut: out along the
+        // bridge, around the hole CLOCKWISE, back along the coincident twin edge. This is what
+        // RoomRegions emits for a room with a detached wall loop inside it, so the two load-bearing
+        // triangulator details (inclusive reflex containment, only CONSECUTIVE duplicates dropped) 
+        // are pinned here on purpose.
+        var keyhole = new List<Vector2>
+        {
+            new Vector2(0, 0),
+            new Vector2(1, 1), new Vector2(1, 2), new Vector2(2, 2), new Vector2(2, 1),
+            new Vector2(1, 1),
+            new Vector2(0, 0),
+            new Vector2(3, 0), new Vector2(3, 3), new Vector2(0, 3),
+        };
+
+        var tris = PolygonTriangulator.Triangulate(keyhole);
+
+        Assert.Greater(tris.Count, 0, "The keyhole must clip, not stall.");
+        AssertCoversArea(keyhole, tris, 8f);   // 9 - 1: the twin bridge edges cancel
+
+        for (int i = 0; i + 2 < tris.Count; i += 3)
+        {
+            Vector2 c = (keyhole[tris[i]] + keyhole[tris[i + 1]] + keyhole[tris[i + 2]]) / 3f;
+            Assert.IsFalse(c.x > 1f && c.x < 2f && c.y > 1f && c.y < 2f,
+                "No triangle may cover the hole.");
+        }
+    }
+
+    [Test]
+    public void VertexTouchingKeyhole_Triangulates()
+    {
+        // The bridge degenerates to a shared vertex: the ring visits (0, 0) twice with no bridge
+        // edge between the visits: a hole hung off one corner of the room.
+        var keyhole = new List<Vector2>
+        {
+            new Vector2(0, 0),
+            new Vector2(1, 2), new Vector2(2, 1),   // the hole, clockwise
+            new Vector2(0, 0),
+            new Vector2(4, 0), new Vector2(4, 4), new Vector2(0, 4),
+        };
+
+        var tris = PolygonTriangulator.Triangulate(keyhole);
+
+        Assert.Greater(tris.Count, 0, "The touching keyhole must clip, not stall.");
+        AssertCoversArea(keyhole, tris, 14.5f);   // 16 - 1.5
+    }
+
     // ---------------------------------------------------------------------------------------
 
     private static List<Vector2> Square(float size) => new List<Vector2>
@@ -153,7 +202,7 @@ public class PolygonTriangulatorTests
         new Vector2(0, 0), new Vector2(size, 0), new Vector2(size, size), new Vector2(0, size),
     };
 
-    // The triangles must tile the polygon exactly — same total area, no overlap, no spill.
+    // The triangles must tile the polygon exactly: same total area, no overlap, no spill.
     private static void AssertCoversArea(List<Vector2> poly, List<int> tris, float expected)
     {
         float sum = 0f;

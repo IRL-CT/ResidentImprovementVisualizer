@@ -116,7 +116,7 @@ public class LibraryClient : MonoBehaviour
         T obj;
         try { obj = JsonConvert.DeserializeObject<T>(req.downloadHandler.text); }
         catch (Exception e) { onError?.Invoke(e.Message); yield break; }
-        // An empty or "null" body deserializes to null without throwing — route it
+        // An empty or "null" body deserializes to null without throwing. Route it
         // to onError so callers never receive a null record.
         if (obj == null) { onError?.Invoke($"Empty/invalid response from {url}"); yield break; }
         onSuccess?.Invoke(obj);

@@ -6,7 +6,7 @@ using UnityEngine;
 //
 // THIS IS THE FILE THAT AVOIDS CSG. Cutting a door out of a wall is the obvious way to model an
 // opening and the wrong way to implement one: boolean mesh subtraction is slow, numerically fragile,
-// and produces geometry nobody can re-edit. Instead a wall is never solid to begin with — it is a
+// and produces geometry nobody can re-edit. Instead a wall is never solid to begin with. It is a
 // list of boxes, and an opening is simply a gap the list skips over:
 //
 //     wall a------------------------------------------------b       length L, height H
@@ -17,12 +17,12 @@ using UnityEngine;
 //
 // Everything here works in the wall's 1-D CENTERLINE space: `t` runs 0..length from endpoint `a`
 // toward `b`, and `y` runs 0..height above the finished floor. No 3-D vectors, no transforms, no
-// Unity scene access — which is exactly why it is cheap to unit-test every awkward case (an opening
+// Unity scene access, which is exactly why it is cheap to unit-test every awkward case (an opening
 // flush against a corner, two openings touching, an opening taller than its wall).
 //
 // Junction extension is deliberately NOT applied here. WallMeshBuilder extends the boxes that touch
 // t=0 and t=length outward by half a thickness so corners close. Keeping that out of this file means
-// an opening's `offset` never shifts when a neighbouring wall is added or removed.
+// an opening's `offset` never shifts when a neighboring wall is added or removed.
 public static class WallLayout
 {
     public enum Kind
@@ -55,14 +55,14 @@ public static class WallLayout
     /// <summary>
     /// Builds the solid boxes for a wall of the given length and height, with the given openings.
     /// Openings are matched to the wall by the caller; anything passed in is assumed to belong here.
-    /// Overlapping openings are tolerated (they merge into one void) rather than throwing — bad data
+    /// Overlapping openings are tolerated (they merge into one void) rather than throwing. Bad data
     /// should render oddly, never crash a visioning session.
     /// </summary>
     public static List<Box> Build(float wallLength, float wallHeight, IReadOnlyList<OpeningDef> openings)
     {
         var boxes = new List<Box>();
         if (wallLength <= HomeConventions.EPS || wallHeight <= HomeConventions.EPS)
-            return boxes;   // degenerate wall — nothing to draw
+            return boxes;   // degenerate wall: nothing to draw
 
         var spans = CollectSpans(wallLength, wallHeight, openings);
 
@@ -165,7 +165,7 @@ public static class WallLayout
             float sill = Mathf.Clamp(o.sillHeight, 0f, wallHeight);
             float rawHeight = o.height > HomeConventions.EPS ? o.height : wallHeight;
             float top = Mathf.Min(sill + rawHeight, wallHeight);
-            if (top - sill <= HomeConventions.EPS) continue;   // no vertical extent — not a void
+            if (top - sill <= HomeConventions.EPS) continue;   // no vertical extent: not a void
 
             spans.Add(new Span { t0 = t0, t1 = t1, sill = sill, top = top, id = o.id });
         }

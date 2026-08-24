@@ -81,7 +81,7 @@ public class BakePass : MonoBehaviour
         }
 
         if (logPerfBudget)
-            Debug.Log($"[BakePass] Bake complete — draw calls: {totalDrawCalls}, verts: {totalVerts:N0}");
+            Debug.Log($"[BakePass] Bake complete. Draw calls: {totalDrawCalls}, verts: {totalVerts:N0}");
     }
 
     public void UnbakeAll()

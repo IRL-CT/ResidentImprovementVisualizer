@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Direction B — "Docked Rails" shell.
+// Direction B: "Docked Rails" shell.
 //
 // The redesign (Assets/Redesign.html) docks the tool to the screen edges: a Library rail on the
 // left, a single context Inspector rail on the right whose content swaps by the active mode, and a
@@ -12,12 +12,12 @@ using UnityEngine;
 //   Browse   → EditController (selection / transform)
 //   Place    → EditController (asset thumbnail grid)
 //   Terrain  → EditController (paths / scatter / ground)
-//   Build    → TileBuildingEditor (tile editor)   — EditController shows an empty-state until a
+//   Build    → TileBuildingEditor (tile editor). EditController shows an empty-state until a
 //                                                    building is opened
 //   Generate → ModelRequesterUI (Sketch → 3D)
 //
 // (Admin re-render / duplicate / archive / delete moved to the Library rail's Loaded rows,
-// revealed by the Admin toggle — the old Manage command is gone.)
+// revealed by the Admin toggle: the old Manage command is gone.)
 
 public enum AppMode { Browse, Place, Terrain, Build, Generate }
 
@@ -46,7 +46,7 @@ public static class UIMode
 // GameObject as the other tool components; references auto-resolve if left unassigned.
 public class UIShell : MonoBehaviour
 {
-    // USER WIRES THIS IN INSPECTOR (optional — falls back to scene lookup):
+    // USER WIRES THIS IN INSPECTOR (optional, falls back to scene lookup):
     [SerializeField] private EditController    editController;
     [SerializeField] private TileBuildingEditor tileBuildingEditor;
     [SerializeField] private ModelRequesterUI  modelRequester;
@@ -63,21 +63,21 @@ public class UIShell : MonoBehaviour
     }
 
     // The active shell, so the scene-picking code can ask where the bar is. Null when no shell is
-    // in the scene (VRViewer) or it's disabled — then nothing is blocked.
+    // in the scene (VRViewer) or it's disabled. Then nothing is blocked.
     private static UIShell _active;
 
     private void OnEnable()  { _active = this; UIMode.Changed += OnModeChanged; }
     private void OnDisable() { if (_active == this) _active = null; UIMode.Changed -= OnModeChanged; }
 
     // Screen rect of the command bar in GUI space (origin top-left), or an empty rect when no shell
-    // is active. Single definition — OnGUI draws to it and the hit test below reads it, so the two
+    // is active. Single definition. OnGUI draws to it and the hit test below reads it, so the two
     // can't drift as barWidth or the window size changes.
     public static Rect BarRect => _active == null
         ? Rect.zero
         : new Rect((Screen.width - _active.barWidth) * 0.5f, UITheme.Margin,
                    _active.barWidth, UITheme.PrimaryH + UITheme.Pad * 2f);
 
-    // True when `screenPos` — Input System screen coords, origin BOTTOM-left — lands on the command
+    // True when `screenPos` (Input System screen coords, origin BOTTOM-left) lands on the command
     // bar. Every tool's "is the pointer over UI?" test only checks x against the left/right rails,
     // but the bar is centered, so it falls in the gap between them: without this a click on the bar
     // also reaches the scene and selects (or paints) whatever sits behind it.

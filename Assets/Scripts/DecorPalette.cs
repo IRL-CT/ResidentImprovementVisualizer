@@ -5,7 +5,7 @@ using UnityEngine;
 // Presets for the tile editor's "Decorate" tool. Each entry is ONE decorative prefab (a door, a
 // window, a vent, ...) plus the rules that seat it systematically on a tile face: which surface it
 // targets, how much of the cell it spans (width/height fractions), and where it anchors vertically.
-// You pick a decor and click a tile face — the prop auto-centers, fits, and seats itself flush, the
+// You pick a decor and click a tile face: the prop auto-centers, fits, and seats itself flush, the
 // same way the Paint tool assigns a face material. Prefab keys resolve through the SAME PrefabRegistry
 // the renderer uses (WorldRenderer.RenderEmbeddedObjects), so painted decorations render identically
 // at runtime. Parallels MaterialPalette (materialId -> Material).

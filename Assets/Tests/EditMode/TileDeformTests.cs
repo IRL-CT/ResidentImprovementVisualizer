@@ -57,12 +57,12 @@ public class TileDeformTests
         foreach (var t in b.tiles)
         {
             // West edge (corners 0 and 3) is displaced; the displacement is linear in Z distance
-            // from the south wall — a straight slant, NOT decaying.
+            // from the south wall: a straight slant, NOT decaying.
             float expectNorthWest = -1f * (t.gridZ + 1); // corner 3 sits at grid z = gridZ+1, tan45=1
             float expectSouthWest = -1f * (t.gridZ);     // corner 0 sits at grid z = gridZ
             Assert.AreEqual(expectSouthWest, t.deform.dx[0], 1e-4f, "west wall slant must be constant-slope");
             Assert.AreEqual(expectNorthWest, t.deform.dx[3], 1e-4f, "west wall slant must reach the far end");
-            // East edge (corners 1, 2) is the anchor — stays put.
+            // East edge (corners 1, 2) is the anchor. Stays put.
             Assert.AreEqual(0f, t.deform.dx[1], 1e-4f, "east anchor edge stays straight");
             Assert.AreEqual(0f, t.deform.dx[2], 1e-4f, "east anchor edge stays straight");
         }
@@ -144,8 +144,8 @@ public class TileDeformTests
     public void Warp_SharedEdge_IsSeamless_AcrossTiles()
     {
         // Two tiles side-by-side on X share a vertical edge. After a corner bend, the warp must place
-        // both tiles' geometry at IDENTICAL world positions along that shared edge — for any vertex,
-        // not just the grid-corner posts — or non-box shapes would tear at the seam.
+        // both tiles' geometry at IDENTICAL world positions along that shared edge: for any vertex,
+        // not just the grid-corner posts, or non-box shapes would tear at the seam.
         var b = Grid(2, 1);
         TileDeformField.ApplyCornerBend(b, TileDeformField.Corner.SW, 30f);
         const float cs = 4f, h = 2f;

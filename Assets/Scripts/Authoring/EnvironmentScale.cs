@@ -3,15 +3,15 @@ using UnityEngine;
 
 // Pure-data scale & measurement helpers for the real-world-scale tools (Measure tool, Scale
 // Calibration, dimension readouts). Lives in the Authoring assembly because it operates only on the
-// authoring data types (EnvironmentDef / SiteDef / *Instance / *Def) plus Unity math structs — no
-// Terrain / GameObject / MonoBehaviour access — so EditController (Assembly-CSharp) and the
+// authoring data types (EnvironmentDef / SiteDef / *Instance / *Def) plus Unity math structs: no
+// Terrain / GameObject / MonoBehaviour access, so EditController (Assembly-CSharp) and the
 // generation pipeline (also Authoring) can both reach it. All coordinates are world METERS and the
 // convention is 1 Unity unit = 1 meter (see AuthoringConventions).
 public static class EnvironmentScale
 {
     // Smallest measured distance we'll calibrate against; below this the factor is meaningless.
     public const float MIN_MEASURED = 0.01f;
-    // Sanity clamp on a single calibration so a fat-fingered real-distance can't blow the scene up.
+    // Safety clamp on a single calibration so a fat-fingered real-distance can't blow the scene up.
     public const float MIN_FACTOR = 0.01f;
     public const float MAX_FACTOR = 100f;
 
@@ -100,7 +100,7 @@ public static class EnvironmentScale
     // -------------------------------------------------------------------------
 
     // Computes the calibration factor from a measured distance and the real distance it should be.
-    // Returns false (factor unset) when the input is degenerate or out of the sanity range.
+    // Returns false (factor unset) when the input is degenerate or out of the valid range.
     public static bool TryComputeFactor(float measuredMeters, float realMeters, out float factor)
     {
         factor = 1f;
@@ -115,7 +115,7 @@ public static class EnvironmentScale
     // Multiplies every world-meter quantity in the environment by a uniform `factor`, scaling
     // positions about `pivot` (in [x, z] meters) so the pivot point stays put. Sizes/widths/radii
     // scale directly. Shared BuildingDef geometry (gridCellSize/floorHeight/tiles) is intentionally
-    // NOT touched — multiple instances may share one def, and each instance's `scale` already carries
+    // NOT touched. Multiple instances may share one def, and each instance's `scale` already carries
     // the resize. Returns false (no change) for an invalid factor. Safe against null/short arrays.
     public static bool ScaleEnvironment(EnvironmentDef env, float factor, Vector2 pivot)
     {
@@ -232,7 +232,7 @@ public static class EnvironmentScale
     }
 
     // -------------------------------------------------------------------------
-    // Lot / parcel geometry — shared by the renderer (mask + frame), the editor
+    // Lot / parcel geometry. Shared by the renderer (mask + frame), the editor
     // (lot tool, fit/clamp), and the generation pipeline so they agree on shape.
     // -------------------------------------------------------------------------
 
@@ -275,7 +275,7 @@ public static class EnvironmentScale
         return inside;
     }
 
-    // Axis-aligned XZ bounds (meters) of everything placed in the environment — building & object
+    // Axis-aligned XZ bounds (meters) of everything placed in the environment. Building & object
     // instances (expanded by their footprint radius), path/stroke control points. Used by
     // "Fit lot to content". `buildingDefs` resolves each BuildingInstance.buildingId to its def for a
     // real footprint; missing defs fall back to the bare position. Returns false when nothing is found.

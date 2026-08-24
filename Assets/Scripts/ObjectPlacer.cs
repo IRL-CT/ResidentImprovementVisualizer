@@ -28,7 +28,7 @@ public class ObjectPlacer : MonoBehaviour
             float worldY = terrain.SampleHeight(new Vector3(worldX, 0, worldZ));
             Vector3 finalPos = terrain.transform.position + new Vector3(worldX, worldY, worldZ);
 
-            // 4. Instantiate and Adjust — rotation_deg is a delta on top of the prefab's
+            // 4. Instantiate and Adjust. rotation_deg is a delta on top of the prefab's
             //    authored orientation, so prefabs modeled facing a direction keep that baseline.
             GameObject obj = Instantiate(prefab, finalPos,
                 Quaternion.Euler(0, instance.rotation_deg, 0) * prefab.transform.rotation);

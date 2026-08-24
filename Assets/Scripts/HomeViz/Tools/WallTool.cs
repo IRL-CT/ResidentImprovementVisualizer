@@ -14,13 +14,22 @@ using UnityEngine.InputSystem;
 //   * TYPED LENGTH. Start a segment, type "12' 6", press Enter, and the endpoint lands exactly there.
 //     A traced sketch is approximate; a measured wall is not, and the tool has to accept both.
 //
-// Shift suspends all snapping — the convention CLAUDE.md already documents for the fence tool.
+// Shift suspends all snapping: the convention CLAUDE.md already documents for the fence tool.
 public class WallTool : HomeToolBase
 {
     public override string Id => "wall";
     public override string DisplayName => "Walls";
 
+    public override string Hint =>
+        "Click to place corners. Enter finishes the run, Esc cancels it. Type a length mid-run to "
+        + "place a corner exactly. Walls divide each other where they cross; hold Shift to draw "
+        + "free, with no snapping and no dividing.";
+
     private readonly List<Vector2> _chain = new List<Vector2>();
+
+    // Only mid-run. A click that starts a run may just as well select the chair it landed on, but once
+    // corners are down, every click belongs to the run.
+    public override bool ClaimsClicks => _chain.Count > 0;
     private Vector2 _cursor;
     private WallSnapping.Result _snap;
     private bool _hasCursor;
@@ -28,8 +37,13 @@ public class WallTool : HomeToolBase
     private string _typed = "";
     private float _thickness;
     private float _height;
-    private bool _structural;
     private WallSnapping.Options _opts = WallSnapping.Options.Default;
+
+    // Whether this click will divide the walls it crosses. Mirrors _opts.enabled: Shift suspends
+    // snapping AND linking together, so "draw free" means one thing rather than two.
+    private bool _link = true;
+    private readonly List<string> _warnings = new List<string>();
+    private WallLinker.Plan _plan;
 
     public override void Enter(HomeToolContext ctx)
     {
@@ -49,10 +63,18 @@ public class WallTool : HomeToolBase
         _hasCursor = Ctx.GroundPoint(out Vector2 raw);
         if (_hasCursor)
         {
-            _opts.enabled = !Ctx.ShiftHeld;   // Shift = draw free
+            _link = !Ctx.ShiftHeld;
+            _opts.enabled = _link;           // Shift = draw free: no snapping, no linking
             Vector2? anchor = _chain.Count > 0 ? _chain[_chain.Count - 1] : (Vector2?)null;
             _snap = WallSnapping.Snap(raw, Ctx.Level, anchor, _opts);
             _cursor = _snap.point;
+
+            // Ask the linker what this click would do, so the ghost shows the divisions before they
+            // happen: the same trick the fence tool plays with FenceLinker.FindCuts.
+            _plan = _link && _chain.Count > 0
+                ? WallLinker.Preview(Ctx.Level, new[] { _chain[_chain.Count - 1], _cursor },
+                                     WallLinker.Options.Default)
+                : default;
         }
 
         if (LeftClicked() && _hasCursor) AddPoint(_cursor);
@@ -80,7 +102,8 @@ public class WallTool : HomeToolBase
     private void CaptureTypedDigits()
     {
         var kb = Keyboard.current;
-        if (kb == null || _chain.Count == 0) return;
+        // Not while a rail field has focus: the digits belong to the field, not to the run.
+        if (kb == null || _chain.Count == 0 || HomeEditController.TypingInUI) return;
 
         for (Key k = Key.Digit1; k <= Key.Digit0; k++)
             if (kb[k].wasPressedThisFrame) _typed += DigitOf(k);
@@ -96,7 +119,7 @@ public class WallTool : HomeToolBase
     private void CommitTypedLength()
     {
         if (_chain.Count == 0) return;
-        if (!Units.TryParse(_typed, Units.BareUnit.Feet, out float meters) || meters <= 0f)
+        if (!Units.TryParse(_typed, Units.BareUnit.FollowDisplay, out float meters) || meters <= 0f)
         {
             _typed = "";
             return;
@@ -126,18 +149,49 @@ public class WallTool : HomeToolBase
     {
         if ((b - a).magnitude < 0.02f) return;
 
-        Ctx.RecordEdit("Draw wall");
-        Ctx.Level.walls.Add(new WallDef
+        var template = new WallDef
         {
-            id = Guid.NewGuid().ToString(),
-            a = new[] { a.x, a.y },
-            b = new[] { b.x, b.y },
             thickness = _thickness,
             height = _height,
             materialLeft = "paint_white",
             materialRight = "paint_white",
-            structural = _structural,
-        });
+        };
+
+        Ctx.RecordEdit("Draw wall");
+
+        _warnings.Clear();
+        int added = 0;
+
+        if (_link)
+        {
+            // One RecordEdit covers the whole mutation: this segment AND the splits it causes in the
+            // walls it crosses. Warnings are the OpeningFit convention. Written to be read verbatim.
+            added = WallLinker.Link(Ctx.Level, new[] { a, b }, template,
+                                    WallLinker.Options.Default, _warnings).Count;
+        }
+        else
+        {
+            // Shift = draw free: no snapping, no linking. The fence tool's convention, and the escape
+            // hatch for the case where the rules are getting in the way.
+            template.id = Guid.NewGuid().ToString();
+            Segments.SetEnds(template, a, b);
+            Ctx.Level.walls.Add(template);
+            added = 1;
+        }
+
+        // An enclosed area is a room, so the rooms follow the walls in the SAME undo step: a segment
+        // that closes a shape has made a room, and pressing undo once must take both back.
+        //
+        // This runs on the free-draw path too: Shift means no snapping and no dividing, not no rooms.
+        // (What it does mean is that two walls crossing without sharing a vertex stay uncrossed, so
+        // they enclose nothing, which is exactly what the wall mesh draws there.)
+        RoomRegions.Sync(Ctx.Level, _warnings);
+
+        // Sync's warnings go on the end, so the first thing shown is still the one about the gesture
+        // the user just made rather than a consequence of it.
+        if (_warnings.Count > 0) Ctx.Controller?.Status(_warnings[0]);
+        else if (added == 0) Ctx.Controller?.Status("A wall already runs along that line.");
+
         Ctx.Changed();
     }
 
@@ -153,31 +207,24 @@ public class WallTool : HomeToolBase
     {
         if (RefuseIfLocked()) return;
 
-        UITheme.Note("Click to place corners. Enter finishes the run, Esc cancels it. Hold Shift to draw without snapping.");
-        GUILayout.Space(6);
+        _thickness = MeasureUI.Length("Thickness", "Wall thickness", _thickness, 0.012f,
+                                      HomeConventions.MIN_WALL_THICKNESS, HomeConventions.MAX_WALL_THICKNESS);
+        _height = MeasureUI.Length("Height", "Wall height", _height, 0.05f,
+                                   HomeConventions.MIN_WALL_HEIGHT, HomeConventions.MAX_WALL_HEIGHT);
 
-        _thickness = UITheme.Stepper("Thickness", _thickness, 0.012f, "0.000", " m");
-        UITheme.Note("  = " + Units.Format(_thickness));
-
-        _height = UITheme.Stepper("Height", _height, 0.05f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_height));
-
-        _structural = GUILayout.Toggle(_structural, "  Structural (load-bearing)");
-        if (_structural)
-            UITheme.Note("Flagged in the inspector so a proposal that moves it is visibly an engineering question.");
-
-        GUILayout.Space(8);
-        UITheme.Header("Snapping");
-        _opts.axisLock = GUILayout.Toggle(_opts.axisLock, "  Square to 45°");
-        _opts.gridSize = UITheme.Stepper("Grid", _opts.gridSize, 0.01f, "0.00", " m");
+        UITheme.Gap();
+        _opts.axisLock = UITheme.Toggle("Square to 45°", _opts.axisLock,
+                                        "Hold each run to the nearest 45° axis");
+        _opts.gridSize = MeasureUI.Length("Grid", "Grid the corners snap to", _opts.gridSize, 0.01f, 0f, 1f);
 
         if (_chain.Count > 0)
         {
-            GUILayout.Space(8);
-            UITheme.Header("Drawing");
-            UITheme.Note($"{_chain.Count} point{(_chain.Count == 1 ? "" : "s")} placed.");
-            if (!string.IsNullOrEmpty(_typed)) UITheme.Note("Length: " + _typed + "  (Enter to place)");
+            UITheme.Gap();
+            UITheme.Value("Corners", _chain.Count.ToString(), "Corners in this run");
+            if (!string.IsNullOrEmpty(_typed))
+                UITheme.Value("Length", _typed, "Press Enter to place the corner at this length.");
             if (UITheme.SecondaryButton("Finish run")) Finish();
+            UITheme.Tip("End the run here  (Enter)");
         }
     }
 
@@ -206,7 +253,21 @@ public class WallTool : HomeToolBase
             Vector2 d = _cursor - _chain[_chain.Count - 1];
             float angle = Mathf.Repeat(Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg, 360f);
             string typed = string.IsNullOrEmpty(_typed) ? "" : "   ⌨ " + _typed;
-            OverlayDraw.Readout(cursorGui, $"{Units.Format(d.magnitude)}   {angle:0}°{typed}");
+
+            // Where this run will divide the walls it crosses. Drawn as hollow rings rather than
+            // filled dots so they read as "a junction will be made here", distinct from the solid
+            // dots marking corners already placed.
+            int cuts = _plan.junctions?.Count ?? 0;
+            for (int i = 0; i < cuts; i++)
+                if (OverlayDraw.ToScreen(Ctx.Cam, _plan.junctions[i], y, out Vector2 jg))
+                {
+                    OverlayDraw.Circle(jg, 7f, snapColor, 16, 2f);
+                    OverlayDraw.Dot(jg, 3f, snapColor);
+                }
+
+            string note = cuts > 0 ? $"   ✂ {cuts}" :
+                          _plan.duplicatesExisting ? "   • already walled" : "";
+            OverlayDraw.Readout(cursorGui, $"{Units.Format(d.magnitude)}   {angle:0}°{typed}{note}");
         }
         else
         {
@@ -219,7 +280,17 @@ public class WallTool : HomeToolBase
 
         // Name the snap that is in effect, so a corner that welded is visibly distinct from one that
         // merely landed nearby.
-        if (_snap.kind == WallSnapping.SnapKind.Endpoint || _snap.kind == WallSnapping.SnapKind.OnWall)
+        if (_snap.kind == WallSnapping.SnapKind.Endpoint || _snap.kind == WallSnapping.SnapKind.OnWall
+            || _snap.kind == WallSnapping.SnapKind.AxisOnWall)
             OverlayDraw.Circle(cursorGui, 12f, snapColor, 20, 2f);
+
+        // The alignment guide: a dashed line back to the endpoint the run is level with, so the
+        // snap shows WHY the cursor stopped here.
+        if (_snap.kind == WallSnapping.SnapKind.Align && _snap.hasGuide &&
+            OverlayDraw.ToScreen(Ctx.Cam, _snap.guideFrom, y, out Vector2 guideGui))
+        {
+            OverlayDraw.DashedLine(guideGui, cursorGui, snapColor, 1.5f);
+            OverlayDraw.Dot(guideGui, 5f, snapColor);
+        }
     }
 }

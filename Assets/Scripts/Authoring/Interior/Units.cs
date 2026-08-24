@@ -4,9 +4,13 @@ using System.Text.RegularExpressions;
 
 // The single place meters become text and text becomes meters.
 //
-// Storage is ALWAYS meters (1 Unity unit = 1 m, matching AuthoringConventions). Display defaults to
-// feet-and-inches because the audience is US group homes and assisted living, where every dimension
-// that matters — a 32" clear doorway, a 60" turning circle, a 34" counter — is spoken in inches.
+// Storage is ALWAYS meters (1 Unity unit = 1 m, matching AuthoringConventions), and DISPLAY now
+// defaults to meters too. It used to default to feet-and-inches, because the audience is US shared
+// homes and assisted living, where every dimension that matters: a 32" clear doorway, a 60" turning
+// circle, a 34" counter. Is spoken in inches. Those figures have not stopped mattering and the chip
+// in the top bar is one click away; what changed is that numbers are now DRAGGED, and a value
+// scrubbing under the cursor from 3' 11 5/8" to 4' 0 1/8" changes four glyphs at once where 1.21 m to
+// 1.22 m changes one. A unit you can read while it moves beats one you can quote afterwards.
 // Nothing outside this file may convert units; an inline "* 3.28" anywhere else is a bug.
 //
 // Parsing is deliberately forgiving, because the most important text field in the whole application
@@ -18,7 +22,7 @@ using System.Text.RegularExpressions;
 //     3.8m       3.8 m      380cm      3810mm     3.8
 //
 // A bare number takes the caller-declared BareUnit, so a wall-length field can read "12" as 12 feet
-// while a door-width field reads "32" as 32 inches — the two conventions users actually expect.
+// while a door-width field reads "32" as 32 inches: the two conventions users actually expect.
 public static class Units
 {
     // Named UnitSystem rather than System: a nested type called `System` would shadow the global
@@ -26,7 +30,7 @@ public static class Units
     public enum UnitSystem { FeetInches, Metric }
 
     // Which system the UI renders in. Set once from settings; Format() honours it by default.
-    public static UnitSystem Display = UnitSystem.FeetInches;
+    public static UnitSystem Display = UnitSystem.Metric;
 
     // How a number with no unit marker is interpreted.
     public enum BareUnit { Feet, Inches, Meters, FollowDisplay }
@@ -131,7 +135,7 @@ public static class Units
 
         string s = text.Trim().ToLowerInvariant();
 
-        // Explicit metric suffixes first — longest match wins so "mm" is never read as "m".
+        // Explicit metric suffixes first. Longest match wins so "mm" is never read as "m".
         if (TryStripSuffix(s, "mm", out string num) && TryNumber(num, out double mm))
         { meters = (float)(mm * 0.001); return true; }
         if (TryStripSuffix(s, "cm", out num) && TryNumber(num, out double cm))
@@ -176,7 +180,7 @@ public static class Units
             return true;
         }
 
-        // No unit markers at all — fall back to the caller's declared convention.
+        // No unit markers at all. Fall back to the caller's declared convention.
         Match bm = BareRx.Match(s);
         if (!bm.Success || !TryNumber(bm.Groups[1].Value, out double bareVal)) return false;
 

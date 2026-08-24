@@ -1,71 +1,93 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-// Draws room floor polygons.
+// Says what each area of the plan IS.
 //
-// Rooms are authored rather than detected from the wall graph. Auto-detecting enclosed regions is
-// appealing but fragile while a plan is half-traced — and half-traced is the normal state of this
-// tool for most of a session. Explicit polygons always work, and detection can be added later as a
-// convenience without changing anything stored.
+// This tool used to trace room polygons corner by corner. It does not any more: an area closed off by
+// walls is a room the moment it closes, derived by RoomRegions and kept in step by RoomRegions.Sync on
+// every wall edit. Tracing a floor over walls you have already drawn was drawing the same room twice,
+// with nothing checking the two agreed.
 //
-// Live area readout while drawing, because "is this bedroom big enough" is answered in square feet.
+// So what is left is the half that was never expressible: which room is which. The rail leads with
+// the type selector, always on screen: arm a type, then every click in the plan makes that room the
+// armed type: a whole floor is typed in one pass of clicks. The rooms themselves fold behind one
+// dropdown header, and the picked room's name, type chips and area sit below it.
+//
+// It never runs the face finder in its per-frame path. After Sync, level.rooms IS the region list, so
+// "which area did I click in" is HomeMetrics.RoomAt: one lookup that already exists and already
+// screens out degenerate polygons. RoomRegions.Find is called only by "Detect rooms".
 public class RoomTool : HomeToolBase
 {
     public override string Id => "room";
     public override string DisplayName => "Rooms";
 
-    private readonly List<Vector2> _points = new List<Vector2>();
-    private Vector2 _cursor;
-    private bool _hasCursor;
+    public override string Hint =>
+        "Walls that close off an area make a room by themselves. Arm a type, then click rooms to "
+        + "paint them. Or pick a room and set it up in the rail.";
 
-    private string _roomType = RoomType.Bedroom;
-    private string _floorMaterial = "floor_vinyl";
-    private WallSnapping.Options _opts = WallSnapping.Options.Default;
+    // ALWAYS, unlike WallTool's mid-run-only rule. Floor/Room/Ceiling are already outside
+    // TryAutoSelect's whitelist so a floor click was safe either way, but FURNITURE is in it, and
+    // clicking a chair standing in a bedroom would select the chair and eject you to the Select tab.
+    // In this tool every click in the plan means "this area".
+    public override bool ClaimsClicks => true;
 
-    public override void Exit() => _points.Clear();
+    private string _selectedId;
+    private string _armedType;          // a RoomType id while the selector is armed; null = disarmed
+    private bool _roomListOpen;         // the room dropdown
+    private bool _pendingListToggle;    // deferred: opening/closing changes the rail's control count
+    private bool _showTypes;            // the type chip row, folded behind the current type
+    private bool _pendingDetect;        // deferred: it changes the rail's control count
+    private readonly List<string> _warnings = new List<string>();
+
+    public override void Exit()
+    {
+        _selectedId = null;
+        _armedType = null;
+        _roomListOpen = false;
+        _pendingListToggle = false;
+        _showTypes = false;
+    }
 
     public override void HandleInput()
     {
-        if (Ctx?.Level == null || Ctx.IsLocked) return;
+        if (Ctx?.Level == null) return;
+        if (!LeftClicked() || !Ctx.GroundPoint(out Vector2 xz)) return;
 
-        _hasCursor = Ctx.GroundPoint(out Vector2 raw);
-        if (_hasCursor)
+        var room = HomeMetrics.RoomAt(xz, Ctx.Level);
+        if (room == null)
         {
-            _opts.enabled = !Ctx.ShiftHeld;
-            // Snapping to wall corners matters more here than anywhere: a room polygon that lands on
-            // its walls' centerlines reports the right area, and one that misses by 40 mm does not.
-            var snap = WallSnapping.Snap(raw, Ctx.Level, _points.Count > 0 ? _points[_points.Count - 1] : (Vector2?)null, _opts);
-            _cursor = snap.point;
+            _selectedId = null;
+            Ctx.Controller?.Status("That area is not closed off by walls yet.");
+            return;
         }
 
-        if (LeftClicked() && _hasCursor)
-        {
-            if (_points.Count > 0 && (_cursor - _points[_points.Count - 1]).sqrMagnitude < 1e-4f) return;
-            _points.Add(_cursor);
-        }
+        // With a type armed, a click in the plan ASSIGNS it, and keeps it armed, so a whole plan is
+        // typed in one pass of clicks. The room is selected too: the rail follows the click.
+        if (_armedType != null && !Ctx.IsLocked) SetType(room, _armedType);
 
-        if (KeyDown(Key.Enter) || KeyDown(Key.NumpadEnter)) Commit();
-        if (KeyDown(Key.Escape)) _points.Clear();
-        if (KeyDown(Key.Backspace) && _points.Count > 0) _points.RemoveAt(_points.Count - 1);
+        _selectedId = room.id;
+        // reveal: false for CompareTool's reason. Clicking a row must not carry you out of the tab
+        // you are working in. Selecting is what raises SelectionOverlay's outline over the room.
+        Ctx.Controller?.Select(HomeElementMarker.Kind.Floor, room.id, reveal: false);
     }
 
-    private void Commit()
+    public override void Tick()
     {
-        if (_points.Count < 3) { _points.Clear(); return; }
-
-        Ctx.RecordEdit("Add room");
-        Ctx.Level.rooms.Add(new RoomDef
+        if (_pendingListToggle)
         {
-            id = Guid.NewGuid().ToString(),
-            name = Pretty(_roomType),
-            roomType = _roomType,
-            polygon = PolygonTriangulator.ToArray(_points),
-            floorMaterial = _floorMaterial,
-            ceilingMaterial = "ceiling_white",
-        });
-        _points.Clear();
+            _pendingListToggle = false;
+            _roomListOpen = !_roomListOpen;
+        }
+
+        if (!_pendingDetect) return;
+        _pendingDetect = false;
+
+        Ctx.RecordEdit("Detect rooms");
+        _warnings.Clear();
+        int n = RoomRegions.Sync(Ctx.Level, _warnings);
+        Ctx.Controller?.Status(_warnings.Count > 0 ? _warnings[0]
+                             : n == 0 ? "The rooms already match the walls."
+                                      : $"{n} room{(n == 1 ? "" : "s")} updated from the walls.");
         Ctx.Changed();
     }
 
@@ -73,91 +95,192 @@ public class RoomTool : HomeToolBase
     {
         if (RefuseIfLocked()) return;
 
-        UITheme.Note("Click the corners of the room. Enter closes it, Backspace removes the last point.");
-        GUILayout.Space(6);
-
-        UITheme.Header("Room type");
-        string[] types = { RoomType.Bedroom, RoomType.Bathroom, RoomType.Kitchen,
-                           RoomType.Living, RoomType.Hall, RoomType.Entry };
-        GUILayout.BeginHorizontal();
-        for (int i = 0; i < types.Length; i++)
+        // The type selector leads, always on screen. Arming flips only row highlights: no control
+        // count changes, so no deferral is needed; the pick-one active-row idiom, not a Toggle.
+        foreach (string t in RoomFinish.All)
         {
-            if (i == 3) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
-            if (UITheme.Chip(Pretty(types[i]), _roomType == types[i])) SetType(types[i]);
-        }
-        GUILayout.EndHorizontal();
-
-        var palette = Ctx.Renderer?.MaterialPalette;
-        if (palette != null)
-        {
-            GUILayout.Space(8);
-            UITheme.Header("Floor finish");
-            GUILayout.BeginHorizontal();
-            foreach (var e in palette.For(InteriorMaterialPalette.Surface.Floor))
-                if (UITheme.Chip(Pretty(e.materialId), _floorMaterial == e.materialId))
-                    _floorMaterial = e.materialId;
-            GUILayout.EndHorizontal();
+            if (UITheme.StateRowLine(RoomRegions.Pretty(t), "", _armedType == t))
+                _armedType = _armedType == t ? null : t;
+            UITheme.Tip(t == RoomType.Untyped
+                ? "Arm it and clicks in the plan mark rooms as not yet named. Untyped rooms are drawn dashed."
+                : $"Arm it, then every click in the plan makes that room a {RoomRegions.Pretty(t).ToLowerInvariant()}. The type picks the floor finish.");
         }
 
-        if (_points.Count >= 3)
+        UITheme.Divider();
+
+        bool any = Ctx?.Level?.rooms != null && Ctx.Level.rooms.Count > 0;
+        if (!any)
         {
-            GUILayout.Space(8);
-            UITheme.Num(Units.FormatArea(PolygonTriangulator.Area(_points)));
-            UITheme.Note("Area so far");
-            if (UITheme.PrimaryButton("Close room")) Commit();
+            // No prose. The empty state is a hoverable control carrying the sentence, never a blank
+            // rectangle.
+            UITheme.Glyph("⌂", "Draw walls that close off an area and it becomes a room by itself.",
+                          UITheme.Ink3);
+            DrawDetect();
+            return;
         }
+
+        var room = Find(_selectedId);
+
+        // The rooms, behind one dropdown header: closed, it names the picked room (or counts them);
+        // open, it is the picker. Open/close is deferred (it changes the rail's control count) the
+        // way the variant menu latches.
+        string header = room != null
+            ? (string.IsNullOrEmpty(room.name) ? RoomRegions.Pretty(room.roomType) : room.name)
+            : $"Rooms ({Ctx.Level.rooms.Count})";
+        if (UITheme.StateRowLine(header, _roomListOpen ? "▴" : "▾", _roomListOpen))
+            _pendingListToggle = true;
+        UITheme.Tip("The rooms of this floor. Pick one here or click inside it in the plan.");
+
+        if (_roomListOpen)
+        {
+            foreach (var r in Ctx.Level.rooms)
+            {
+                if (r == null) continue;
+                string title = string.IsNullOrEmpty(r.name) ? RoomRegions.Pretty(r.roomType) : r.name;
+                if (!UITheme.StateRowLine(title, RoomRegions.Pretty(r.roomType), r.id == _selectedId))
+                    continue;
+                _selectedId = r.id;
+                _pendingListToggle = true;   // picking closes the menu, the way the variant menu does
+                Ctx.Controller?.Select(HomeElementMarker.Kind.Floor, r.id, reveal: false);
+            }
+        }
+        else if (room != null)
+        {
+            UITheme.Gap();
+            string typed = UITheme.TextRow("Name", room.name,
+                "What this room is called. Clear it to go back to a name from the type.");
+            if (typed != room.name)
+            {
+                Ctx.RecordEdit("Rename room");
+                room.name = typed;
+                Ctx.Changed(false);     // a keystroke must not rebuild every GameObject in the home
+            }
+
+            // The twelve type chips fold behind the current type: open, they wrap over four rail
+            // rows, which buried the rest of the rail under a control used about once per room.
+            // Picking a chip closes the fold again. Chips and the armed selector both funnel through
+            // SetType: one mutation site.
+            _showTypes = UITheme.Foldout(_showTypes, "Type: " + RoomRegions.Pretty(room.roomType));
+            if (_showTypes)
+            {
+                // Twelve chips is affordable only because ChipRow MEASURES and wraps.
+                var chips = UITheme.ChipRow();
+                foreach (string t in RoomFinish.All)
+                {
+                    if (chips.Chip(RoomRegions.Pretty(t), room.roomType == t))
+                    {
+                        SetType(room, t);
+                        _showTypes = false;
+                    }
+                    UITheme.Tip(t == RoomType.Untyped
+                        ? "Leave it unsaid. Untyped rooms are drawn dashed, so a plan shows what still needs naming."
+                        : $"Make this a {RoomRegions.Pretty(t).ToLowerInvariant()}. The type picks the floor finish.");
+                }
+                chips.End();
+            }
+
+            UITheme.Gap();
+            UITheme.MutedLine(Units.FormatArea(HomeMetrics.RoomArea(room)), "Floor area of this room");
+        }
+
+        DrawDetect();
     }
 
-    // Bathrooms get a wipeable floor by default, bedrooms a soft one — small touch, saves a click on
-    // nearly every room.
-    private void SetType(string type)
+    /// <summary>
+    /// The catch-up handle for a home drawn before rooms followed walls, or one whose stored rooms and
+    /// wall graph have drifted apart. Explicit and undoable. Sync is deliberately never run on load,
+    /// because that would rewrite every stored polygon on every open.
+    /// </summary>
+    private void DrawDetect()
     {
-        _roomType = type;
-        _floorMaterial = type switch
-        {
-            RoomType.Bathroom => "floor_vinyl",
-            RoomType.Kitchen => "floor_vinyl",
-            RoomType.Bedroom => "floor_carpet",
-            _ => "floor_oak",
-        };
+        if (Ctx?.Level == null) return;
+
+        var found = RoomRegions.Find(Ctx.Level);
+        int rooms = Ctx.Level.rooms?.Count ?? 0;
+        if (RoomRegions.RoomsMatch(Ctx.Level, found)) return;
+
+        UITheme.Gap();
+        if (UITheme.PrimaryButton("Detect rooms")) _pendingDetect = true;
+        UITheme.Tip(found.Count == rooms
+            ? "The rooms no longer match their walls. Take the rooms from the walls."
+            : $"The walls close off {found.Count} area{(found.Count == 1 ? "" : "s")} but this floor has "
+              + $"{rooms} room{(rooms == 1 ? "" : "s")}. Take the rooms from the walls.");
+    }
+
+    private void SetType(RoomDef room, string type)
+    {
+        if (room.roomType == type) return;
+
+        Ctx.RecordEdit("Set room type");
+
+        // A name the user typed is never overwritten; an auto-generated one always is. So
+        // "Room 3" -> Bedroom becomes "Bedroom 2", "Bedroom 2" -> Office becomes "Office", and
+        // "Grandma's room" -> Bedroom stays "Grandma's room".
+        bool rename = RoomRegions.IsAutoName(room.name, room.roomType);
+        room.roomType = type;
+        if (rename) room.name = RoomRegions.AutoName(Ctx.Level, type);
+
+        Ctx.Changed(false);
+        Ctx.Renderer?.RebuildRooms();   // ends in RebuildSensors, so coverage re-derives this frame
     }
 
     public override void DrawOverlay()
     {
-        if (Ctx?.Cam == null || Ctx.Level == null || _points.Count == 0) return;
+        if (Ctx?.Cam == null || Ctx.Level?.rooms == null) return;
 
         float y = Ctx.Level.elevation;
-        var color = new Color(0.35f, 0.70f, 1f);
+        var accent = new Color(0.35f, 0.70f, 1f);
+        var muted = new Color(0.35f, 0.70f, 1f, 0.35f);
 
-        for (int i = 0; i < _points.Count; i++)
+        foreach (var room in Ctx.Level.rooms)
         {
-            if (!OverlayDraw.ToScreen(Ctx.Cam, _points[i], y, out Vector2 g)) continue;
-            OverlayDraw.Dot(g, 8f, color);
+            if (room == null) continue;
+            var poly = PolygonTriangulator.ToVector2(room.polygon);
+            if (poly.Count < 3) continue;
 
-            if (i > 0 && OverlayDraw.ToScreen(Ctx.Cam, _points[i - 1], y, out Vector2 prev))
-                OverlayDraw.Line(prev, g, color, 2.5f);
-        }
+            bool selected = room.id == _selectedId;
+            bool untyped = room.roomType == RoomType.Untyped;
+            var color = selected ? accent : muted;
 
-        if (!_hasCursor || !OverlayDraw.ToScreen(Ctx.Cam, _cursor, y, out Vector2 cur)) return;
+            for (int i = 0; i < poly.Count; i++)
+            {
+                // The carve's bridge edges are construction, not boundary: a room with an island
+                // carved out is outlined as the outer ring plus the island, no seam between them.
+                if (IsBridgeEdge(poly, i)) continue;
 
-        if (OverlayDraw.ToScreen(Ctx.Cam, _points[_points.Count - 1], y, out Vector2 last))
-            OverlayDraw.Line(last, cur, color, 2f);
+                if (!OverlayDraw.ToScreen(Ctx.Cam, poly[i], y, out Vector2 a)) continue;
+                if (!OverlayDraw.ToScreen(Ctx.Cam, poly[(i + 1) % poly.Count], y, out Vector2 b)) continue;
 
-        // Closing edge, so the shape being committed is unambiguous before Enter is pressed.
-        if (_points.Count >= 2 && OverlayDraw.ToScreen(Ctx.Cam, _points[0], y, out Vector2 first))
-            OverlayDraw.DashedLine(cur, first, new Color(color.r, color.g, color.b, 0.6f), 2f);
+                // Untyped rooms are dashed, so "three areas still need naming" is visible in the plan
+                // without a sentence anywhere.
+                if (untyped) OverlayDraw.DashedLine(a, b, color, selected ? 2.5f : 2f);
+                else OverlayDraw.Line(a, b, color, selected ? 2.5f : 2f);
+            }
 
-        if (_points.Count >= 2)
-        {
-            var preview = new List<Vector2>(_points) { _cursor };
-            OverlayDraw.Readout(cur, Units.FormatArea(PolygonTriangulator.Area(preview)));
+            if (OverlayDraw.ToScreen(Ctx.Cam, HomeMetrics.RoomCentroid(room), y, out Vector2 c))
+                OverlayDraw.Readout(c, string.IsNullOrEmpty(room.name)
+                                      ? RoomRegions.Pretty(room.roomType) : room.name);
         }
     }
 
-    private static string Pretty(string token)
+    // A ring holding both (a, b) and (b, a) is a room with an island bridge-cut out of it. See
+    // RoomRegions.CarveContainedRegions. The twin edges are bit-identical copies, so exact float
+    // equality is the right test.
+    private static bool IsBridgeEdge(List<Vector2> poly, int i)
     {
-        if (string.IsNullOrEmpty(token)) return "Room";
-        string s = token.Replace('_', ' ');
-        return char.ToUpperInvariant(s[0]) + s.Substring(1);
+        Vector2 a = poly[i], b = poly[(i + 1) % poly.Count];
+        for (int j = 0; j < poly.Count; j++)
+        {
+            if (j == i) continue;
+            if (poly[j] == b && poly[(j + 1) % poly.Count] == a) return true;
+        }
+        return false;
+    }
+
+    private RoomDef Find(string id)
+    {
+        if (string.IsNullOrEmpty(id) || Ctx?.Level?.rooms == null) return null;
+        foreach (var r in Ctx.Level.rooms) if (r != null && r.id == id) return r;
+        return null;
     }
 }

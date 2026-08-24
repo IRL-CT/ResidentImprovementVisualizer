@@ -3,9 +3,13 @@ using UnityEngine;
 
 // Places doors, windows and pass-throughs into walls.
 //
-// Widths are offered as inch presets because that is how doors are specified and how the questions
-// are asked — "is that a 32 or a 36?" A 32" door is the single most common accessibility problem in
-// an existing home, so the rail shows the resulting CLEAR width live while you choose.
+// EVERY DIMENSION IS A FREE NUMBER. Width used to be five inch presets (28/30/32/34/36) on the
+// grounds that this is how doors are specified and how the questions are asked ("is that a 32 or a
+// 36?"). But a measured width field was added later and sat directly beneath them, so the rail
+// offered one dimension twice in two idioms, and the chips could not express the openings real
+// buildings actually have. The clear passage is still shown live as you drag, which is the part that
+// earned the presets their place: picking 32" and being told the clear passage is 29 5/8" is the
+// moment this tool justifies itself.
 //
 // Every placement and drag goes through OpeningFit, which slides the opening to the nearest legal
 // position rather than refusing. Dragging a door toward a corner should stop against the corner, not
@@ -13,14 +17,21 @@ using UnityEngine;
 public class OpeningTool : HomeToolBase
 {
     public override string Id => "opening";
-    public override string DisplayName => "Doors & windows";
+    public override string DisplayName => "Openings";
+
+    public override string Hint =>
+        "Hover a wall and click to place. The preview turns red when it will not fit. Drag or type any "
+        + "width, height and sill. The clear passage is shown live as you choose.";
+
+    // Always: this tool's whole gesture is clicking a wall, which is exactly what the auto-select
+    // would otherwise interpret.
+    public override bool ClaimsClicks => true;
 
     private string _kind = OpeningKind.Door;
     private float _width = HomeConventions.DEFAULT_DOOR_WIDTH;
     private float _height = HomeConventions.DEFAULT_DOOR_HEIGHT;
     private float _sill;
     private float _threshold;
-    private string _swing = OpeningSwing.LeftIn;
 
     private WallDef _hoverWall;
     private float _hoverOffset;
@@ -65,20 +76,27 @@ public class OpeningTool : HomeToolBase
 
     private void Place()
     {
+        string id = Guid.NewGuid().ToString();
+
         Ctx.RecordEdit("Add " + _kind);
         Ctx.Level.openings.Add(new OpeningDef
         {
-            id = Guid.NewGuid().ToString(),
+            id = id,
             wallId = _hoverWall.id,
             offset = _fit.offset,
             width = _width,
             height = _height,
             sillHeight = _kind == OpeningKind.Window ? _sill : 0f,
             kind = _kind,
-            swing = _kind == OpeningKind.Door ? _swing : OpeningSwing.None,
             thresholdHeight = _kind == OpeningKind.Door ? _threshold : 0f,
             clearWidth = 0f,
         });
+
+        // Placing selects what you placed, the way the furniture tool does. It matters more here:
+        // an opening is no longer reachable by clicking it in the plan, so without this the thing
+        // just drawn could only be got at by selecting its wall and finding it in the list.
+        // reveal:false so a run of doors is not interrupted by a jump to the Select tab.
+        Ctx.Controller.Select(HomeElementMarker.Kind.Opening, id, reveal: false);
         Ctx.Changed();
     }
 
@@ -86,57 +104,62 @@ public class OpeningTool : HomeToolBase
     {
         if (RefuseIfLocked()) return;
 
-        UITheme.Note("Hover a wall and click to place. The preview turns red when it will not fit.");
-        GUILayout.Space(6);
+        var kinds = UITheme.ChipRow();
+        // "Add", not "Type": the lit chip is what the next click puts in the wall, and the row should
+        // say so: "Type" described the chips, "Add" says what they do.
+        kinds.Label("Add");
+        if (kinds.Chip("Door", _kind == OpeningKind.Door)) SetKind(OpeningKind.Door);
+        UITheme.Tip("A doorway with a door in it");
+        if (kinds.Chip("Window", _kind == OpeningKind.Window)) SetKind(OpeningKind.Window);
+        UITheme.Tip("A window, set above a sill");
+        if (kinds.Chip("Cased opening", _kind == OpeningKind.CasedOpening)) SetKind(OpeningKind.CasedOpening);
+        UITheme.Tip("A cased opening: a hole in the wall with no door in it");
+        kinds.End();
 
-        GUILayout.BeginHorizontal();
-        if (UITheme.Chip("Door", _kind == OpeningKind.Door)) SetKind(OpeningKind.Door);
-        if (UITheme.Chip("Window", _kind == OpeningKind.Window)) SetKind(OpeningKind.Window);
-        if (UITheme.Chip("Opening", _kind == OpeningKind.CasedOpening)) SetKind(OpeningKind.CasedOpening);
-        GUILayout.EndHorizontal();
+        UITheme.Gap();
 
-        GUILayout.Space(8);
-        UITheme.Header("Width");
-        GUILayout.BeginHorizontal();
-        foreach (int inches in new[] { 28, 30, 32, 34, 36 })
-        {
-            float m = inches * HomeConventions.IN_TO_M;
-            if (UITheme.Chip(inches + "\"", Mathf.Abs(_width - m) < 0.005f)) _width = m;
-        }
-        GUILayout.EndHorizontal();
+        // Deliberately NOT bounded by OpeningFit.MaxWidth the way the inspector's field is. The
+        // hovered wall changes every frame, so a max derived from it would move under a drag that is
+        // already in progress. The refusal here is honest without it: _fit turns the preview red and
+        // the glyph at the foot of this rail says why, both live.
+        _width = MeasureUI.Length("Width", "The rough opening. Drag it, or type a measured width.",
+                                  _width, 0.0127f,
+                                  HomeConventions.MIN_OPENING_WIDTH, HomeConventions.MAX_OPENING_WIDTH);
 
         // Show what the choice actually yields once a door leaf is in the way. Picking "32" and being
-        // told the clear passage is 29 5/8" is the moment the tool earns its keep.
-        var probe = new OpeningDef { width = _width, kind = _kind, swing = _swing };
-        UITheme.Num(Units.Format(HomeMetrics.ClearWidth(probe)));
-        UITheme.Note("Clear passage with the door open");
+        // told the clear passage is 29 5/8" is the moment the tool earns its keep. Doors only: a
+        // window or cased opening has no leaf, so its clear passage IS the width above and the
+        // readout was restating the field.
+        if (_kind == OpeningKind.Door)
+        {
+            var probe = new OpeningDef { width = _width, kind = _kind };
+            UITheme.Value("Clear passage", Units.Format(HomeMetrics.ClearWidth(probe)),
+                "The clear passage this leaves with the door open, which is what a wheelchair goes "
+                + "through, and always less than the rough opening above.");
+        }
 
-        GUILayout.Space(8);
-        _height = UITheme.Stepper("Height", _height, 0.025f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_height));
+        UITheme.Gap();
+        _height = MeasureUI.Length("Height", "Opening height", _height, 0.025f,
+                                   HomeConventions.MIN_OPENING_HEIGHT, HomeConventions.MAX_OPENING_HEIGHT);
 
         if (_kind == OpeningKind.Window)
-        {
-            _sill = UITheme.Stepper("Sill", _sill, 0.025f, "0.00", " m");
-            UITheme.Note("  = " + Units.Format(_sill));
-        }
+            _sill = MeasureUI.Length("Sill", "Sill height above the floor", _sill, 0.025f,
+                                     0f, HomeConventions.MAX_WINDOW_SILL);
 
         if (_kind == OpeningKind.Door)
         {
-            GUILayout.Space(8);
-            UITheme.Header("Swing");
-            GUILayout.BeginHorizontal();
-            if (UITheme.Chip("L in", _swing == OpeningSwing.LeftIn)) _swing = OpeningSwing.LeftIn;
-            if (UITheme.Chip("R in", _swing == OpeningSwing.RightIn)) _swing = OpeningSwing.RightIn;
-            if (UITheme.Chip("Slide", _swing == OpeningSwing.Slider)) _swing = OpeningSwing.Slider;
-            if (UITheme.Chip("Pocket", _swing == OpeningSwing.Pocket)) _swing = OpeningSwing.Pocket;
-            GUILayout.EndHorizontal();
-
-            _threshold = UITheme.Stepper("Threshold", _threshold, 0.003f, "0.000", " m");
+            UITheme.Gap();
+            _threshold = MeasureUI.Length("Threshold", "Threshold height to cross", _threshold, 0.003f,
+                                          0f, HomeConventions.MAX_THRESHOLD);
             UITheme.StatusBadge(_threshold > 0f ? "Has a threshold" : "Step-free", _threshold <= 0f);
+            UITheme.Tip(_threshold > 0f
+                ? "There is a raised lip to cross at this doorway"
+                : "Nothing to cross at this doorway");
         }
 
-        if (_hoverWall != null && !_fit.ok) UITheme.Note("⚠ " + _fit.reason);
+        // The fit refusal stays VISIBLE, as a glyph. A warning behind a hover is a warning nobody
+        // reads, and this one is the difference between placing a door and thinking you placed one.
+        if (_hoverWall != null && !_fit.ok) UITheme.Glyph("⚠", _fit.reason, UITheme.Danger);
     }
 
     private void SetKind(string kind)
@@ -163,7 +186,7 @@ public class OpeningTool : HomeToolBase
         float y = Ctx.Level.elevation;
         float offset = _fit.ok ? _fit.offset : _hoverOffset;
 
-        Vector2 centre = HomeMetrics.PointOnWall(_hoverWall, offset);
+        Vector2 center = HomeMetrics.PointOnWall(_hoverWall, offset);
         Vector2 a = HomeMetrics.PointOnWall(_hoverWall, offset - 0.5f * _width);
         Vector2 b = HomeMetrics.PointOnWall(_hoverWall, offset + 0.5f * _width);
 
@@ -173,9 +196,14 @@ public class OpeningTool : HomeToolBase
             OverlayDraw.ToScreen(Ctx.Cam, b, y, out Vector2 gb))
             OverlayDraw.Line(ga, gb, color, 6f);
 
-        if (OverlayDraw.ToScreen(Ctx.Cam, centre, y, out Vector2 gc))
-            OverlayDraw.Readout(gc, _fit.ok
-                ? $"{Units.Format(_width)} · clear {Units.Format(HomeMetrics.ClearWidth(new OpeningDef { width = _width, kind = _kind, swing = _swing }))}"
-                : _fit.reason);
+        if (OverlayDraw.ToScreen(Ctx.Cam, center, y, out Vector2 gc))
+        {
+            // The clear-passage figure rides along for doors only: anything without a leaf has a
+            // clear passage equal to the width already shown.
+            string clear = _kind == OpeningKind.Door
+                ? $" · clear {Units.Format(HomeMetrics.ClearWidth(new OpeningDef { width = _width, kind = _kind }))}"
+                : "";
+            OverlayDraw.Readout(gc, _fit.ok ? $"{Units.Format(_width)}{clear}" : _fit.reason);
+        }
     }
 }

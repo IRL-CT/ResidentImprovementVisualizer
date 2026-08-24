@@ -40,6 +40,13 @@ public class TransformGizmo : MonoBehaviour
     // caller may retune it every frame (EditController: 15° only while Shift is held).
     public float rotationSnap = 15f;
 
+    // Floor on the handle radius, in meters. The gizmo is sized from the selection's bounds,
+    // but a small object still needs handles big enough to grab. Hence a minimum. 2 m is the
+    // right floor at site scale (a tree, a building) and hopelessly wrong at room scale, where
+    // it would draw a 0.51 m toilet's handles four times the size of the toilet and across the
+    // whole bathroom. HomeViz sets it to 0.35.
+    public float minHandleSize = 2f;
+
     public event Action<Vector3> MoveDelta;    // world-space ground-plane delta
     public event Action<Vector3> RotateDelta;  // per-axis euler-degree delta (one axis non-zero)
     public event Action<float>   ScaleDelta;   // additive uniform-scale delta
@@ -136,7 +143,15 @@ public class TransformGizmo : MonoBehaviour
         if (_visualRoot != null) _visualRoot.SetActive(false);
     }
 
-    public void Tick()
+    /// <param name="acceptInput">
+    /// False suppresses hover, drag-start and drag-continue while still recomputing and
+    /// redrawing the handles. Callers whose camera keeps moving while the pointer is over a
+    /// UI panel need this: gating the whole Tick would freeze the gizmo in a stale pose, and
+    /// not gating it at all would let a click on the panel grab a handle behind it. An
+    /// in-progress drag keeps its input regardless, so a drag that wanders over a panel and
+    /// back does not die halfway.
+    /// </param>
+    public void Tick(bool acceptInput = true)
     {
         if (_target == null || _cam == null || Mouse.current == null)
         {
@@ -149,12 +164,14 @@ public class TransformGizmo : MonoBehaviour
         RecomputeFrame();
         Vector2 mp = Mouse.current.position.ReadValue();
 
-        if (_drag == Handle.None) _hover = Pick(mp);
+        bool live = acceptInput || _drag != Handle.None;
 
-        if (Mouse.current.leftButton.wasPressedThisFrame && _hover != Handle.None)
+        if (_drag == Handle.None) _hover = live ? Pick(mp) : Handle.None;
+
+        if (live && Mouse.current.leftButton.wasPressedThisFrame && _hover != Handle.None)
             BeginDrag(_hover, mp);
 
-        if (_drag != Handle.None && Mouse.current.leftButton.isPressed)
+        if (live && _drag != Handle.None && Mouse.current.leftButton.isPressed)
             ContinueDrag(mp);
 
         if (_drag != Handle.None && Mouse.current.leftButton.wasReleasedThisFrame)
@@ -197,7 +214,7 @@ public class TransformGizmo : MonoBehaviour
 
         _bounds = b;
         _center = b.center;
-        _size   = Mathf.Max(b.size.magnitude * 0.5f, 2f);
+        _size   = Mathf.Max(b.size.magnitude * 0.5f, minHandleSize);
     }
 
     private Vector3 ScaleHandlePos() => _center + Vector3.up * (_size * 1.15f);
@@ -263,7 +280,7 @@ public class TransformGizmo : MonoBehaviour
     }
 
     // World hit of the cursor ray on a vertical plane through the center that faces the
-    // camera — used to read a Y delta for the vertical move arrow.
+    // camera. Used to read a Y delta for the vertical move arrow.
     private bool VerticalHit(Vector2 mp, out Vector3 hit)
     {
         Vector3 n = Vector3.ProjectOnPlane(_cam.transform.forward, Vector3.up);
@@ -409,7 +426,7 @@ public class TransformGizmo : MonoBehaviour
     {
         if (_visualRoot != null) return;
 
-        // Internal-Colored: vertex-color unlit with exposed blend/cull/depth props —
+        // Internal-Colored: vertex-color unlit with exposed blend/cull/depth props,
         // the canonical runtime line material. ZTest Always keeps the gizmo on top.
         var shader = Shader.Find("Hidden/Internal-Colored");
         if (shader == null) shader = Shader.Find("Sprites/Default");

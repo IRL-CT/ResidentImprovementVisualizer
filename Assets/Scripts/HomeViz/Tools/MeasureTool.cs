@@ -13,6 +13,10 @@ public class MeasureTool : HomeToolBase
     public override string Id => "measure";
     public override string DisplayName => "Measure";
 
+    public override string Hint =>
+        "Click to drop points; each leg and the running total are shown. Esc clears, Backspace removes "
+        + "the last point. The turning circle of every room is listed below.";
+
     private readonly List<Vector2> _points = new List<Vector2>();
     private Vector2 _cursor;
     private bool _hasCursor;
@@ -51,36 +55,36 @@ public class MeasureTool : HomeToolBase
 
     public override void DrawRail()
     {
-        UITheme.Note("Click to drop points. Each leg and the running total are shown. " +
-                     "Esc clears, Backspace removes the last point.");
-        GUILayout.Space(8);
-
         if (_points.Count >= 2)
         {
-            UITheme.Num(Units.Format(Total()));
-            UITheme.Note("Total across " + (_points.Count - 1) + " leg" + (_points.Count == 2 ? "" : "s"));
+            int legs = _points.Count - 1;
+            UITheme.Value("Total", Units.Format(Total()),
+                          $"Total across {legs} leg{(legs == 1 ? "" : "s")}");
 
-            GUILayout.Space(6);
+            UITheme.Gap();
             for (int i = 1; i < _points.Count; i++)
-                UITheme.Note($"  Leg {i}: {Units.Format(Vector2.Distance(_points[i - 1], _points[i]))}");
+                UITheme.Value($"Leg {i}", Units.Format(Vector2.Distance(_points[i - 1], _points[i])),
+                              $"Leg {i} of the run");
         }
-        else if (_points.Count == 1) UITheme.Note("Click a second point.");
 
         if (_points.Count > 0 && UITheme.SecondaryButton("Clear")) _points.Clear();
+        UITheme.Tip("Drop the run and start again  (Esc)");
 
-        // Turning space per room, computed rather than measured — the number a future clearance rule
+        // Turning space per room, computed rather than measured: the number a future clearance rule
         // would test, surfaced now so it is at least visible.
         if (Ctx?.Level?.rooms != null && Ctx.Level.rooms.Count > 0)
         {
-            GUILayout.Space(12);
             UITheme.Header("Turning space by room");
             foreach (var r in Ctx.Level.rooms)
             {
                 if (r == null) continue;
                 var circle = HomeMetrics.LargestInscribedCircle(r);
                 if (!circle.valid) continue;
-                UITheme.Note($"  {(string.IsNullOrEmpty(r.name) ? r.roomType : r.name)}: " +
-                             Units.Format(circle.radius * 2f) + " circle");
+                // The room name IS the label here: this list is one figure per room, and printing
+                // the name in the tooltip was the only thing telling two identical numbers apart.
+                UITheme.Value(string.IsNullOrEmpty(r.name) ? RoomRegions.Pretty(r.roomType) : r.name,
+                    Units.Format(circle.radius * 2f),
+                    "The largest turning circle that fits this room. A wheelchair needs 1.5 m.");
             }
         }
     }

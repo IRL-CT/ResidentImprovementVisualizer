@@ -20,8 +20,9 @@ public class HomeToolContext
     public LevelDef Level => Controller != null ? Controller.Level : null;
 
     /// <summary>
-    /// True when the active variant refuses edits. The baseline is locked by default — it is the
-    /// record of how the home actually is, and every proposal is compared against it.
+    /// True when the active variant refuses edits. Only ever the baseline: it is the home as it
+    /// stands, every proposal is measured against it, and ModeBand's "Modify base environment" is
+    /// the one switch that opens it. A proposal is always editable.
     /// </summary>
     public bool IsLocked => Variant == null || Variant.locked;
 
@@ -64,6 +65,33 @@ public class HomeToolContext
         return true;
     }
 
+    /// <summary>
+    /// Where the pick ray meets a rendered wall FACE, in world XZ. Falls back to nothing rather than
+    /// to the floor, so the caller decides. The floor projection of a click on a wall lands on the
+    /// far side of that wall under the angled overview camera: the parallax SelectTool's drag
+    /// remarks walk through, so anything deciding which face a click meant must prefer this.
+    /// </summary>
+    public bool WallPoint(out Vector2 xz)
+    {
+        xz = Vector2.zero;
+        if (Cam == null) return false;
+
+        Ray ray = Cam.ScreenPointToRay(MousePosition);
+        var hits = Physics.RaycastAll(ray, 500f);
+        if (hits == null || hits.Length == 0) return false;
+
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var h in hits)
+        {
+            var m = h.collider.GetComponentInParent<HomeElementMarker>();
+            if (m == null || m.kind != HomeElementMarker.Kind.Wall) continue;
+            xz = new Vector2(h.point.x, h.point.z);
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>Raycast into the rendered home and return the element marker that was hit.</summary>
     public bool PickElement(out HomeElementMarker marker, out RaycastHit hit)
     {
@@ -96,9 +124,18 @@ public class HomeToolContext
 
     /// <summary>True when the cursor is over an IMGUI rail, so world clicks must be ignored.</summary>
     public bool OverUI => Controller != null && Controller.PointerOverUI;
+
+    /// <summary>
+    /// Set when the controller has already claimed this frame's click. Currently only to select an
+    /// item and carry the UI to the Select tab. Cleared at the top of every Update.
+    ///
+    /// One flag read by one line in HomeToolBase.LeftClicked, which is how all nine tools respect it
+    /// without any of them knowing it exists.
+    /// </summary>
+    public bool ClickConsumed;
 }
 
-// One editing tool. Adding a tool is a new file plus one line in the controller's registry — the
+// One editing tool. Adding a tool is a new file plus one line in the controller's registry: the
 // property EditController never had, which is why its 13 modes are a flat switch spread over
 // thousands of lines.
 public interface IHomeTool
@@ -106,11 +143,42 @@ public interface IHomeTool
     string Id { get; }
     string DisplayName { get; }
 
+    /// <summary>
+    /// How to use this tool, in a sentence or two. Shown on hover over the tool's tab in the command
+    /// bar (and its chip, where a stage has more than one).
+    ///
+    /// This is where the instruction paragraph each rail used to print permanently now lives. A tool is
+    /// used for minutes at a time and its instructions are read once, so they were paying for their
+    /// screen space every second after the first.
+    /// </summary>
+    string Hint { get; }
+
+    /// <summary>
+    /// True while this tool's own click must win over selecting whatever the cursor is on. The wall and
+    /// room tools claim clicks only mid-run. Starting a run somewhere is fine, but a click that should
+    /// extend one must never jump to the Select tab instead.
+    /// </summary>
+    bool ClaimsClicks { get; }
+
     void Enter(HomeToolContext ctx);
     void Exit();
 
     /// <summary>Per-frame input. Not called while the pointer is over a rail.</summary>
     void HandleInput();
+
+    /// <summary>
+    /// Per-frame, and UNGATED. Called whether or not the pointer is over a rail.
+    ///
+    /// This is where a tool applies work its own rail deferred. HandleInput cannot do it: the
+    /// controller skips that call while the cursor is over a rail, which is exactly where the cursor
+    /// is at the moment a rail button is clicked, so anything queued from DrawRail and drained there
+    /// would fire only once the pointer happened to wander over the scene.
+    ///
+    /// Deferring at all is the OnGUI rule this codebase runs on: an action that changes a panel's
+    /// control count between the layout and repaint passes is the Mismatched LayoutGroup that
+    /// _pendingStage and friends exist to prevent.
+    /// </summary>
+    void Tick();
 
     /// <summary>The tool's section of the right-hand inspector rail. Called from OnGUI.</summary>
     void DrawRail();
@@ -126,23 +194,39 @@ public abstract class HomeToolBase : IHomeTool
 
     public abstract string Id { get; }
     public abstract string DisplayName { get; }
+    public virtual string Hint => null;
+    public virtual bool ClaimsClicks => false;
 
     public virtual void Enter(HomeToolContext ctx) { Ctx = ctx; }
     public virtual void Exit() { }
     public virtual void HandleInput() { }
+    public virtual void Tick() { }
     public virtual void DrawRail() { }
     public virtual void DrawOverlay() { }
 
-    /// <summary>Shows the locked notice and returns true when editing must be refused.</summary>
+    /// <summary>
+    /// Shows the read-only state and returns true when editing must be refused.
+    ///
+    /// A badge, and nothing else. This used to carry its own Unlock button, which made two of them,
+    /// one here in every tool rail, one in ModeBand: with nothing to say which you were looking at.
+    /// The switch has one home now, in the band directly above this rail, where it is on screen
+    /// whichever tool is open. That keeps the refusal actionable without duplicating the action.
+    /// </summary>
     protected bool RefuseIfLocked()
     {
         if (Ctx == null || !Ctx.IsLocked) return false;
-        UITheme.Note("This variant is locked. Unlock it, or create a proposal from it, to make changes.");
+
+        UITheme.LockBadge("Read-only",
+            "The base environment is locked. Press Modify base environment above to edit it, or work "
+            + "in a proposal.");
         return true;
     }
 
-    protected static bool LeftClicked()
-        => Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+    // The one chokepoint every tool's click goes through, which is what makes the controller able to
+    // claim a click for the selection without any tool having to opt in.
+    protected bool LeftClicked()
+        => Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame
+           && !(Ctx?.ClickConsumed ?? false);
 
     protected static bool LeftReleased()
         => Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame;
@@ -150,6 +234,10 @@ public abstract class HomeToolBase : IHomeTool
     protected static bool LeftHeld()
         => Mouse.current != null && Mouse.current.leftButton.isPressed;
 
+    // Gated on typing as well as on the pointer: HandleInput only runs with the cursor off the rails,
+    // but a field keeps keyboard focus wherever the cursor wanders, so without this a name typed into
+    // the rail would also spin the chair and delete the selection.
     protected static bool KeyDown(Key key)
-        => Keyboard.current != null && Keyboard.current[key].wasPressedThisFrame;
+        => Keyboard.current != null && !HomeEditController.TypingInUI
+           && Keyboard.current[key].wasPressedThisFrame;
 }

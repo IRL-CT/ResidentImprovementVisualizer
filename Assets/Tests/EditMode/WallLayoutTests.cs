@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 
 // WallLayout is the file that lets openings exist without CSG: a wall is a list of solid boxes, and a
-// door is a gap the list skips. Every case below is one of the ways that decomposition can go wrong —
+// door is a gap the list skips. Every case below is one of the ways that decomposition can go wrong,
 // an opening flush against a corner, one taller than the wall, two that overlap. Getting these right
 // is what stops a traced plan from developing holes or phantom slivers.
 [TestFixture]
@@ -24,7 +24,7 @@ public class WallLayoutTests
     }
 
     [Test]
-    public void CentredDoor_ProducesTwoPanelsAndAHeader()
+    public void CenteredDoor_ProducesTwoPanelsAndAHeader()
     {
         var boxes = WallLayout.Build(L, H, new List<OpeningDef> { Door(offset: 2.5f, width: 1f) });
 
@@ -76,7 +76,7 @@ public class WallLayoutTests
         {
             id = "w1", wallId = "wall", offset = 2.5f,
             width = 1.2f, height = 1.2f, sillHeight = 0.9f,
-            kind = OpeningKind.Window, swing = OpeningSwing.None,
+            kind = OpeningKind.Window,
         };
 
         var boxes = WallLayout.Build(L, H, new List<OpeningDef> { w });
@@ -139,7 +139,7 @@ public class WallLayoutTests
     [Test]
     public void OverlappingOpenings_MergeIntoOneVoidWithoutCrashing()
     {
-        // Bad data should render oddly, never throw — a visioning session must not die on a
+        // Bad data should render oddly, never throw: a visioning session must not die on a
         // hand-edited JSON file.
         var boxes = WallLayout.Build(L, H, new List<OpeningDef>
         {
@@ -236,7 +236,6 @@ public class WallLayoutTests
         height = 2.032f,
         sillHeight = 0f,
         kind = OpeningKind.Door,
-        swing = OpeningSwing.LeftIn,
     };
 
     private static List<WallLayout.Box> Of(List<WallLayout.Box> boxes, WallLayout.Kind kind)

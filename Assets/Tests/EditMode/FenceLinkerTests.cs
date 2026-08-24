@@ -126,7 +126,7 @@ public class FenceLinkerTests
         var fences = new List<FenceDef> { Fence("old", new(0, 0), new(5, 0), new(10, 0)) };
         FenceLinker.Link(fences, new List<Vector2> { new(5.03f, -5), new(5.03f, 5) }, "picket", 0f, 0f);
 
-        // The old fence split exactly at (5,0) — each half has exactly 2 points, no near-duplicates.
+        // The old fence split exactly at (5,0): each half has exactly 2 points, no near-duplicates.
         var oldPieces = fences.Where(f => Poly(f).All(p => Mathf.Abs(p.y) < 1e-3f)).ToList();
         Assert.AreEqual(2, oldPieces.Count);
         foreach (var h in oldPieces)

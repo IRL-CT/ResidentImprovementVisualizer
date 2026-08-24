@@ -10,7 +10,7 @@ using UnityEngine;
 //     PrefabRegistry has the key  ->  spawn the real prefab
 //     it does not                ->  spawn a labeled box at the entry's true dimensions
 //
-// So the project ships useful today with zero interior art (there is none — every existing asset pack
+// So the project ships useful today with zero interior art (there is none: every existing asset pack
 // is exterior), and adding a model later is a PrefabRegistry edit. No code change, no schema change,
 // no data migration: instances only ever store the key.
 //
@@ -47,7 +47,7 @@ public class FurnitureCatalog : ScriptableObject
         public float clearanceSideM;
 
         [Header("Appearance")]
-        [Tooltip("Colour of the placeholder box shown until real art exists under this id.")]
+        [Tooltip("Color of the placeholder box shown until real art exists under this id.")]
         public Color swatch = new Color(0.62f, 0.64f, 0.70f);
 
         // Wall-mount placement defaults, copied into WallMountDef at placement time so every helper
@@ -97,7 +97,7 @@ public class FurnitureCatalog : ScriptableObject
 
     /// <summary>
     /// Builds an ObjectInstance for a catalog entry. Free-standing furniture reuses ObjectInstance
-    /// from AuthoringTypes.cs verbatim — `boxSizeMeters` is already exactly "the item's true size",
+    /// from AuthoringTypes.cs verbatim: `boxSizeMeters` is already exactly "the item's true size",
     /// which LayoutConverter has been using for generated massing boxes all along.
     /// </summary>
     public static ObjectInstance NewInstance(Entry entry, Vector3 position, float rotationY)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // materialId -> Material for interior surfaces. Same shape and role as the existing MaterialPalette
-// (used by the tile building editor) and PathMaterialPalette — deliberately, so the wiring pattern in
+// (used by the tile building editor) and PathMaterialPalette. Deliberately, so the wiring pattern in
 // the project stays uniform and an unknown id degrades the same way everywhere: a warning and a
 // default material, never a pink error surface or a missing wall.
 [CreateAssetMenu(fileName = "InteriorMaterialPalette", menuName = "CXR/Interior Material Palette")]

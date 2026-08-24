@@ -1,16 +1,16 @@
 using UnityEngine;
 
 // Pure geometry for the Decorate tool's auto-alignment. Lives in CXRAuthoring (no PrefabRegistry /
-// DecorPalette references — those are Assembly-CSharp) so callers measure the prefab's bounds
+// DecorPalette references: those are Assembly-CSharp) so callers measure the prefab's bounds
 // and pass them in. The result is baked at paint time into EmbeddedObjectDef.rotationX/Y/Z + localPos,
 // so the render paths (WorldRenderer.RenderEmbeddedObjects, TileBuildingEditor.SpawnEmbeddedGO) need
 // no change.
 //
-// Model: a prop has a "mount" basis — depthLocal (the axis pointing OUT of the surface it presses
+// Model: a prop has a "mount" basis. depthLocal (the axis pointing OUT of the surface it presses
 // against) and upLocal (the in-plane axis to keep aligned with the face's reference direction). We
 // map (depthLocal -> faceNormal, upLocal -> faceUp) and seat the prop so its back face sits flush on
 // the surface. For an axis-aligned vertical wall with the legacy basis (depth=+Z, up=+Y) this reduces
-// to the old LookRotation(normal, up) — regression-safe.
+// to the old LookRotation(normal, up). Regression-safe.
 public static class DecorAlignment
 {
     // Names the prop-local axis that points OUT of the mounting surface (i.e. the back/mount face is
@@ -127,7 +127,7 @@ public static class DecorAlignment
         => AnchorOffsetInBand(anchor, scaledHeight, -0.5f * cellSize, 0.5f * cellSize);
 
     // Band variant for deformed faces: seats the prop within an asymmetric safe band [uBottom, uTop]
-    // (signed offsets along the face's up axis about its center — see TileFaceGeometry.FaceFrame).
+    // (signed offsets along the face's up axis about its center, see TileFaceGeometry.FaceFrame).
     // Center = band midpoint; Bottom/Top seat the prop's edge on the band edge. With the symmetric
     // band ∓cellSize/2 this reduces exactly to the legacy AnchorOffset above.
     public static float AnchorOffsetInBand(Anchor anchor, float scaledHeight, float uBottom, float uTop)

@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Turns a fence centerline (the sparse control points the user drew or the LLM emitted) into an
-// ordered list of segment placements — one panel between consecutive samples and a post at each
-// sample — that WorldRenderer.RenderFences instantiates. Pure/static (no scene access) so it can be
+// ordered list of segment placements: one panel between consecutive samples and a post at each
+// sample: that WorldRenderer.RenderFences instantiates. Pure/static (no scene access) so it can be
 // unit tested like PathGeometry; the caller supplies the terrain height per placement.
 //
 // Reuses PathGeometry.Smooth to resample the centerline at ~panelLength spacing, so a fence follows
@@ -28,7 +28,7 @@ public static class FenceBuilder
         if (panelLength <= 0f) panelLength = 2f;
 
         // roundFit: pick the panel count nearest to segLen/panelLength (min 1) so panels stretch or
-        // shrink toward their natural length instead of only compressing — 10 m of 3 m panels gives
+        // shrink toward their natural length instead of only compressing: 10 m of 3 m panels gives
         // 3 x 3.33 m, not 4 x 2.5 m. Endpoints/corners still land exactly on the control points.
         var dense = PathGeometry.Smooth(ctrl, smoothing, panelLength, roundFit: true);
         if (dense.Count < 2) return outList;

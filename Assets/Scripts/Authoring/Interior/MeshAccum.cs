@@ -4,8 +4,8 @@ using UnityEngine;
 // A small multi-submesh mesh accumulator, shared by WallMeshBuilder and RoomMeshBuilder.
 //
 // PathMesh builds its ribbons straight into raw vertex/triangle lists, which is fine for a
-// single-material strip. Interior geometry needs several materials on ONE mesh — a wall's two faces
-// are painted differently and its top and door reveals are a third material — so triangles have to be
+// single-material strip. Interior geometry needs several materials on ONE mesh: a wall's two faces
+// are painted differently and its top and door reveals are a third material, so triangles have to be
 // bucketed per submesh. That is the only thing this class adds.
 //
 // WINDING CONVENTION (the part that is easy to get wrong and expensive to debug):
@@ -44,7 +44,7 @@ public class MeshAccum
     /// <summary>
     /// Appends one quad. Corners must be ordered p0, p0+u, p0+u+v, p0+v where Cross(u, v) == normal
     /// (see the winding note at the top of this file). Vertices are duplicated per quad so each face
-    /// keeps a hard normal — correct for architectural geometry, where a wall corner is a crease and
+    /// keeps a hard normal. Correct for architectural geometry, where a wall corner is a crease and
     /// smoothing it would look melted.
     /// </summary>
     public void AddQuad(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3,
@@ -83,7 +83,7 @@ public class MeshAccum
 
     /// <summary>
     /// Produces the Mesh. Returns null when nothing was accumulated, so callers can skip creating an
-    /// empty renderer. Uses a 32-bit index buffer when needed — a fully traced floor of a large group
+    /// empty renderer. Uses a 32-bit index buffer when needed: a fully traced floor of a large group
     /// home can exceed 65k vertices once every wall face is a hard-normal quad.
     /// </summary>
     public Mesh ToMesh(string name = "Interior")

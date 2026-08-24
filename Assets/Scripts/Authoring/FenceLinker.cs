@@ -59,7 +59,7 @@ public static class FenceLinker
 
     // Mutates `fences`: splits existing fences where `newCtrl` T-joins or crosses them, splits the
     // new run at each crossing, and appends the resulting run(s) (copying the given attributes).
-    // Returns the appended defs (empty when newCtrl is degenerate — then nothing is mutated). The
+    // Returns the appended defs (empty when newCtrl is degenerate, then nothing is mutated). The
     // caller wraps the whole call in one undo snapshot.
     public static List<FenceDef> Link(List<FenceDef> fences, IReadOnlyList<Vector2> newCtrl,
                                       string fenceType, float smoothing, float height,
@@ -168,7 +168,7 @@ public static class FenceLinker
     }
 
     // T-junction: project a new-run endpoint onto every fence segment; a contact within eps cuts
-    // the fence there. Near-parallel contact is skipped — that's overlap, not a junction.
+    // the fence there. Near-parallel contact is skipped. That's overlap, not a junction.
     private static void AddEndpointCut(Vector2 endpoint, Vector2 endDir, List<Vector2> poly,
                                        float eps, List<Cut> cuts)
     {
@@ -226,7 +226,7 @@ public static class FenceLinker
                 float d = Vector2.Distance(p, poly[v]);
                 if (d <= bestD) { bestD = d; bestV = v; }
             }
-            if (bestV == 0 || bestV == n - 1) continue;   // shared corner — no split
+            if (bestV == 0 || bestV == n - 1) continue;   // shared corner: no split
             if (bestV > 0) { p = poly[bestV]; arc = cum[bestV]; }
 
             welded.Add(new Boundary { arc = arc, p = p });

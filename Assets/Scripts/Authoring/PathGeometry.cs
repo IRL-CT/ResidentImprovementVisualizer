@@ -6,11 +6,11 @@ using UnityEngine;
 // Pure/static so it can be unit tested without a scene. Operates in XZ meters (Vector2 = (x, z)).
 //
 // Two responsibilities:
-//   • Smooth   — centripetal Catmull-Rom spline resampled at a fixed arc-length step. The
+//   • Smooth. Centripetal Catmull-Rom spline resampled at a fixed arc-length step. The
 //                `smoothing` knob (0..1) blends the spline toward the straight polyline, so 0 keeps
 //                crisp street corners and 1 gives flowing trail curves. Both hand-drawn and
 //                AI-generated paths run through this at render time.
-//   • Simplify — Ramer–Douglas–Peucker decimation, used by the authoring layer to denoise freehand
+//   • Simplify (Ramer) Douglas. Peucker decimation, used by the authoring layer to denoise freehand
 //                strokes into a compact set of control points.
 public static class PathGeometry
 {
@@ -20,7 +20,7 @@ public static class PathGeometry
     // Resample `points` into a dense centerline. `smoothing` in [0,1]: 0 -> straight (just resampled
     // polyline), 1 -> full centripetal Catmull-Rom curve. Endpoints are always preserved.
     // `roundFit` picks the subdivision count nearest to segLen/step instead of ceiling it, so sample
-    // spacing can stretch up to 1.5x `step` as well as shrink — fences use this so panels fit a drawn
+    // spacing can stretch up to 1.5x `step` as well as shrink. Fences use this so panels fit a drawn
     // run at their natural length; path ribbons keep the ceil default (spacing never exceeds `step`).
     public static List<Vector2> Smooth(IReadOnlyList<Vector2> points, float smoothing, float step = DefaultStep, bool roundFit = false)
     {
@@ -28,7 +28,7 @@ public static class PathGeometry
         if (step <= 0f) step = DefaultStep;
         smoothing = Mathf.Clamp01(smoothing);
 
-        // Drop consecutive duplicates — they break the centripetal parameterization (zero-length knot).
+        // Drop consecutive duplicates. They break the centripetal parameterization (zero-length knot).
         var ctrl = Dedup(points);
         if (ctrl.Count < 2) return ctrl;
 
@@ -64,7 +64,7 @@ public static class PathGeometry
     // `radius`, clamped to half the shorter adjacent segment so the fillet always fits. This caps the
     // turn radius at >= the clamped radius, so a ribbon of half-width <= radius never folds back over
     // its inner edge (and the miter never spikes) at the corner. Run on the SPARSE control points
-    // before Smooth — both the polyline resample (smoothing 0) and the Catmull-Rom (smoothing 1) then
+    // before Smooth: both the polyline resample (smoothing 0) and the Catmull-Rom (smoothing 1) then
     // follow the arc. Endpoints pass through unchanged. Pure/static for unit testing.
     public static List<Vector2> RoundCorners(IReadOnlyList<Vector2> points, float radius,
                                              float minTurnDeg = 30f, int arcSegments = 6)
@@ -125,8 +125,8 @@ public static class PathGeometry
         return outPts;
     }
 
-    // Ramer–Douglas–Peucker: drop points that lie within `tolerance` meters of the line between the
-    // retained neighbours. Always keeps the first and last point. Used to denoise freehand strokes.
+    // Ramer (Douglas) Peucker: drop points that lie within `tolerance` meters of the line between the
+    // retained neighbors. Always keeps the first and last point. Used to denoise freehand strokes.
     public static List<Vector2> Simplify(IReadOnlyList<Vector2> points, float tolerance)
     {
         if (points == null || points.Count < 3 || tolerance <= 0f) return CopyOrEmpty(points);
@@ -188,7 +188,7 @@ public static class PathGeometry
         return outPts;
     }
 
-    // Barry–Goldman pyramidal evaluation of a centripetal (alpha=0.5) Catmull-Rom segment p1->p2.
+    // Barry. Goldman pyramidal evaluation of a centripetal (alpha=0.5) Catmull-Rom segment p1->p2.
     private static Vector2 CentripetalCatmullRom(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float u)
     {
         const float alpha = 0.5f;

@@ -32,7 +32,7 @@ public class WorldRenderer : MonoBehaviour
     [SerializeField] private float defaultYRotation  = 90f;
 
     // Per-environment render state. Multiple environments can be rendered at once (overlaid at
-    // their shared origin); only the active one is interactive — see SetActiveEnvironment.
+    // their shared origin); only the active one is interactive. See SetActiveEnvironment.
     private class EnvRender
     {
         public EnvironmentDef env;                 // kept so SetActiveEnvironment can repaint terrain
@@ -58,7 +58,7 @@ public class WorldRenderer : MonoBehaviour
     // -----------------------------------------------------------------------
 
     // Renders (or re-renders) one environment into its own root. By default the rendered
-    // environment becomes the active (editable) one — it paints the shared terrain and its
+    // environment becomes the active (editable) one. It paints the shared terrain and its
     // colliders are enabled; pass makeActive:false to load it as a locked backdrop.
     public void RenderEnvironment(EnvironmentDef env, IReadOnlyDictionary<string, BuildingDef> buildingDefs,
                                   bool makeActive = true)
@@ -118,7 +118,7 @@ public class WorldRenderer : MonoBehaviour
     // Sizes the in-scene Terrain to the environment's real-world site.terrainSize (meters) so the
     // visible ground is true scale (1 unit = 1 m) and every coordinate that's normalized against
     // terrainData.size (zones, strokes, lot mask, paths) lands correctly. The terrain's Y (height
-    // range) is preserved — flat sites keep their existing height ceiling. Width/length are clamped
+    // range) is preserved. Flat sites keep their existing height ceiling. Width/length are clamped
     // to a sane band so a malformed/zero terrainSize can't collapse or blow up the ground. Public so
     // EditController can re-apply after a Site Settings edit or Scale Calibration.
     public void ApplyTerrainSize(SiteDef site)
@@ -136,7 +136,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // Lightweight live preview of a terrain resize from raw width/length (meters), without touching
-    // any environment data — used by the editor's Lot tool while dragging a rectangle handle so the
+    // any environment data. Used by the editor's Lot tool while dragging a rectangle handle so the
     // ground plane tracks the drag. The committed size is written through ApplyTerrainSize on release.
     public void PreviewTerrainSize(float width, float length)
     {
@@ -152,7 +152,7 @@ public class WorldRenderer : MonoBehaviour
 
     // Optional gentle elevation. With no grade points the terrain is flattened to the base plane
     // (today's behavior). With grade points, a LOW-RES heightmap is interpolated from them (inverse-
-    // distance weighting) and baked once via SetHeights — objects (SampleHeight) and paths (heightAt)
+    // distance weighting) and baked once via SetHeights. Objects (SampleHeight) and paths (heightAt)
     // then drape onto it automatically. Kept cheap (≤65² samples) and one-shot for VR. Public so the
     // editor can re-bake after an elevation edit. Call after ApplyTerrainSize.
     public void ApplyHeightmap(SiteDef site)
@@ -240,7 +240,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // Exposed for EditController (selection) and BakePass (mesh combine). Returns the active
-    // environment's root — the one being authored — so BakePass combines what's being edited.
+    // environment's root (the one being authored) so BakePass combines what's being edited.
     public Transform GetRoot() =>
         _activeEnvId != null && _envRenders.TryGetValue(_activeEnvId, out var er) ? er.root : null;
 
@@ -332,7 +332,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Terrain painting — fixed: uses rectMeters (world meters) not canvas coords
+    // Terrain painting. Fixed: uses rectMeters (world meters) not canvas coords
     // -----------------------------------------------------------------------
 
     private void PaintTerrain(SiteDef site)
@@ -360,7 +360,7 @@ public class WorldRenderer : MonoBehaviour
                 map[y, x, 0] = 1f;  // default to first layer
 
         // Rectangular zones (from generation) first, then freehand strokes (from the editor) on
-        // top — both are pure functions of the data, so a reload reproduces the same splatmap.
+        // top: both are pure functions of the data, so a reload reproduces the same splatmap.
         if (site.terrainZones != null)
             foreach (var zone in site.terrainZones)
             {
@@ -445,7 +445,7 @@ public class WorldRenderer : MonoBehaviour
         string.Equals(shape, "square", StringComparison.OrdinalIgnoreCase);
 
     // True when alphamap cell (x, y) falls inside the brush footprint centered at `centerMeters`
-    // (whatever space the caller stamps in — world meters offline, terrain-local meters live).
+    // (whatever space the caller stamps in, world meters offline, terrain-local meters live).
     // Circles keep the normalized-index ellipse test so existing strokes rasterize bit-identically;
     // squares test an axis-box in meters, rotated by `dirRad`, giving a run clean parallel edges.
     private static bool InBrush(int x, int y, int cx, int cy, int rx, int ry, int res,
@@ -508,7 +508,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // Walks a stroke centerline and invokes `stamp(center, dirRad)` at every sample, inserting
-    // intermediate samples no further apart than `step` so a fast drag — or a long straight run —
+    // intermediate samples no further apart than `step` so a fast drag (or a long straight run) 
     // rasterizes as one continuous band. `dirRad` is the heading (atan2(dz, dx)) of the segment the
     // sample belongs to; square stamps rotate to it. A single-point stroke stamps once, axis-aligned.
     private static void WalkStroke(float[][] points, float step, Action<Vector3, float> stamp)
@@ -528,7 +528,7 @@ public class WorldRenderer : MonoBehaviour
             Vector3 a = pts[i], b = pts[i + 1];
             float dirRad = Mathf.Atan2(b.z - a.z, b.x - a.x);
             int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a, b) / step));
-            // Endpoints are inclusive, so a shared joint is stamped twice — harmless, the write is
+            // Endpoints are inclusive, so a shared joint is stamped twice. Harmless, the write is
             // idempotent, and it keeps every segment's own heading at its ends.
             for (int s = 0; s <= steps; s++) stamp(Vector3.Lerp(a, b, s / (float)steps), dirRad);
         }
@@ -594,7 +594,7 @@ public class WorldRenderer : MonoBehaviour
     // -----------------------------------------------------------------------
     // Live straight-run painting
     //
-    // A straight run's geometry is *replaced* on every mouse move, not appended to — swing the
+    // A straight run's geometry is *replaced* on every mouse move, not appended to. Swing the
     // direction around mid-drag and an append-only stamp would leave a smeared fan behind. So the
     // pristine alphamap under the run is snapshotted once, and every update repaints that snapshot
     // and re-stamps the run's current shape into it: ground the run has moved off reverts, and the
@@ -606,7 +606,7 @@ public class WorldRenderer : MonoBehaviour
     private int  _liveX0, _liveY0, _liveW, _liveH;           // snapshot window, in alphamap cells
     private bool _liveRunActive;
 
-    // Starts a live run. Pair with EndLiveSurfaceRun — without it the snapshot leaks and a later
+    // Starts a live run. Pair with EndLiveSurfaceRun. Without it the snapshot leaks and a later
     // run would restore stale ground.
     public void BeginLiveSurfaceRun()
     {
@@ -704,7 +704,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Object instances — fixed: honors rotationY and scale (consolidates ObjectPlacer)
+    // Object instances. Fixed: honors rotationY and scale (consolidates ObjectPlacer)
     // -----------------------------------------------------------------------
 
     private void RenderObjectInstances(List<ObjectInstance> instances, EnvRender er)
@@ -734,7 +734,7 @@ public class WorldRenderer : MonoBehaviour
         Quaternion baseRot;
         if (prefab == null)
         {
-            Debug.LogWarning($"[WorldRenderer] Prefab '{inst.prefabType}' not found in PrefabRegistry — spawning missing-texture placeholder.");
+            Debug.LogWarning($"[WorldRenderer] Prefab '{inst.prefabType}' not found in PrefabRegistry, so a missing-texture placeholder was spawned.");
             go = CreateMissingPrefabPlaceholder(root, inst.prefabType);
             baseRot = Quaternion.identity;
         }
@@ -769,7 +769,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // Incrementally spawns one object into the active environment's render without re-rendering
-    // everything — used by the scatter brush so painting many trees stays responsive. The caller
+    // everything. Used by the scatter brush so painting many trees stays responsive. The caller
     // is responsible for also adding `inst` to env.objectInstances so a reload reproduces it.
     public void SpawnObjectInstance(ObjectInstance inst)
     {
@@ -790,7 +790,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Path ribbons — PathDef polylines rendered as textured mesh strips on the terrain
+    // Path ribbons. PathDef polylines rendered as textured mesh strips on the terrain
     // -----------------------------------------------------------------------
 
     private void RenderPaths(List<PathDef> paths, EnvRender er)
@@ -798,7 +798,7 @@ public class WorldRenderer : MonoBehaviour
         if (paths == null || paths.Count == 0) return;
         if (pathMaterialPalette == null)
         {
-            Debug.LogError("[WorldRenderer] pathMaterialPalette not assigned — cannot render paths.");
+            Debug.LogError("[WorldRenderer] pathMaterialPalette not assigned, so paths cannot render.");
             return;
         }
 
@@ -945,11 +945,11 @@ public class WorldRenderer : MonoBehaviour
         return baseY + h + pathYEpsilon;
     }
 
-    // Material a path of `materialId` renders with — shared with the live preview for WYSIWYG.
+    // Material a path of `materialId` renders with. Shared with the live preview for WYSIWYG.
     public Material GetPathMaterial(string materialId) => pathMaterialPalette != null ? pathMaterialPalette.GetMaterial(materialId) : null;
 
     // -----------------------------------------------------------------------
-    // Fence runs — FenceDef polylines rendered as repeated panel/post prefabs along the terrain
+    // Fence runs. FenceDef polylines rendered as repeated panel/post prefabs along the terrain
     // -----------------------------------------------------------------------
 
     private void RenderFences(List<FenceDef> fences, EnvRender er)
@@ -957,7 +957,7 @@ public class WorldRenderer : MonoBehaviour
         if (fences == null || fences.Count == 0) return;
         if (fencePalette == null)
         {
-            Debug.LogError("[WorldRenderer] fencePalette not assigned — cannot render fences.");
+            Debug.LogError("[WorldRenderer] fencePalette not assigned, so fences cannot render.");
             return;
         }
 
@@ -1008,7 +1008,7 @@ public class WorldRenderer : MonoBehaviour
 
         // Stretch the panel to span its gap (X = run) and reach the fence height (Y); posts
         // only take the height scale. Thickness (Z) is preserved. The panel's modeled length and
-        // X-center come from its measured mesh extent, not the pivot or entry.panelLength — art-pack
+        // X-center come from its measured mesh extent, not the pivot or entry.panelLength. Art-pack
         // panels often pivot at one end, which would otherwise shift the whole run by half a panel.
         float baseLen  = entry.panelLength > 1e-4f ? entry.panelLength : 2f;
         float centerX  = 0f;
@@ -1038,14 +1038,14 @@ public class WorldRenderer : MonoBehaviour
             y = SamplePathSurfaceY(pl.pos.x, pl.pos.y);
         }
         // Place by the mesh's X-center, not the pivot: shift the instance so the panel geometry is
-        // centered on the segment midpoint — this is what makes a run start and end exactly at the
+        // centered on the segment midpoint: this is what makes a run start and end exactly at the
         // drawn points regardless of where the prefab's pivot sits.
         go.transform.position = new Vector3(pl.pos.x, y, pl.pos.y)
                               - rot * new Vector3(centerX * baseScale.x * sx, 0f, 0f);
     }
 
     // Cached local X extent (min, max) of a panel prefab's combined meshes, measured in the prefab
-    // root's space (root scale excluded — the caller multiplies by baseScale). Lets fence placement
+    // root's space (root scale excluded: the caller multiplies by baseScale). Lets fence placement
     // work from the actual geometry instead of assuming the pivot sits at the panel's X-center.
     private static readonly Dictionary<GameObject, Vector2> _panelXExtents = new();
 
@@ -1078,7 +1078,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Lot / parcel boundary frame — a draped outline of the editable parcel so the lot reads as a
+    // Lot / parcel boundary frame: a draped outline of the editable parcel so the lot reads as a
     // first-class object (it's the same polygon PaintTerrain masks the water against, or the terrain
     // rectangle when no explicit boundary is set). Pure authoring aid: a single terrain-following
     // LineRenderer, rebuilt with every render, no collider (never interferes with picking).
@@ -1177,7 +1177,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // Spawns a 1m magenta cube standing in for a prefab_type with no PrefabRegistry entry.
-    // Returned like a freshly instantiated prefab — caller composes rotation/scale and grounds it —
+    // Returned like a freshly instantiated prefab (caller composes rotation/scale and grounds it) 
     // so a missing prefab still produces a visible, selectable, saveable instance.
     private GameObject CreateMissingPrefabPlaceholder(Transform parent, string prefabType)
     {
@@ -1192,7 +1192,7 @@ public class WorldRenderer : MonoBehaviour
     // Places an object instance and snaps the bottom of its (rotated/scaled) renderer bounds
     // to the terrain surface, then applies position[1] as a vertical offset above that resting
     // height. Because the snap depends on the current rotation/scale, this is the single source
-    // of truth for object placement — both initial render and edit-mode re-grounding go through
+    // of truth for object placement: both initial render and edit-mode re-grounding go through
     // it, so the live edit, the save, and the reload all agree.
     public void GroundObjectInstance(GameObject go, float[] position)
     {
@@ -1215,7 +1215,7 @@ public class WorldRenderer : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Building instances — looks up BuildingDef to derive grid dimensions
+    // Building instances. Looks up BuildingDef to derive grid dimensions
     // -----------------------------------------------------------------------
 
     private void RenderBuildingInstances(List<BuildingInstance> instances,
@@ -1252,7 +1252,7 @@ public class WorldRenderer : MonoBehaviour
             else
             {
                 if (hasTiles)
-                    Debug.LogError($"[WorldRenderer] tileShapePalette not assigned — rendering tiled building '{bdef.name}' as bay massing.");
+                    Debug.LogError($"[WorldRenderer] tileShapePalette not assigned, so tiled building '{bdef.name}' renders as bay massing.");
                 if (buildingGenerator == null || bayRend == null)
                 {
                     Debug.LogError($"[WorldRenderer] buildingGenerator/bay prefab unavailable. Skipping instance '{inst.instanceId}'.");
@@ -1294,8 +1294,8 @@ public class WorldRenderer : MonoBehaviour
 
         float cs = bdef.gridCellSize > 0f ? bdef.gridCellSize : AuthoringConventions.DEFAULT_GRID_CELL_SIZE;
 
-        // Sanity check: a single stray tile (e.g. from the old unclamped floor-plane hover) makes the
-        // whole building read as enormous — every bounds-derived size (framing, selection, massing
+        // Validity check: a single stray tile (e.g. from the old unclamped floor-plane hover) makes the
+        // whole building read as enormous: every bounds-derived size (framing, selection, massing
         // span) tracks tile min/max. Warn loudly so corrupted defs get noticed and repaired instead
         // of silently rendering kilometers wide.
         int minX = int.MaxValue, maxX = int.MinValue, minZ = int.MaxValue, maxZ = int.MinValue;
@@ -1310,13 +1310,13 @@ public class WorldRenderer : MonoBehaviour
         const int SANE_SPAN_CELLS = 200;
         if (maxX - minX > SANE_SPAN_CELLS || maxZ - minZ > SANE_SPAN_CELLS)
             Debug.LogWarning($"[WorldRenderer] Building '{bdef.name}' ({bdef.id}) spans " +
-                             $"{maxX - minX + 1}×{maxZ - minZ + 1} cells — it likely contains a stray " +
+                             $"{maxX - minX + 1}×{maxZ - minZ + 1} cells, so it likely contains a stray " +
                              $"tile far from the footprint (tile extent X {minX}..{maxX}, Z {minZ}..{maxZ}).");
 
         return rootGO;
     }
 
-    // Prop mount bases per (prefabType, mountAxis, flipMount), measured once — prefab bounds don't
+    // Prop mount bases per (prefabType, mountAxis, flipMount), measured once. Prefab bounds don't
     // change at runtime, and reseating runs on every render of every decorated building.
     private readonly Dictionary<(string, int, bool), DecorAlignment.PropBasis> _propBasisCache = new();
 
@@ -1358,7 +1358,7 @@ public class WorldRenderer : MonoBehaviour
             Quaternion embRot = Quaternion.Euler(emb.rotationX, emb.rotationY, emb.rotationZ);
             if (prefab == null)
             {
-                Debug.LogWarning($"[WorldRenderer] Embedded prefab '{emb.prefabType}' not found in PrefabRegistry — spawning missing-texture placeholder.");
+                Debug.LogWarning($"[WorldRenderer] Embedded prefab '{emb.prefabType}' not found in PrefabRegistry, so a missing-texture placeholder was spawned.");
                 go = CreateMissingPrefabPlaceholder(parent, emb.prefabType);
                 go.transform.position = worldPos;
                 go.transform.rotation = bldgRot * embRot;

@@ -3,7 +3,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 // The plan ships no accessibility rules, but promises a rules-READY schema. That promise is only real
-// if the numbers a rule would test are computable today — clear widths, floor areas, turning space.
+// if the numbers a rule would test are computable today. Clear widths, floor areas, turning space.
 // These tests are the evidence for that claim.
 [TestFixture]
 public class HomeMetricsTests
@@ -21,7 +21,7 @@ public class HomeMetricsTests
     }
 
     [Test]
-    public void ClearWidth_SwingDoorLosesTheLeafAndStop()
+    public void ClearWidth_DoorLosesTheLeafAndStop()
     {
         var o = Door(0.9144f);
 
@@ -30,31 +30,22 @@ public class HomeMetricsTests
     }
 
     [Test]
-    public void ClearWidth_SliderOnlyOpensHalf()
-    {
-        var o = Door(1.8f);
-        o.swing = OpeningSwing.Slider;
-
-        Assert.AreEqual(0.9f, HomeMetrics.ClearWidth(o), 1e-4f);
-    }
-
-    [Test]
-    public void ClearWidth_PocketDoorLosesOnlyTheReveal()
-    {
-        var o = Door(0.9144f);
-        o.swing = OpeningSwing.Pocket;
-
-        Assert.AreEqual(0.9144f - 0.030f, HomeMetrics.ClearWidth(o), 1e-4f);
-    }
-
-    [Test]
     public void ClearWidth_CasedOpeningHasNoLeafToLose()
     {
         var o = Door(0.9144f);
         o.kind = OpeningKind.CasedOpening;
-        o.swing = OpeningSwing.None;
 
         Assert.AreEqual(0.9144f, HomeMetrics.ClearWidth(o), 1e-4f);
+    }
+
+    [Test]
+    public void ClearWidth_WindowHasNoLeafToLose()
+    {
+        var o = Door(1.2f);
+        o.kind = OpeningKind.Window;
+        o.sillHeight = 0.914f;
+
+        Assert.AreEqual(1.2f, HomeMetrics.ClearWidth(o), 1e-4f);
     }
 
     [Test]
@@ -65,7 +56,7 @@ public class HomeMetricsTests
         Assert.IsFalse(HomeMetrics.HasThreshold(flush));
 
         var raised = Door(0.9f);
-        raised.thresholdHeight = 0.019f;   // a 3/4" strip — a real trip hazard
+        raised.thresholdHeight = 0.019f;   // a 3/4" strip: a real trip hazard
         Assert.IsTrue(HomeMetrics.HasThreshold(raised));
     }
 
@@ -210,7 +201,7 @@ public class HomeMetricsTests
     private static OpeningDef Door(float width) => new OpeningDef
     {
         id = "d", wallId = "w", offset = 1f, width = width, height = 2.032f,
-        kind = OpeningKind.Door, swing = OpeningSwing.LeftIn,
+        kind = OpeningKind.Door,
     };
 
     private static float[][] Rect(float x, float z, float w, float d) => new[]

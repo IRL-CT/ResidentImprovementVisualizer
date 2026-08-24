@@ -3,15 +3,15 @@ using UnityEngine;
 // Shared geometry helper that writes TileDeform offsets onto a BuildingDef's tiles to create
 // acute/obtuse floor-plan corners and sloped roof edges, and builds the matching procedural prism
 // mesh. Used by BOTH the interactive Skew tool (TileBuildingEditor) and AI generation
-// (LayoutConverter), so hand-authored and generated angled buildings come out identical — mirroring
+// (LayoutConverter), so hand-authored and generated angled buildings come out identical. Mirroring
 // how TileSpawner is the single shared geometry source for authoring + rendering.
 //
 // Lives in the Authoring assembly because it depends only on Authoring types (BuildingDef/TileDef/
-// TileDeform) — that lets LayoutConverter (also Authoring) reach it, since an asmdef assembly can't
+// TileDeform): that lets LayoutConverter (also Authoring) reach it, since an asmdef assembly can't
 // reference the default Assembly-CSharp where TileSpawner lives.
 //
 // Seamlessness principle: every offset is a pure function of a tile's integer GRID-CORNER position,
-// sampled independently per tile. Neighbouring tiles share corner posts (e.g. tile (x) corner +X ==
+// sampled independently per tile. Neighboring tiles share corner posts (e.g. tile (x) corner +X ==
 // tile (x+1) corner -X == grid corner (x+1)), so they read the same offset there and the wall stays
 // gap-free without any cross-tile bookkeeping. All offsets are in CELL units (see TileDeform).
 public static class TileDeformField
@@ -26,7 +26,7 @@ public static class TileDeformField
     // at a CONSTANT angle, holding that slant all the way to the far end of the building. The
     // opposite Z-wall is the straight anchor, so one face stays straight and the other leaves the
     // corner as a single straight slant (sharp corner, not a curve). `angleDeg` is the tilt of that
-    // wall from square (sign flips which way it leans — acute vs obtuse). ADDS to any existing
+    // wall from square (sign flips which way it leans, acute vs obtuse). ADDS to any existing
     // deform, so multiple corners (and a slope) compose.
     public static void ApplyCornerBend(BuildingDef bdef, Corner corner, float angleDeg)
     {
@@ -56,7 +56,7 @@ public static class TileDeformField
         }
     }
 
-    // Slopes the top edge on one side of the building — a shed-roof tilt that flattens back inward
+    // Slopes the top edge on one side of the building: a shed-roof tilt that flattens back inward
     // over `falloffTiles` rows. Only the TOP floor's tiles are touched, so interior floor seams stay
     // flat (bottoms always sit on the floor plane). `riseCells` is the height change (cell units) at
     // the far end of the edge; the near end stays put, so the roof line tilts across the face.
@@ -107,7 +107,7 @@ public static class TileDeformField
     // Per-face corner index lists into the 8-corner array (bottom 0..3, top 4..7). The two triangles
     // per quad are emitted reversed (see SetTriangles below) so the face is front-facing OUTWARD
     // under Unity's screen-space clockwise = front, back-cull convention (a camera viewing the +Z
-    // face looks down −Z, so its screen-right is −X — the quad must wind the other way to stay front).
+    // face looks down −Z, so its screen-right is −X: the quad must wind the other way to stay front).
     // Corner order matches TileDeform: [0]=(-x,-z) [1]=(+x,-z) [2]=(+x,+z) [3]=(-x,+z); +4 = top.
     private static readonly int[][] FaceQuads =
     {
@@ -141,8 +141,8 @@ public static class TileDeformField
     // origin and spans ±cellSize/2 on X/Z, with the floor plane at y = -cellSize/2 and the ceiling at
     // +cellSize/2. dyTop scales by the vertex's vertical fraction (0 at the floor, 1 at the ceiling)
     // so bottoms stay on the floor plane and floors keep stacking while only the roof line tilts.
-    // A pure function of position, so every tile — box, wedge, curve, at any rotation — warps
-    // identically wherever its geometry coincides with a neighbour's.
+    // A pure function of position, so every tile (box, wedge, curve, at any rotation) warps
+    // identically wherever its geometry coincides with a neighbor's.
     public static Vector3 WarpVertex(TileDeform d, Vector3 p, float cellSize)
     {
         float h = cellSize * 0.5f;

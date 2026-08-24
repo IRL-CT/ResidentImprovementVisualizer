@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-// Runtime asset-preview thumbnails — the redesign's "big fix": every prefab and material shows as a
+// Runtime asset-preview thumbnails: the redesign's "big fix": every prefab and material shows as a
 // recognizable image instead of a name. Each preview is rendered once to a RenderTexture, copied to
 // a cached Texture2D, and reused for the rest of the session.
 //
@@ -45,7 +45,7 @@ public static class ThumbnailCache
         _cam = camGO.AddComponent<Camera>();
         _cam.enabled = false;                         // driven manually via SubmitRenderRequest
         _cam.clearFlags = CameraClearFlags.SolidColor;
-        // Opaque light tile background — a transparent clear can't be used: URP writes alpha 0 for
+        // Opaque light tile background: a transparent clear can't be used: URP writes alpha 0 for
         // opaque geometry, which would make the whole preview invisible in IMGUI.
         _cam.backgroundColor = new Color(0.957f, 0.949f, 0.929f, 1f);  // ~ UITheme.Tile
         _cam.cullingMask = 1 << Layer;
@@ -61,7 +61,7 @@ public static class ThumbnailCache
         _light.intensity = 1.4f;
         _light.transform.rotation = Quaternion.Euler(40f, -35f, 0f);
 
-        // Fill from roughly opposite the key so the shadowed side of the probe stays readable —
+        // Fill from roughly opposite the key so the shadowed side of the probe stays readable,
         // the rig gets no scene ambient (everything is culled to the hidden layer).
         var fillGO = new GameObject("fill") { hideFlags = HideFlags.HideAndDontSave };
         fillGO.transform.SetParent(_rig.transform);
@@ -93,7 +93,7 @@ public static class ThumbnailCache
         return null;
     }
 
-    // Called from ThumbnailRunner.Update() — safe to render cameras here (not during OnGUI).
+    // Called from ThumbnailRunner.Update(). Safe to render cameras here (not during OnGUI).
     internal static void Pump(int maxPerFrame)
     {
         int n = 0;
@@ -115,7 +115,7 @@ public static class ThumbnailCache
         SetLayerRecursive(inst, Layer);
         inst.transform.SetParent(_rig.transform);
         inst.transform.localPosition = Vector3.zero;
-        // Preserve the prefab's authored root rotation — the renderer composes instance rotation
+        // Preserve the prefab's authored root rotation: the renderer composes instance rotation
         // under it (see EditController.BaseRotationFor), so a preview forced to identity would show
         // a different orientation than the object actually gets placed at.
         inst.transform.localRotation = prefab.transform.localRotation;

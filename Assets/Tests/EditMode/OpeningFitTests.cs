@@ -65,7 +65,7 @@ public class OpeningFitTests
     }
 
     [Test]
-    public void NeighbourOnTheLeft_PushesTheRequestClear()
+    public void NeighborOnTheLeft_PushesTheRequestClear()
     {
         var others = new List<OpeningDef> { At(1.0f, 1.0f) };   // occupies 0.5 .. 1.5
 
@@ -77,7 +77,7 @@ public class OpeningFitTests
     }
 
     [Test]
-    public void NeighbourOnTheRight_PushesTheRequestClear()
+    public void NeighborOnTheRight_PushesTheRequestClear()
     {
         var others = new List<OpeningDef> { At(4.0f, 1.0f) };   // occupies 3.5 .. 4.5
 
@@ -88,7 +88,7 @@ public class OpeningFitTests
     }
 
     [Test]
-    public void SqueezedBetweenTwoNeighbours_FailsWithTheSpaceAvailable()
+    public void SqueezedBetweenTwoNeighbors_FailsWithTheSpaceAvailable()
     {
         var others = new List<OpeningDef>
         {
@@ -103,7 +103,7 @@ public class OpeningFitTests
     }
 
     [Test]
-    public void ExactlyFitsBetweenNeighbours_Succeeds()
+    public void ExactlyFitsBetweenNeighbors_Succeeds()
     {
         var others = new List<OpeningDef>
         {
@@ -142,6 +142,75 @@ public class OpeningFitTests
         Assert.AreEqual(2.3f, r.offset, 1e-4f);   // 1.5 + 0.3 gap + 0.5 half-width
     }
 
+    // MaxWidth is what BOUNDS the width field, so that dragging it can never ask for a width Fit
+    // refuses. Before it, the number in the box climbed while the document silently declined to
+    // follow: the control and the model disagreeing, with nothing on screen saying so.
+
+    [Test]
+    public void MaxWidth_OnAFreeWall_IsTheWholeWall()
+    {
+        Assert.AreEqual(L, OpeningFit.MaxWidth(2.5f, L, null), 1e-4f);
+    }
+
+    [Test]
+    public void MaxWidth_ReservesTheEdgeAtBothEnds()
+    {
+        Assert.AreEqual(L - 0.4f, OpeningFit.MaxWidth(2.5f, L, null, minEdge: 0.2f), 1e-4f);
+    }
+
+    [Test]
+    public void MaxWidth_BetweenTwoNeighbors_IsTheGap()
+    {
+        // The same pair as SqueezedBetweenTwoNeighbors_FailsWithTheSpaceAvailable: 1.5 .. 1.7.
+        var others = new List<OpeningDef> { At(1.0f, 1.0f), At(2.2f, 1.0f) };
+
+        Assert.AreEqual(0.2f, OpeningFit.MaxWidth(1.6f, L, others), 1e-4f);
+    }
+
+    [Test]
+    public void MaxWidth_IgnoresTheOpeningBeingResized()
+    {
+        var self = At(2.5f, 1.0f);
+        self.id = "self";
+        var others = new List<OpeningDef> { self };
+
+        // Without the exclusion an opening could never be widened. It would collide with itself.
+        Assert.AreEqual(L, OpeningFit.MaxWidth(2.5f, L, others, ignoreId: "self"), 1e-4f);
+    }
+
+    [Test]
+    public void MaxWidth_ZeroLengthWall_IsZero()
+    {
+        Assert.AreEqual(0f, OpeningFit.MaxWidth(0f, 0f, null), 1e-4f);
+    }
+
+    // THE PROPERTY THE WIDTH CONTROL RESTS ON: a width MaxWidth allows is always a width Fit accepts.
+    // Fit and MaxWidth read the same question from opposite ends, so a careless edit to FreeSpan that
+    // shifted one and not the other would show up here and nowhere else.
+    [Test]
+    public void MaxWidth_IsAlwaysAcceptedByFit()
+    {
+        var cases = new[]
+        {
+            new List<OpeningDef>(),
+            new List<OpeningDef> { At(1.0f, 1.0f) },
+            new List<OpeningDef> { At(1.0f, 1.0f), At(2.2f, 1.0f) },
+            new List<OpeningDef> { At(0.5f, 1.0f), At(2.5f, 1.0f), At(4.2f, 0.6f) },
+        };
+
+        foreach (var others in cases)
+            for (float offset = 0.1f; offset < L; offset += 0.1f)
+                foreach (float edge in new[] { 0f, 0.2f })
+                {
+                    float w = OpeningFit.MaxWidth(offset, L, others, minEdge: edge);
+                    if (w <= 1e-4f) continue;   // nothing fits here; Fit is entitled to refuse
+
+                    var r = OpeningFit.Fit(offset, w, L, others, minEdge: edge);
+                    Assert.IsTrue(r.ok,
+                        $"MaxWidth offered {w:0.####} at {offset:0.##} (edge {edge}) and Fit refused: {r.reason}");
+                }
+    }
+
     [Test]
     public void FitVertical_ClampsSillAndHeightIntoTheWall()
     {
@@ -165,6 +234,6 @@ public class OpeningFitTests
     private static OpeningDef At(float offset, float width) => new OpeningDef
     {
         id = "o" + offset, wallId = "wall", offset = offset, width = width,
-        height = 2.032f, kind = OpeningKind.Door, swing = OpeningSwing.LeftIn,
+        height = 2.032f, kind = OpeningKind.Door,
     };
 }

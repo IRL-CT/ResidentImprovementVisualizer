@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// M2/M3/M4: Runtime edit state machine — Browse, PlaceObject, PlaceBuilding, Transform, EditBuilding.
+// M2/M3/M4: Runtime edit state machine. Browse, PlaceObject, PlaceBuilding, Transform, EditBuilding.
 // Selection feedback: TransformGizmo (LineRenderer-based handles + bounds box) and a
 // MaterialPropertyBlock tint on the selected object's renderers.
 // OnGUI panel sits on the right side of the screen; LibraryBrowser is on the left.
@@ -71,7 +71,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // Cross-environment clipboard (Ctrl+C / Ctrl+V): deep-copied instance DATA (not GOs), so
     // entries survive env switches, edits, and deletion of the originals. BuildingDef is a
-    // SHARED reference — pasted buildings keep the same buildingId (defs are never cloned).
+    // SHARED reference. Pasted buildings keep the same buildingId (defs are never cloned).
     private class ClipEntry
     {
         public bool             isBuilding;
@@ -104,11 +104,11 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private Vector3 _transOrigRot;          // euler degrees (X, Y, Z) captured on Enter
     private float   _transOrigScale;
     private const float ROT_SNAP_DEG = 15f; // rotation snaps to this increment while Shift is held (free otherwise)
-    private Vector3 _transPrevMouse;   // drag-local; _prevMouse can't be used — UpdateCamera overwrites it every frame
+    private Vector3 _transPrevMouse;   // drag-local; _prevMouse can't be used. UpdateCamera overwrites it every frame
     private float   _rotDragRaw, _rotDragEmitted;  // R-key yaw drag: accumulate raw, emit only snapped steps
     private TransformGizmo _gizmo;     // clickable move/rotate/scale handles, created in Start
 
-    // Skew — whole-building deform (acute/obtuse corners, sloped roof) on the selected building's
+    // Skew. Whole-building deform (acute/obtuse corners, sloped roof) on the selected building's
     // BuildingDef via the shared TileDeformField. Lives next to the transform controls in the
     // building selection panel; mutates the def, re-renders, and persists like a tile edit.
     private enum SkewMode { BendCorner, SlopeEdge }
@@ -136,13 +136,13 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private bool                  _bldgListLoading;
     private bool                  _bldgListFetched;   // auto-fetch once so the list isn't empty by default
 
-    // EditBuilding — standalone (opened from Buildings tab, not a placed instance)
+    // EditBuilding. Standalone (opened from Buildings tab, not a placed instance)
     private bool _standaloneEdit;
     // The rendered building instance hidden while its tiles are being edited, so the live
     // edit copy isn't duplicated/z-fought and its colliders don't intercept paint raycasts.
     private GameObject _editingHiddenGO;
 
-    // Terrain editor — shared brush ghost (a flat ring on the terrain showing the brush radius)
+    // Terrain editor. Shared brush ghost (a flat ring on the terrain showing the brush radius)
     private LineRenderer _brushRing;
 
     // DrawPath
@@ -170,8 +170,8 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private Material _pathHandleMat, _pathHandleSelMat;
     private const float PATH_HANDLE_PICK_PX = 18f;        // screen-space pick radius for handles
 
-    // DrawFence — mirrors DrawPath's freehand input, but straight mode is press-drag-release (one
-    // run per gesture; chain corners by starting the next drag on the previous endpoint — the snap
+    // DrawFence. Mirrors DrawPath's freehand input, but straight mode is press-drag-release (one
+    // run per gesture; chain corners by starting the next drag on the previous endpoint: the snap
     // grabs it). Commits a FenceDef; a pooled ghost of real tinted panel/post prefabs previews the
     // exact fence while drawing/editing (the amber LineRenderer remains as the no-prefab fallback).
     // Reuses PathGeometry/PATH_* constants + the path handle materials.
@@ -246,7 +246,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     // orientation so a whole site can share a grid. The fixed angle also phases the run snapping, so
     // the run and the stamps line up on the same rotated grid.
     private bool  _surfFixedAngle = true;               // false = auto, true = use _surfAngleDeg (default)
-    private float _surfAngleDeg;                        // 0–90 (a square is 90°-symmetric)
+    private float _surfAngleDeg;                        // 0-90 (a square is 90°-symmetric)
     private bool  _surfSnapAngle = true;                // snap the drawn run's heading (Shift bypasses)
     private float _surfSnapIncrementDeg = 45f;
     private LineRenderer _surfStartGhost;               // brush outline parked at the drag's start
@@ -257,7 +257,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private Vector3 _surfLiveEnd;                       // endpoint the live paint was last rasterized at
     private bool    _surfLivePainted;                   // has the in-flight run been painted at least once
 
-    // Measure — non-destructive ruler: click ground points for live distance / polyline length /
+    // Measure. Non-destructive ruler: click ground points for live distance / polyline length /
     // polygon area at true scale. Writes nothing to the environment. The same two points feed Scale
     // Calibration (a measured distance + the real distance it should be → rescale the whole env).
     private readonly List<Vector3> _measurePts = new();  // placed ground points (world meters, y≈0)
@@ -267,18 +267,18 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private string       _calibRealStr = "";            // user-typed real distance for calibration (m)
     private GUIStyle     _measureLabelStyle;             // lazily-built floating-label style
 
-    // Site Settings — editable real-world terrain dimensions + scale note. The text buffers re-sync
+    // Site Settings. Editable real-world terrain dimensions + scale note. The text buffers re-sync
     // from the active environment whenever it changes (tracked by _siteFieldsEnvId) so the fields
     // always show the live values until the user edits + Applies.
     private string _siteWidthStr = "", _siteLenStr = "";
     private string _siteFieldsEnvId;
 
-    // Dimension entry — exact W×D×H (meters) for a selected massing-box object. Buffers re-sync when
+    // Dimension entry. Exact W×D×H (meters) for a selected massing-box object. Buffers re-sync when
     // the selection changes (tracked by _dimFieldsId).
     private string _dimWStr = "", _dimDStr = "", _dimHStr = "";
     private string _dimFieldsId;
 
-    // Elevation (basic) — sparse grade points for gentle terrain height. Optional; flat by default.
+    // Elevation (basic). Sparse grade points for gentle terrain height. Optional; flat by default.
     private bool   _showElevation;
     private string _gradeXStr = "", _gradeZStr = "", _gradeHStr = "";
 
@@ -297,7 +297,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private const int PANEL_W = UITheme.RightPanelWidth;
 
     // -----------------------------------------------------------------------
-    // Input System helpers — abstracts Mouse.current / Keyboard.current calls.
+    // Input System helpers. Abstracts Mouse.current / Keyboard.current calls.
     // Scroll: raw HID = 120 per click on Windows; dividing gives ≈ ±1 per tick.
     // -----------------------------------------------------------------------
 
@@ -314,7 +314,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // True while an IMGUI text field or slider in any panel holds keyboard focus. Scene keyboard
     // shortcuts (WASD, G/R/T, Delete, arrows, …) are suppressed while this is set, so typing a
-    // name — or dragging a slider — never also drives the scene. Camera mouse-look is unaffected.
+    // name (or dragging a slider) never also drives the scene. Camera mouse-look is unaffected.
     private static bool TypingInUI => GUIUtility.keyboardControl != 0;
 
     // -----------------------------------------------------------------------
@@ -378,7 +378,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         }
 
         // Copy / paste (Ctrl+C, Ctrl+V). Copy is read-only and allowed on a locked twin; paste
-        // refuses there. Gated to Browse/Transform — the only modes with an instance selection.
+        // refuses there. Gated to Browse/Transform: the only modes with an instance selection.
         if (KB != null && !TypingInUI &&
             (KB.leftCtrlKey.isPressed || KB.rightCtrlKey.isPressed) &&
             (_mode == EditMode.Browse || _mode == EditMode.Transform))
@@ -435,7 +435,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         Vector3 mouse  = MousePos;
         bool    overUI = IsMouseOverUI();
 
-        // Right-click orbit — only begin a drag when the press lands in the 3D view, not on a
+        // Right-click orbit: only begin a drag when the press lands in the 3D view, not on a
         // panel (an in-progress orbit keeps going even if the cursor later moves over the UI).
         if (RMBDown && !overUI) { _rightDrag = true;  _prevMouse = mouse; }
         if (RMBUp)    _rightDrag = false;
@@ -464,11 +464,11 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         _prevMouse = mouse;
 
         // Scroll zoom (blocked over the UI so scrolling a list/scroll-view doesn't zoom the camera,
-        // and in place modes — they use scroll for rotation)
+        // and in place modes. They use scroll for rotation)
         if (!overUI && _mode != EditMode.PlaceObject && _mode != EditMode.PlaceBuilding)
             _camDist = Mathf.Clamp(_camDist - ScrollY * camZoomSens, camMinDist, camMaxDist);
 
-        // WASD pan (blocked while in Transform mode — arrow keys nudge there instead — and while
+        // WASD pan (blocked while in Transform mode (arrow keys nudge there instead) and while
         // typing in a panel text field, so the movement keys edit text instead of moving the camera)
         if (_mode != EditMode.Transform && !TypingInUI)
         {
@@ -498,12 +498,12 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (_envSelected) { UpdateEnvSelected(); return; }
 
         // Re-renders (place, include-toggle, library load) replace the instantiated
-        // GOs — re-resolve the selected instance so highlight/gizmo follow it.
+        // GOs. Re-resolve the selected instance so highlight/gizmo follow it.
         if (_selGO == null && !string.IsNullOrEmpty(_selId)) RebindSelection();
 
         _gizmo?.Tick();
 
-        // Keyboard scene shortcuts — suppressed while a panel text field/slider is focused, so
+        // Keyboard scene shortcuts. Suppressed while a panel text field/slider is focused, so
         // typing (incl. Delete/Backspace) never edits or deletes the scene selection.
         if (!TypingInUI)
         {
@@ -547,7 +547,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                 continue;
             }
             // A fence is many panel/post GOs sharing one id, so it can't join the instance overlap
-            // list — keep only the nearest hit, which makes one fence exactly one candidate.
+            // list. Keep only the nearest hit, which makes one fence exactly one candidate.
             var fm = h.collider.GetComponentInParent<FenceMarker>();
             if (fm != null && h.distance < nearestFence && IsEditableFence(fm.fenceId))
             { nearestFence = h.distance; fenceId = fm.fenceId; }
@@ -564,7 +564,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
         if (_overlapHits.Count == 0)
         {
-            // A panel's MeshCollider is the exact art mesh, so a click can slip between pickets —
+            // A panel's MeshCollider is the exact art mesh, so a click can slip between pickets,
             // fall back to a screen-space test against the run's centerline. Only reached when the
             // ray resolved nothing, so it can never steal a click from an instance.
             if (!AdditiveHeld() && TryPickFenceScreen(out string nearFence))
@@ -601,7 +601,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // Whole-environment selection — group move/rotate/scale of every instance
+    // Whole-environment selection. Group move/rotate/scale of every instance
     // -----------------------------------------------------------------------
 
     // Selects the whole active environment as a transform group. The gizmo frames every rendered
@@ -646,7 +646,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     private void UpdateEnvSelected()
     {
-        // Live GOs are destroyed/recreated on re-render — re-frame when the cached set goes stale.
+        // Live GOs are destroyed/recreated on re-render. Re-frame when the cached set goes stale.
         if (_gizmoGOs.Count == 0 || _gizmoGOs[0] == null) RefreshEnvGizmoTargets();
 
         _gizmo?.Tick();
@@ -671,7 +671,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         }
     }
 
-    // XZ centroid of every instance — the pivot for group rotate/scale. It is invariant under
+    // XZ centroid of every instance: the pivot for group rotate/scale. It is invariant under
     // rotation/scale about itself, so recomputing it each step is stable; under a group move it
     // shifts with everything. Y is ignored (yaw/footprint-scale operate in the ground plane).
     private Vector3 EnvPivot(EnvironmentDef env)
@@ -713,7 +713,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (env.objectInstances != null)
             foreach (var o in env.objectInstances) { OrbitXZ(o.position, P, q); o.rotationY += deg; }
 
-        // RotateAround orbits the GO about P and spins its facing by deg in one step — matching the
+        // RotateAround orbits the GO about P and spins its facing by deg in one step. Matching the
         // data update above (Unity composes world-Y yaw outermost, so it equals rotationY + deg).
         foreach (var go in _gizmoGOs) if (go != null) go.transform.RotateAround(P, Vector3.up, deg);
     }
@@ -799,7 +799,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     {
         if (KB == null) return;
 
-        // Transform hotkeys — suppressed while typing in a panel text field/slider.
+        // Transform hotkeys. Suppressed while typing in a panel text field/slider.
         if (!TypingInUI)
         {
             if (KB.escapeKey.wasPressedThisFrame)
@@ -829,7 +829,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         // Re-select while transforming: a bare left-click on a *different* instance
         // (not on a gizmo handle, not over UI) switches the selection instead of
         // moving/rotating/scaling the current object. The gizmo handles remain the
-        // only explicit way to transform — so clicking the selected object's body or
+        // only explicit way to transform, so clicking the selected object's body or
         // empty ground still free-drags as before.
         if (LMBDown && !IsMouseOverUI() && (_gizmo == null || !_gizmo.IsInteracting)
             && TryPickInstance(out var pick, out var pickGO))
@@ -856,7 +856,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                 case Tool.Scale:  HandleScale(env);  break;
             }
 
-        // Arrow-key nudge (suppressed while typing — arrows move the text caret instead)
+        // Arrow-key nudge (suppressed while typing, arrows move the text caret instead)
         if (!TypingInUI)
         {
             float nudge = 0.5f;
@@ -889,7 +889,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // Both handlers use _transPrevMouse: they previously read _prevMouse, which
     // UpdateCamera overwrites with the current mouse position every frame *before*
-    // these run — so the computed delta was always zero (rotate/scale appeared dead).
+    // these run, so the computed delta was always zero (rotate/scale appeared dead).
     // R-key free drag rotates around world Y (yaw). Accumulate the raw mouse-driven angle;
     // rotation is free unless Shift is held, in which case only snapped steps are emitted so
     // the result lands on 15° multiples without dropping sub-step motion. X/Z are set via the
@@ -972,7 +972,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         }
     }
 
-    // XZ centroid of the selected instances' stored positions — the group-rotate pivot. Like
+    // XZ centroid of the selected instances' stored positions: the group-rotate pivot. Like
     // EnvPivot but scoped to the selection; invariant under rotation about itself, so
     // recomputing it every emitted step is stable.
     private Vector3 SelectionPivot(EnvironmentDef env)
@@ -988,7 +988,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // Sets one euler axis to an absolute value on every selected instance, leaving each one's
-    // other two axes untouched — used by the panel sliders (mirrors the tile editor). The value
+    // other two axes untouched. Used by the panel sliders (mirrors the tile editor). The value
     // arrives already Shift-snapped from the slider (SnapIf).
     private void ApplyRotAxisAbsolute(EnvironmentDef env, int axis, float degrees)
     {
@@ -1100,7 +1100,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         Quaternion rot = Quaternion.Euler(0f, _placeRotY, 0f) * Quaternion.Euler(_placeBaseEuler);
         if (_placeGhost)
         {
-            // Rotation first — grounding snaps the *rotated* renderer bounds onto the terrain.
+            // Rotation first. Grounding snaps the *rotated* renderer bounds onto the terrain.
             _placeGhost.transform.rotation = rot;
             if (worldRenderer != null)
                 worldRenderer.GroundObjectInstance(_placeGhost, new[] { pos.x, 0f, pos.z });
@@ -1115,7 +1115,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             var env = libraryBrowser?.EnsureWorkingEnvironment();
             if (env == null) return;
             _history?.RecordBefore(EditHistory.Scope.Environment, "Place object");
-            // Store only the user yaw — the prefab's authored orientation is re-applied at
+            // Store only the user yaw: the prefab's authored orientation is re-applied at
             // render time, so it must not be baked into the stored rotation (would double up).
             env.objectInstances.Add(new ObjectInstance
             {
@@ -1176,7 +1176,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             // (GhostBounds) and rotated about the root, lining the volume up with the geometry.
             Quaternion rot = Quaternion.Euler(0f, _placeBldgRotY, 0f);
             _placeBldgGhost.transform.rotation = rot;
-            // Lift the root to the terrain surface — the renderer places the building at
+            // Lift the root to the terrain surface: the renderer places the building at
             // terrain height (RenderBuildingInstances), so the ghost must sit there too.
             float groundY = worldRenderer != null ? worldRenderer.SamplePathSurfaceY(pos.x, pos.z) : 0f;
             _placeBldgGhost.transform.position = new Vector3(pos.x, groundY, pos.z) + rot * _placeBldgGhostCenter;
@@ -1222,7 +1222,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         _mode = EditMode.DrawPath;
         _pathPts.Clear();
         _pathStroking = false;
-        // Default the selected material to a real palette entry — never a hard-coded id that may
+        // Default the selected material to a real palette entry: never a hard-coded id that may
         // not exist in the user's PathMaterialPalette (which would render as a missing material).
         if (pathMaterialPalette?.entries != null && pathMaterialPalette.entries.Count > 0 &&
             !pathMaterialPalette.entries.Exists(e => string.Equals(e.id, _pathMaterial, StringComparison.OrdinalIgnoreCase)))
@@ -1318,7 +1318,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // Snap to the nearest point ON any existing path's centerline (projected onto its segments, so
-    // a new path can T-join mid-span — not just at endpoints) when within PATH_SNAP_DIST. Pass
+    // a new path can T-join mid-span: not just at endpoints) when within PATH_SNAP_DIST. Pass
     // `excludeId` so a path being edited can't snap one of its own control points onto itself.
     private Vector3 SnapToPath(Vector3 cursor, string excludeId = null)
     {
@@ -1639,7 +1639,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // DrawFence / EditFence — collect a centerline (straight: one press-drag-release per run;
+    // DrawFence / EditFence. Collect a centerline (straight: one press-drag-release per run;
     // freehand: sampled stroke), commit a FenceDef, and let WorldRenderer.RenderFences repeat
     // panel/post prefabs along it. The live preview is a pooled ghost of the real tinted prefabs
     // posed by the same ApplyFencePlacement as the committed render (WYSIWYG); the draped
@@ -1695,7 +1695,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
         if (_fenceFreehand)
         {
-            // Only the stroke's first and last points snap — intermediate samples stay raw so the
+            // Only the stroke's first and last points snap. Intermediate samples stay raw so the
             // stroke never glues itself along an existing fence it merely passes near.
             if (LMBDown && !IsMouseOverUI()) { _fenceStroking = true; _fencePts.Clear(); _fencePts.Add(cursor); }
             if (_fenceStroking && LMBHeld &&
@@ -1740,7 +1740,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             var ctrl = new List<Vector2>(_fencePts.Count + 1);
             foreach (var p in _fencePts) ctrl.Add(new Vector2(p.x, p.z));
             ctrl.Add(new Vector2(cursor.x, cursor.z));
-            // Preview the post-simplify control points — exactly what FinishFence will commit.
+            // Preview the post-simplify control points: exactly what FinishFence will commit.
             UpdateFenceGhost(PathGeometry.Simplify(ctrl, PATH_SIMPLIFY_TOL));
         }
         else if (!_fenceFreehand && _fenceDragging)
@@ -1751,7 +1751,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                 new(cursor.x, cursor.z),
             };
             // Preview the pending auto-split: each junction becomes a control point, so the ghost
-            // shows a post there and per-run panel refit — exactly what the commit will create.
+            // shows a post there and per-run panel refit: exactly what the commit will create.
             var fences = libraryBrowser?.CurrentEnvironment?.site?.fences;
             if (!ShiftHeld && fences != null)
             {
@@ -1932,7 +1932,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private static bool ShiftHeld => KB != null && (KB.leftShiftKey.isPressed || KB.rightShiftKey.isPressed);
 
     // Snap to existing fences: endpoints first (they keep priority so chaining corners stays easy),
-    // then the nearest projected point anywhere along a fence's control polyline — both within
+    // then the nearest projected point anywhere along a fence's control polyline: both within
     // FENCE_SNAP_DIST. `excludeFenceId` skips the fence being edited so its own dragged endpoint
     // can't grab itself. Holding Shift disables snapping entirely.
     private Vector3 SnapToFence(Vector3 cursor, out bool snapped, string excludeFenceId = null)
@@ -1943,7 +1943,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (fences == null) return cursor;
         Vector2 c = new(cursor.x, cursor.z);
 
-        // Pass 1: endpoints (priority — a nearby end wins even if a mid-segment point is closer).
+        // Pass 1: endpoints (priority: a nearby end wins even if a mid-segment point is closer).
         float best = FENCE_SNAP_DIST * FENCE_SNAP_DIST; Vector2 snap = c;
         foreach (var f in fences)
         {
@@ -2079,7 +2079,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // True when `id` names a fence in the ACTIVE, editable environment. Backdrop envs already have
     // their colliders disabled (WorldRenderer.ApplyLockState) so their panels can't be hit, but fence
-    // ids are only unique within an env — resolve a scene hit against the active env's data before
+    // ids are only unique within an env. Resolve a scene hit against the active env's data before
     // acting on it. Also the guard that keeps a stray id out of StartEditFence, which tears down the
     // current tool (ExitCurrentMode) before it discovers the fence doesn't exist.
     private bool IsEditableFence(string id) =>
@@ -2105,7 +2105,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (fence == null) { StopEditFence(); return; }
 
         // Delete/Backspace: with a control point picked, drop that point; otherwise the key means the
-        // whole fence — which is the state right after clicking a fence in the scene (no point picked
+        // whole fence, which is the state right after clicking a fence in the scene (no point picked
         // yet), so click-then-Delete removes the run. A 2-point fence can't lose a point (that would
         // leave less than a line), so there the key deletes the fence either way rather than no-op.
         bool delPressed = KB != null && !TypingInUI &&
@@ -2793,7 +2793,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     // ---- PaintSurface: ground-type brush stamped into the splatmap + stored as a stroke ----
     // Two footprints (round / square) × two input modes (freehand drag / straight drag start→end).
     // Square stamps rotate to the run's heading at rasterize time, so a straight run at any angle
-    // keeps clean parallel edges — see WorldRenderer.WalkStroke.
+    // keeps clean parallel edges. See WorldRenderer.WalkStroke.
 
     private void StartPaintSurface(string terrainType)
     {
@@ -2822,7 +2822,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         Vector3 center = GroundPoint();
 
         // In straight mode the run's endpoint is the snapped one, so the ghost must sit there rather
-        // than under the raw cursor — otherwise the preview lies about where the band will land.
+        // than under the raw cursor. Otherwise the preview lies about where the band will land.
         if (_surfStraight && _surfDragging) center = SnapRunEnd(_surfDragStart, center);
 
         // The ghost previews the heading the stamp will actually use: the fixed angle when set,
@@ -2838,7 +2838,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // The angle written onto a stroke: the fixed angle, or the auto sentinel. Auto for a round brush
-    // either way — a disc has no orientation, so pinning one would only confuse the saved data.
+    // either way: a disc has no orientation, so pinning one would only confuse the saved data.
     private float StrokeAngleDeg => _surfSquare && _surfFixedAngle ? _surfAngleDeg : -1f;
 
     // Snaps the run's heading (keeping the drag's length) so runs come out on deliberate angles.
@@ -2873,7 +2873,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (LMBDown)
         {
             // The stroke data is committed on release (CommitSurfaceStroke), which runs after the
-            // central gesture-end this frame — so snapshot the pre-stroke state here as a discrete
+            // central gesture-end this frame, so snapshot the pre-stroke state here as a discrete
             // entry instead of using a gesture.
             libraryBrowser?.EnsureWorkingEnvironment();
             _history?.RecordBefore(EditHistory.Scope.Environment, "Paint ground");
@@ -2911,7 +2911,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         {
             // Idle: highlight the stroke end the press would land on, so chaining runs is visible
             // before you commit to it. The same snapped point becomes the drag's start. Shift turns
-            // the snap off — same modifier that bypasses the angle snap, so holding it means "no
+            // the snap off: same modifier that bypasses the angle snap, so holding it means "no
             // snapping at all" (the fence tool's convention).
             Vector3 start = center;
             bool willSnap = false;
@@ -2937,7 +2937,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             float dx = center.x - _surfDragStart.x, dz = center.z - _surfDragStart.z;
             if (dx * dx + dz * dz < SURF_MIN_DRAG * SURF_MIN_DRAG)
             {
-                // A bare click paints nothing — wipe whatever the live run had put down.
+                // A bare click paints nothing. Wipe whatever the live run had put down.
                 worldRenderer?.EndLiveSurfaceRun(keepPaint: false);
                 return;
             }
@@ -2970,7 +2970,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                                _surfSquare, dir, new Color(0.95f, 0.85f, 0.35f, 0.6f));
 
             // Paint the run into the terrain as it grows, so the surface fills in under the cursor
-            // instead of only appearing on release. Throttled by cursor travel — re-rasterizing on
+            // instead of only appearing on release. Throttled by cursor travel. Re-rasterizing on
             // every frame of a slow drag is pure waste, and a fraction of the brush reads as smooth.
             float step = Mathf.Max(0.1f, _surfRadius * 0.15f);
             if (!_surfLivePainted || Vector3.Distance(center, _surfLiveEnd) >= step)
@@ -2993,7 +2993,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         HideGhostOutline(_surfStartGhost);
     }
 
-    // A throwaway stroke describing the run as it currently stands — same fields CommitSurfaceStroke
+    // A throwaway stroke describing the run as it currently stands: same fields CommitSurfaceStroke
     // would store, so what you see while dragging is what gets saved.
     private SurfaceStrokeDef BuildSurfaceStroke(Vector3 a, Vector3 b) => new SurfaceStrokeDef
     {
@@ -3006,7 +3006,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // Snap onto the nearest endpoint of an existing surface stroke, so a new run can start exactly
     // where an earlier one stopped. Endpoint-only (unlike SnapToPath, which also projects onto a
-    // span) — chaining runs is the useful case for a painted band.
+    // span). Chaining runs is the useful case for a painted band.
     private Vector3 SnapToSurfaceStrokeEnd(Vector3 cursor, out bool snapped)
     {
         snapped = false;
@@ -3033,7 +3033,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     // ---- brush-angle sampling: read an angle off something already in the scene instead of
     // eyeballing a number, so painted ground lines up with what it sits next to ----
 
-    // Yaw of the current selection (building or object — _selGO is set for either).
+    // Yaw of the current selection (building or object: _selGO is set for either).
     private bool TrySampleAngleFromSelection(out float deg)
     {
         deg = 0f;
@@ -3126,7 +3126,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         _mode = EditMode.Browse;
     }
 
-    // Heading of b-a in the XZ plane (atan2(dz, dx)) — the same convention WorldRenderer stamps at.
+    // Heading of b-a in the XZ plane (atan2(dz, dx)): the same convention WorldRenderer stamps at.
     private static float Heading(Vector3 a, Vector3 b) => Mathf.Atan2(b.z - a.z, b.x - a.x);
 
     private void ShowSurfaceLinePreview(Vector3 a, Vector3 b)
@@ -3146,10 +3146,10 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // Measure tool (+ Scale Calibration) — a non-destructive ruler at true scale. Click ground
+    // Measure tool (+ Scale Calibration): a non-destructive ruler at true scale. Click ground
     // points to read distance / running length / polygon area in meters; the first two points also
     // drive Scale Calibration (see ApplyCalibration). Renders an overlay polyline (LineRenderer) and
-    // floating labels (OnGUI). Writes nothing to the environment — no undo entry, no MarkDirty.
+    // floating labels (OnGUI). Writes nothing to the environment: no undo entry, no MarkDirty.
     // -----------------------------------------------------------------------
 
     private void StartMeasure()
@@ -3356,7 +3356,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     private void EnterEditBuilding()
     {
-        // Locked twin: no tile editing — this also stops a shared BuildingDef being mutated
+        // Locked twin: no tile editing: this also stops a shared BuildingDef being mutated
         // (and PUT back globally) from inside the locked environment.
         if (!_selIsBuilding || string.IsNullOrEmpty(_selId) || ActiveLocked) return;
         var env  = libraryBrowser?.CurrentEnvironment;
@@ -3366,7 +3366,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (defs == null || !defs.TryGetValue(inst.buildingId, out var bdef)) return;
 
         // Switch the shell into Build first (this tears down the Browse rail), then enter the
-        // editor — ordering avoids the mode-switch teardown clobbering the edit we're starting.
+        // editor. Ordering avoids the mode-switch teardown clobbering the edit we're starting.
         UIMode.Set(AppMode.Build);
 
         Vector3 pos = inst.position != null && inst.position.Length >= 3
@@ -3409,14 +3409,14 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
         // Reflect the save in the scene while staying in the editor: re-render so other placed
         // instances of this def refresh. Standalone (library-opened) edits have no placed instance
-        // yet — ExitEditBuilding handles their placement fallback on exit.
+        // yet. ExitEditBuilding handles their placement fallback on exit.
         if (!_standaloneEdit)
         {
             libraryBrowser?.MarkDirty();
             var env = libraryBrowser?.CurrentEnvironment;
             worldRenderer?.RenderEnvironment(env, libraryBrowser?.CurrentBuildingDefs);
 
-            // The re-render replaced the instance we hid on entry with a fresh visible GO —
+            // The re-render replaced the instance we hid on entry with a fresh visible GO,
             // re-hide it so the tile editor's live copy isn't duplicated underneath.
             var go = worldRenderer?.GetInstanceGO(_selId);
             if (go != null) { _editingHiddenGO = go; go.SetActive(false); _selGO = go; }
@@ -3428,7 +3428,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         tileBuildingEditor?.HandleInput();
 
         // Follow the editor up/down: when the active floor changes, lift the orbit pivot to it so the
-        // camera always frames the floor being edited (cheap — only on an actual floor change).
+        // camera always frames the floor being edited (cheap: only on an actual floor change).
         if (tileBuildingEditor != null && tileBuildingEditor.IsActive
             && tileBuildingEditor.ActiveFloor != _lastFocusedFloor)
             FocusCameraOnEditedFloor(reframe: false);
@@ -3484,7 +3484,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             if (updated != null)
             {
                 // KNOWN LIMITATION: BuildingDefs are global records shared across environments, so
-                // this PUT mutates the def everywhere it is placed — including inside a locked
+                // this PUT mutates the def everywhere it is placed. Including inside a locked
                 // (digital twin) env that references the same buildingId. Entry into the tile editor
                 // is blocked while a locked env is active, but a shared def can still be edited from
                 // another env or the Buildings tab. Full protection needs per-building locks or
@@ -3691,7 +3691,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         _selBaseScale = BaseScaleOf(_selGO, env != null ? GetInstanceScale(env) : 1f);
     }
 
-    // GO localScale at instance scale 1 — preserves the prefab's authored scale + prefabScaleFactor.
+    // GO localScale at instance scale 1. Preserves the prefab's authored scale + prefabScaleFactor.
     private static Vector3 BaseScaleOf(GameObject go, float instScale)
     {
         if (go == null) return Vector3.one;
@@ -3784,13 +3784,13 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         var env = Newtonsoft.Json.JsonConvert.DeserializeObject<EnvironmentDef>(json);
         if (env == null) return;
 
-        // An undo snapshot must never flip the lock state — re-stamp it from the live env so a
+        // An undo snapshot must never flip the lock state. Re-stamp it from the live env so a
         // snapshot taken before locking can't restore locked=false (or vice versa).
         env.locked = libraryBrowser.CurrentEnvironment.locked;
 
         // Preserve a brush/draw tool across undo/redo so the user isn't kicked back to Browse mid-work
         // (the tool's brush params + standalone preview GOs survive the re-render). Selection-dependent
-        // modes (Transform, edit-path/fence) still return to Browse — their live GOs die in the render.
+        // modes (Transform, edit-path/fence) still return to Browse: their live GOs die in the render.
         var prevMode  = _mode;
         bool keepTool = IsPreservedToolMode(prevMode);
 
@@ -3826,7 +3826,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             case EditMode.PaintObjects: _brushApplied = false; break;
             case EditMode.PaintSurface:
                 // The re-render already repainted the terrain from the restored data, so the live
-                // run's snapshot is stale — drop it without restoring.
+                // run's snapshot is stale. Drop it without restoring.
                 if (_surfDragging) { _surfDragging = false; worldRenderer?.EndLiveSurfaceRun(keepPaint: true); }
                 _surfPts.Clear(); _surfLivePainted = false;
                 HideSurfaceLinePreview(); HideGhostOutline(_surfStartGhost);
@@ -3916,7 +3916,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // Copy / paste (Ctrl+C, Ctrl+V) — see the Update hotkey block and _clipboard.
+    // Copy / paste (Ctrl+C, Ctrl+V). See the Update hotkey block and _clipboard.
     // -----------------------------------------------------------------------
 
     // JSON round-trip deep copy (same Newtonsoft path as the undo snapshots): copies array
@@ -3926,7 +3926,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                                  Newtonsoft.Json.JsonConvert.SerializeObject(src));
 
     // Snapshot the current selection into the clipboard. Cloning here (not at paste) means
-    // later edits/deletes of the originals — or unloading their env — can't affect a paste.
+    // later edits/deletes of the originals (or unloading their env) can't affect a paste.
     private void CopySelection()
     {
         var env = libraryBrowser?.CurrentEnvironment;
@@ -3947,7 +3947,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                 entries.Add(new ClipEntry { isBuilding = false, obj = CloneData(oi) });
             }
         }
-        if (entries.Count == 0) return;   // nothing resolvable — don't clobber the clipboard
+        if (entries.Count == 0) return;   // nothing resolvable. Don't clobber the clipboard
         _clipboard.Clear();
         _clipboard.AddRange(entries);
     }
@@ -3975,7 +3975,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         if (env == null) return;
 
         // Cross-env: make sure the target env knows every pasted building's def. Shared
-        // reference, never overwrites an id the target already has (its copy may be newer) —
+        // reference, never overwrites an id the target already has (its copy may be newer),
         // same mechanism as placing a library building (FetchAndPlace → AddBuildingDef).
         foreach (var e in _clipboard)
         {
@@ -4004,7 +4004,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             {
                 if (libraryBrowser?.GetBuildingDef(e.bldg.buildingId) == null)
                 {
-                    Debug.LogWarning($"[EditController] Paste: no BuildingDef for '{e.bldg.buildingId}' — skipped.");
+                    Debug.LogWarning($"[EditController] Paste: no BuildingDef for '{e.bldg.buildingId}', so it was skipped.");
                     continue;
                 }
                 var copy = CloneData(e.bldg);   // clone again so repeated pastes never alias
@@ -4020,7 +4020,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                 copy.instanceId   = Guid.NewGuid().ToString("D");
                 copy.position     = Offset(copy.position);
                 copy.included     = true;
-                copy.brushPainted = false;   // a paste is a deliberate edit — eraser brush must not bulk-delete it
+                copy.brushPainted = false;   // a paste is a deliberate edit. Eraser brush must not bulk-delete it
                 (env.objectInstances ??= new List<ObjectInstance>()).Add(copy);
                 pasted.Add((copy.instanceId, false));
             }
@@ -4115,15 +4115,15 @@ public class EditController : MonoBehaviour, EditHistory.IHost
 
     // Shared locked-twin notice drawn instead of a rail's editing controls. The rails are the one
     // funnel into every tool, so gating here (plus the scene-input early-outs) covers editing without
-    // scattering checks through each tool panel. Do NOT swap this for a GUI.enabled=false wrap — the
+    // scattering checks through each tool panel. Do NOT swap this for a GUI.enabled=false wrap: the
     // rail bodies reset GUI.enabled internally, which would silently re-enable their controls.
     private void DrawLockedNotice()
     {
-        UITheme.Header("🔒 Locked — digital twin");
+        UITheme.Header("🔒 Locked: digital twin");
         UITheme.Note("This place is read-only. Use Save As in the library to make an editable copy, or unlock it from the Loaded list.");
     }
 
-    // Browse — selection inspector (panel 4 in the spec). Shows the whole-environment transform
+    // Browse. Selection inspector (panel 4 in the spec). Shows the whole-environment transform
     // entry and, when an instance is selected, its move/rotate/scale + delete controls.
     private void DrawBrowseRail()
     {
@@ -4313,7 +4313,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     private void DrawElevationSection(EnvironmentDef env)
     {
         int count = env.site.gradePoints?.Count ?? 0;
-        _showElevation = GUILayout.Toggle(_showElevation, $"  Elevation (basic) — {count} pts", GUI.skin.button);
+        _showElevation = GUILayout.Toggle(_showElevation, $"  Elevation (basic): {count} pts", GUI.skin.button);
         if (!_showElevation) return;
 
         GUILayout.BeginHorizontal();
@@ -4451,7 +4451,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             }
         }
 
-        // List of existing paths with edit + delete — collapsed behind a foldout by default.
+        // List of existing paths with edit + delete. Collapsed behind a foldout by default.
         var env = libraryBrowser?.CurrentEnvironment;
         int pathCount = env?.site?.paths?.Count ?? 0;
         if (pathCount > 0)
@@ -4530,7 +4530,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             }
         }
 
-        // List of existing fences with edit + delete — collapsed behind a foldout by default.
+        // List of existing fences with edit + delete. Collapsed behind a foldout by default.
         int fenceCount = env?.site?.fences?.Count ?? 0;
         if (fenceCount > 0)
             _showFenceList = UITheme.Foldout(_showFenceList, $"Fences ({fenceCount})");
@@ -4566,7 +4566,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             if (GUILayout.Toggle(!_brushErase, "Paint", GUI.skin.button)) _brushErase = false;
             if (GUILayout.Toggle(_brushErase, "Erase", GUI.skin.button))  _brushErase = true;
             GUILayout.EndHorizontal();
-            UITheme.Note($"Prefab: {(_brushPrefab ?? "— pick below —")}");
+            UITheme.Note($"Prefab: {(_brushPrefab ?? "pick one below")}");
             if (prefabRegistry?.entries != null && prefabRegistry.entries.Count > 0)
             {
                 float h = Mathf.Clamp(8 + prefabRegistry.entries.Count * 26, 26, 130);
@@ -4587,7 +4587,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             GUILayout.Label(_brushSpacing > 0f ? $"Min spacing: {_brushSpacing:0.0} m" : "Min spacing: off (may overlap)");
             _brushSpacing = GUILayout.HorizontalSlider(_brushSpacing, 0f, 15f);
             _brushRandomRot = GUILayout.Toggle(_brushRandomRot, "  Random rotation");
-            GUILayout.Label($"Scale: {_brushScaleMin:0.00} – {_brushScaleMax:0.00}");
+            GUILayout.Label($"Scale: {_brushScaleMin:0.00} - {_brushScaleMax:0.00}");
             _brushScaleMin = GUILayout.HorizontalSlider(_brushScaleMin, 0.2f, 2f);
             _brushScaleMax = GUILayout.HorizontalSlider(_brushScaleMax, 0.2f, 3f);
             if (_brushScaleMax < _brushScaleMin) _brushScaleMax = _brushScaleMin;
@@ -4630,7 +4630,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             GUILayout.Label(_surfSquare ? $"Size: {_surfRadius * 2f:0.0} m" : $"Radius: {_surfRadius:0.0} m");
             _surfRadius = GUILayout.HorizontalSlider(_surfRadius, 0.5f, 30f);
 
-            // Brush angle — square only: a disc has no orientation, so showing these would be noise.
+            // Brush angle. Square only: a disc has no orientation, so showing these would be noise.
             if (_surfSquare)
             {
                 GUILayout.Label("Brush angle");
@@ -4653,7 +4653,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
                     if (GUILayout.Button("From lot edge") && TrySampleAngleFromLotEdge(out float lotDeg))
                         _surfAngleDeg = lotDeg;
                     GUILayout.EndHorizontal();
-                    UITheme.Note("Every stamp uses this angle · a square is 90°-symmetric, so 0–90 covers it.");
+                    UITheme.Note("Every stamp uses this angle · a square is 90°-symmetric, so 0 to 90 covers it.");
                 }
             }
 
@@ -4735,7 +4735,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             else if (!string.IsNullOrEmpty(_calibRealStr))
             {
                 UITheme.Note(measured < EnvironmentScale.MIN_MEASURED
-                    ? "Measured span is too small — place the two points farther apart."
+                    ? "Measured span is too small. Place the two points farther apart."
                     : "Enter a real length that yields a factor between ×0.01 and ×100.");
             }
         }
@@ -4748,7 +4748,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     {
         var env = libraryBrowser?.CurrentEnvironment;
         if (env == null) { Debug.LogWarning("[EditController] No active environment to calibrate."); return; }
-        if (ActiveLocked) { Debug.LogWarning("[EditController] Locked (digital twin) — calibration refused."); return; }
+        if (ActiveLocked) { Debug.LogWarning("[EditController] Locked (digital twin), so calibration was refused."); return; }
         if (!EnvironmentScale.TryComputeFactor(measured, real, out float factor)) return;
 
         _history?.RecordBefore(EditHistory.Scope.Environment, "Calibrate scale");
@@ -4775,12 +4775,12 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         // Active-placement banner.
         if (_mode == EditMode.PlaceObject)
         {
-            UITheme.Note($"Placing '{_placeType}' — scroll to rotate");
+            UITheme.Note($"Placing '{_placeType}' · scroll to rotate");
             if (UITheme.GhostButton("Click ground · Esc to stop")) StopPlaceObject();
         }
         else if (_mode == EditMode.PlaceBuilding)
         {
-            UITheme.Note("Placing building — scroll to rotate");
+            UITheme.Note("Placing building · scroll to rotate");
             if (UITheme.GhostButton("Click ground · Esc to stop")) StopPlaceBuilding();
         }
 
@@ -4812,7 +4812,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             EndThumbGrid();
         }
 
-        // Buildings (tile defs — no prefab preview, shown as labelled tiles).
+        // Buildings (tile defs: no prefab preview, shown as labelled tiles).
         if (_placeFilter != 1)
         {
             GUILayout.BeginHorizontal();
@@ -4883,7 +4883,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         // Exact real-world dimensions (read-out, plus typed entry for massing-box objects).
         DrawDimensionSection(env);
 
-        // Tool selector — only the active tool's controls are shown below.
+        // Tool selector: only the active tool's controls are shown below.
         DrawToolSegmented();
 
         DrawTransformControls(env);
@@ -4967,7 +4967,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             Vector3 s = b.size;
             GUILayout.Label($"W {s.x:0.0}  ·  D {s.z:0.0}  ·  H {s.y:0.0}");
         }
-        UITheme.Note($"Scale {oi.scale:0.##} — resize with Scale, or Measure → Calibrate for true scale.");
+        UITheme.Note($"Scale {oi.scale:0.##}. Resize with Scale, or Measure → Calibrate for true scale.");
     }
 
     private void ApplyBoxSize(EnvironmentDef env, ObjectInstance oi, float w, float h, float d)
@@ -4977,7 +4977,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         oi.boxSizeMeters[1] = h;   // Y = height
         oi.boxSizeMeters[2] = d;   // Z = depth
         // The massing box GO's localScale is exactly boxSizeMeters (see WorldRenderer), so update the
-        // live object in place — keeps the current selection/gizmo intact (no full re-render needed).
+        // live object in place. Keeps the current selection/gizmo intact (no full re-render needed).
         var go = worldRenderer?.GetInstanceGO(oi.instanceId);
         if (go != null) go.transform.localScale = new Vector3(w, h, d);
         libraryBrowser?.MarkDirty();
@@ -5062,7 +5062,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         }
     }
 
-    // One 0–360° slider for a single euler axis (0=X, 1=Y, 2=Z). Free by default; while Shift
+    // One 0-360° slider for a single euler axis (0=X, 1=Y, 2=Z). Free by default; while Shift
     // is held the applied value snaps to ROT_SNAP_DEG (feeding it back makes the thumb step).
     private void DrawRotAxisSlider(EnvironmentDef env, string label, int axis)
     {
@@ -5077,7 +5077,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
             _history?.BeginGesture(EditHistory.Scope.Environment, "Rotate");   // coalesce the slider drag
             // Group pivot: an absolute yaw is ambiguous across instances with different headings,
             // so treat the slider movement (relative to the primary, whose value it shows) as a
-            // group delta — ApplyRotDelta orbits positions around the selection center.
+            // group delta. ApplyRotDelta orbits positions around the selection center.
             if (axis == 1 && _rotateGroupPivot && _extraSel.Count > 0)
                 ApplyRotDelta(env, new Vector3(0f, Mathf.DeltaAngle(cur, snapped), 0f));
             else
@@ -5087,7 +5087,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // Building skew — whole-building deform on the selected building's BuildingDef. Collapsible
+    // Building skew. Whole-building deform on the selected building's BuildingDef. Collapsible
     // foldout under the transform controls; mirrors the old tile-editor Skew tool but operates on the
     // selected placed building. Apply/Reset mutate the shared def, re-render, and persist it.
     // -----------------------------------------------------------------------
@@ -5234,7 +5234,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
         float leftEdge  = UITheme.LeftPanelWidth + UITheme.Margin * 2f;
         float rightEdge = Screen.width - PANEL_W - UITheme.Margin * 2f;
         if (mx < leftEdge || mx > rightEdge) return true;
-        // The docked rails are pure x-bands, but the top command bar is centered — it sits in the
+        // The docked rails are pure x-bands, but the top command bar is centered. It sits in the
         // gap between them, so it needs its own rect test or clicks on it reach the scene behind.
         return UIShell.BlocksScreenPoint(MousePos);
     }
@@ -5255,7 +5255,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // Nearest active-env fence under the cursor, or false when none. The FenceMarker twin of
-    // TryPickInstance — dedupes to one id because a fence renders as many panel/post GOs.
+    // TryPickInstance. Dedupes to one id because a fence renders as many panel/post GOs.
     private bool TryPickFence(out string fenceId)
     {
         fenceId = null;
@@ -5272,7 +5272,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // Fallback pick for TryPickFence. A panel's MeshCollider is the exact art mesh, so a raycast
-    // only lands on solid picket — measured at ~59% of a stretched panel's face, the rest being the
+    // only lands on solid picket. Measured at ~59% of a stretched panel's face, the rest being the
     // air between pickets (and a palette entry may ship no collider at all). So instead test the
     // click against each panel's *projected face*: the screen-space quad from the run's base to its
     // top. Reuses FenceBuilder's resampler (Smooth + roundFit) so the quads tested are the spans the
@@ -5377,7 +5377,7 @@ public class EditController : MonoBehaviour, EditHistory.IHost
     }
 
     // -----------------------------------------------------------------------
-    // Selection highlight — MaterialPropertyBlock tint: no material instantiation,
+    // Selection highlight. MaterialPropertyBlock tint: no material instantiation,
     // and fully reverted by clearing the block (SetPropertyBlock(null)).
     // -----------------------------------------------------------------------
 

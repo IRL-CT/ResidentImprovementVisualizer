@@ -4,11 +4,11 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // The one outdoor tool. Reachable only from the Outdoors stage, which only exists once a home has
-// switched its exterior layer on — so a tool for the inside of an apartment shows nothing about site
+// switched its exterior layer on, so a tool for the inside of an apartment shows nothing about site
 // work unless someone asks for it.
 //
-// It writes the Brownfield types verbatim: a walkway or ramp is a PathDef, a railing is a FenceDef.
-// That is the whole reason the exterior costs so little here — WorldRenderer already draws both, and
+// It writes the Site types verbatim: a walkway or ramp is a PathDef, a railing is a FenceDef.
+// That is the whole reason the exterior costs so little here. WorldRenderer already draws both, and
 // ExteriorBridge already translates a variant's SiteDef into what it expects. Until this file existed
 // nothing in HomeViz could author either, so ExteriorBridge.HasContent was permanently false and the
 // "Show outdoor additions" toggle could never do anything.
@@ -21,8 +21,20 @@ public class OutdoorTool : HomeToolBase
     public override string Id => "outdoor";
     public override string DisplayName => "Outdoors";
 
+    public override string Hint =>
+        "Draw walkways, entry ramps and railings around the home. Click to place points; Enter finishes "
+        + "the run, Esc cancels it, Shift draws without snapping.";
+
     private enum Kind { Walkway, Ramp, Railing }
     private static readonly string[] KindLabels = { "Walkway", "Entry ramp", "Railing" };
+
+    private static readonly string[] KindTips =
+    {
+        "A path across the site: to the door, round the side, out to the garden.",
+        "A ramp serving a step or threshold. The rise you enter is checked live against the 1:12 "
+            + "maximum slope as you draw.",
+        "A handrail or guardrail along a run, drawn the same way.",
+    };
 
     // The slope a ramp is expected to hold: 1 unit of rise per 12 of run. Drawn live while you place
     // points, because "is this ramp long enough for that step?" is the question the tool exists to
@@ -32,6 +44,9 @@ public class OutdoorTool : HomeToolBase
     private Kind _kind = Kind.Walkway;
 
     private readonly List<Vector2> _chain = new List<Vector2>();
+
+    // Always: every click here places a point on a walkway, ramp or railing.
+    public override bool ClaimsClicks => true;
     private Vector2 _cursor;
     private bool _hasCursor;
     private WallSnapping.Result _snap;
@@ -40,11 +55,11 @@ public class OutdoorTool : HomeToolBase
     // Settings are per-kind and remembered separately, so switching to a railing and back does not
     // lose the walkway width you just set.
     private string _pathMaterial = "pavement_light";
-    private float _walkwayWidth = 1.22f;   // 48" — a wheelchair plus a passing space
+    private float _walkwayWidth = 1.22f;   // 48": a wheelchair plus a passing space
     private float _rampWidth = 0.91f;      // 36" clear
     private float _rampRise = 0.15f;       // the step or threshold the ramp has to overcome
     private string _fenceType = "picket";
-    private float _railHeight = 0.91f;     // 36" — graspable guard height
+    private float _railHeight = 0.91f;     // 36". Graspable guard height
 
     private bool _showRuns;
 
@@ -60,7 +75,7 @@ public class OutdoorTool : HomeToolBase
 
     private float ActiveWidth => _kind == Kind.Ramp ? _rampWidth : _walkwayWidth;
 
-    // Read-only view of the variant's outdoor layer. Never creates it — that happens on the first
+    // Read-only view of the variant's outdoor layer. Never creates it: that happens on the first
     // commit, so merely opening this tool cannot make VariantDiff report "added an exterior".
     private SiteDef SiteOrNull => Ctx?.Variant?.exterior;
 
@@ -164,12 +179,10 @@ public class OutdoorTool : HomeToolBase
     {
         if (RefuseIfLocked()) return;
 
-        int sel = UITheme.Segmented((int)_kind, KindLabels);
+        int sel = UITheme.Segmented("Draw", (int)_kind, KindLabels, KindTips);
         if (sel != (int)_kind) { _kind = (Kind)sel; _chain.Clear(); }
 
-        GUILayout.Space(6);
-        UITheme.Note("Click to place points. Enter finishes the run, Esc cancels it. Hold Shift to draw without snapping.");
-        GUILayout.Space(6);
+        UITheme.Gap();
 
         switch (_kind)
         {
@@ -180,36 +193,39 @@ public class OutdoorTool : HomeToolBase
 
         if (_chain.Count > 0)
         {
-            GUILayout.Space(8);
-            UITheme.Header("Drawing");
-            UITheme.Note($"{_chain.Count} point{(_chain.Count == 1 ? "" : "s")} placed · {Units.Format(ChainLength(false))}");
+            UITheme.Gap();
+            UITheme.Value("Points", _chain.Count.ToString(), "Points placed in this run");
+            UITheme.Value("Length", Units.Format(ChainLength(false)), "Length of the run so far");
             if (UITheme.SecondaryButton("Finish run")) Commit();
+            UITheme.Tip("End the run here  (Enter)");
         }
 
-        GUILayout.Space(10);
+        UITheme.Gap();
         DrawRunLists();
     }
 
     private void DrawWalkwayControls()
     {
         DrawPathMaterialChips();
-        _walkwayWidth = UITheme.Stepper("Width", _walkwayWidth, 0.05f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_walkwayWidth));
+        // One printing of the width, not two. The stepper used to render raw metres and a Value line
+        // directly beneath it rendered the same number in feet and inches.
+        _walkwayWidth = MeasureUI.Length("Width", "How wide the walkway is", _walkwayWidth, 0.05f, 0.3f, 4f);
+
+        // Stays visible as a glyph: this is the accessibility finding the tool exists to surface, and
+        // one nobody would go hunting for on hover.
         if (_walkwayWidth < 0.91f)
-            UITheme.Note("Under 36\" — tight for a wheelchair, and two people cannot pass.");
+            UITheme.Glyph("⚠", "Under 36 inches, which is tight for a wheelchair, and two people cannot pass.",
+                          UITheme.Danger);
     }
 
     private void DrawRampControls()
     {
         DrawPathMaterialChips();
-        _rampWidth = UITheme.Stepper("Width", _rampWidth, 0.05f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_rampWidth));
-
-        _rampRise = UITheme.Stepper("Rise to clear", _rampRise, 0.01f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_rampRise) + "  (the step or threshold this ramp serves)");
+        _rampWidth = MeasureUI.Length("Width", "How wide the ramp is", _rampWidth, 0.05f, 0.3f, 4f);
+        _rampRise = MeasureUI.Length("Rise", "The step or threshold this ramp has to climb", _rampRise, 0.01f, 0f, 1f);
 
         float needed = _rampRise / RAMP_MAX_SLOPE;
-        UITheme.Note($"At 1:12 that needs {Units.Format(needed)} of run.");
+        UITheme.Value("Run needed", Units.Format(needed), "How much run that rise needs at the 1:12 maximum slope");
 
         float drawn = ChainLength(true);
         if (drawn > 0.01f)
@@ -217,12 +233,11 @@ public class OutdoorTool : HomeToolBase
             float slope = _rampRise / Mathf.Max(drawn, 0.001f);
             bool ok = slope <= RAMP_MAX_SLOPE + 1e-4f;
             UITheme.StatusBadge(ok
-                ? $"Drawn {Units.Format(drawn)} — 1:{1f / Mathf.Max(slope, 1e-4f):0} slope"
-                : $"Drawn {Units.Format(drawn)} — 1:{1f / Mathf.Max(slope, 1e-4f):0}, steeper than 1:12", ok);
+                ? $"Drawn {Units.Format(drawn)}, 1:{1f / Mathf.Max(slope, 1e-4f):0} slope"
+                : $"Drawn {Units.Format(drawn)}, 1:{1f / Mathf.Max(slope, 1e-4f):0}, steeper than 1:12", ok);
+            UITheme.Tip("The slope check is guidance while you draw. What gets stored is a path of this "
+                        + "width. The grade itself stays out of the model.");
         }
-
-        UITheme.Note("The slope check is guidance while you draw. What gets stored is a path of this width — "
-                   + "grade is not modelled.");
     }
 
     private void DrawRailingControls()
@@ -230,28 +245,28 @@ public class OutdoorTool : HomeToolBase
         var palette = Ctx?.Renderer != null && Ctx.Renderer.World != null
             ? Ctx.Renderer.World.FencePalette : null;
 
-        UITheme.Header("Railing type");
         if (palette == null || palette.entries == null || palette.entries.Count == 0)
         {
-            UITheme.Note("No FencePalette entries are wired, so railings will not render. "
-                       + "Add one per type (e.g. \"picket\") to the palette on the Exterior/WorldRenderer.");
+            // A scene-wiring fault. Nobody using the app can fix it, and whoever can is reading the
+            // console, so that is where it goes.
+            Debug.LogWarning("OutdoorTool: no FencePalette entries are wired, so railings will not "
+                           + "render. Add one per type (e.g. \"picket\") to the palette on the "
+                           + "Exterior/WorldRenderer in HomeViz.unity.");
         }
         else
         {
-            GUILayout.BeginHorizontal();
-            int col = 0;
+            var kinds = UITheme.ChipRow();
+            kinds.Label("Railing");
             foreach (var e in palette.entries)
             {
                 if (e == null || string.IsNullOrEmpty(e.fenceType)) continue;
-                if (col > 0 && col % 2 == 0) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
-                if (UITheme.Chip(UITheme.PrettyId(e.fenceType), _fenceType == e.fenceType)) _fenceType = e.fenceType;
-                col++;
+                if (kinds.Chip(UITheme.PrettyId(e.fenceType), _fenceType == e.fenceType)) _fenceType = e.fenceType;
+                UITheme.Tip($"Draw the railing as {UITheme.PrettyId(e.fenceType).ToLowerInvariant()}");
             }
-            GUILayout.EndHorizontal();
+            kinds.End();
         }
 
-        _railHeight = UITheme.Stepper("Height", _railHeight, 0.025f, "0.00", " m");
-        UITheme.Note("  = " + Units.Format(_railHeight));
+        _railHeight = MeasureUI.Length("Height", "How high the railing stands", _railHeight, 0.025f, 0.3f, 1.5f);
     }
 
     private void DrawPathMaterialChips()
@@ -259,27 +274,26 @@ public class OutdoorTool : HomeToolBase
         var palette = Ctx?.Renderer != null && Ctx.Renderer.World != null
             ? Ctx.Renderer.World.PathMaterialPalette : null;
 
-        UITheme.Header("Surface");
         if (palette == null || palette.entries == null || palette.entries.Count == 0)
         {
-            UITheme.Note("No PathMaterialPalette entries are wired, so paths will not render. "
-                       + "Add one per surface (e.g. \"pavement_light\") to the palette on the Exterior/WorldRenderer.");
+            Debug.LogWarning("OutdoorTool: no PathMaterialPalette entries are wired, so paths will not "
+                           + "render. Add one per surface (e.g. \"pavement_light\") to the palette on "
+                           + "the Exterior/WorldRenderer in HomeViz.unity.");
             return;
         }
 
-        GUILayout.BeginHorizontal();
-        int col = 0;
+        var surfaces = UITheme.ChipRow();
+        surfaces.Label("Surface");
         foreach (var e in palette.entries)
         {
             if (e == null || string.IsNullOrEmpty(e.id)) continue;
-            if (col > 0 && col % 2 == 0) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
-            if (UITheme.Chip(UITheme.PrettyId(e.id), _pathMaterial == e.id)) _pathMaterial = e.id;
-            col++;
+            if (surfaces.Chip(UITheme.PrettyId(e.id), _pathMaterial == e.id)) _pathMaterial = e.id;
+            UITheme.Tip($"Surface it in {UITheme.PrettyId(e.id).ToLowerInvariant()}");
         }
-        GUILayout.EndHorizontal();
+        surfaces.End();
     }
 
-    // Drawn runs, behind a foldout with a ✕ per row — the same idiom as EditController's path and
+    // Drawn runs, behind a foldout with a ✕ per row: the same idiom as EditController's path and
     // fence lists.
     private void DrawRunLists()
     {
@@ -299,9 +313,13 @@ public class OutdoorTool : HomeToolBase
                 if (p == null) continue;
 
                 GUILayout.BeginHorizontal();
-                UITheme.Note($"{UITheme.PrettyId(p.material)} · {Units.Format(p.width)} wide · {Units.Format(RunLength(p.points))}");
-                GUILayout.FlexibleSpace();
-                bool remove = UITheme.GhostButton("✕", GUILayout.Width(28f));
+                // Row content, not a caption: this list IS the panel. Three composed parts, one of
+                // them a palette id, so it is bounded to what the ✕ leaves and wraps inside that.
+                UITheme.Value($"{UITheme.PrettyId(p.material)} · {Units.Format(p.width)} wide · {Units.Format(RunLength(p.points))}",
+                              "A walkway already drawn",
+                              GUILayout.Width(UITheme.ContentWidth - UITheme.GlyphReserve));
+                bool remove = UITheme.DangerButton("✕", GUILayout.Width(UITheme.GlyphW));
+                UITheme.Tip("Remove this walkway");
                 GUILayout.EndHorizontal();
 
                 if (remove)
@@ -322,9 +340,11 @@ public class OutdoorTool : HomeToolBase
                 if (f == null) continue;
 
                 GUILayout.BeginHorizontal();
-                UITheme.Note($"{UITheme.PrettyId(f.fenceType)} railing · {Units.Format(f.height)} high · {Units.Format(RunLength(f.points))}");
-                GUILayout.FlexibleSpace();
-                bool remove = UITheme.GhostButton("✕", GUILayout.Width(28f));
+                UITheme.Value($"{UITheme.PrettyId(f.fenceType)} railing · {Units.Format(f.height)} high · {Units.Format(RunLength(f.points))}",
+                              "A railing already drawn",
+                              GUILayout.Width(UITheme.ContentWidth - UITheme.GlyphReserve));
+                bool remove = UITheme.DangerButton("✕", GUILayout.Width(UITheme.GlyphW));
+                UITheme.Tip("Remove this railing");
                 GUILayout.EndHorizontal();
 
                 if (remove)
@@ -392,7 +412,7 @@ public class OutdoorTool : HomeToolBase
             OverlayDraw.Circle(cursorGui, 12f, snapColor, 20, 2f);
     }
 
-    // A ramp's readout is its slope, not just its length — that is the number the run is being drawn
+    // A ramp's readout is its slope, not just its length: that is the number the run is being drawn
     // to satisfy.
     private string LiveReadout()
     {

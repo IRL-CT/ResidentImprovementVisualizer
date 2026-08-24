@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Every dimension the tool reports, in one place.
 //
-// The plan ships no accessibility RULES, but it does promise a rules-ready schema — which is only
+// The plan ships no accessibility RULES, but it does promise a rules-ready schema, which is only
 // true if the numbers a rule would test are actually computable. This file is that guarantee: clear
 // widths, floor areas, and turning space are derived here now, so adding a rule later is writing a
 // comparison rather than inventing geometry.
@@ -30,6 +30,57 @@ public static class HomeMetrics
         if (len <= HomeConventions.EPS) return a;
         var dir = (new Vector2(w.b[0], w.b[1]) - a) / len;
         return a + dir * Mathf.Clamp(offset, 0f, len);
+    }
+
+    /// <summary>
+    /// The wall nearest <paramref name="at"/>, with where along it the point falls and which face it
+    /// is on: everything a wall-mounted item needs to know to be hosted.
+    /// </summary>
+    /// <param name="maxDistance">How far from a centerline still counts as "at that wall".</param>
+    /// <remarks>
+    /// A grab bar has to land ON a wall and on the correct FACE of it: mounting one on the outside of
+    /// a bathroom wall is a silent, useless result. Both the tool that places mounts and the tool that
+    /// moves them afterwards need this identical answer, so it lives here rather than in either of
+    /// them: two copies would be two chances for placing and re-hosting to disagree about which side
+    /// the cursor is on.
+    /// </remarks>
+    public static WallDef NearestWall(Vector2 at, IReadOnlyList<WallDef> walls, float maxDistance,
+                                      out float offset, out int side)
+    {
+        offset = 0f;
+        side = WallSide.Left;
+        if (walls == null) return null;
+
+        WallDef best = null;
+        float bestSq = maxDistance * maxDistance;
+
+        for (int i = 0; i < walls.Count; i++)
+        {
+            var w = walls[i];
+            if (w?.a == null || w.b == null || w.a.Length < 2 || w.b.Length < 2) continue;
+
+            var a = new Vector2(w.a[0], w.a[1]);
+            var b = new Vector2(w.b[0], w.b[1]);
+            Vector2 ab = b - a;
+            float lenSq = ab.sqrMagnitude;
+            if (lenSq <= 1e-6f) continue;
+
+            float t = Mathf.Clamp01(Vector2.Dot(at - a, ab) / lenSq);
+            Vector2 foot = a + ab * t;
+            float d = (at - foot).sqrMagnitude;
+            if (d >= bestSq) continue;
+
+            bestSq = d;
+            best = w;
+            offset = t * Mathf.Sqrt(lenSq);
+
+            // Which side of the centerline the point is on decides the mounting face.
+            Vector2 dir = ab / Mathf.Sqrt(lenSq);
+            Vector2 left = new Vector2(-dir.y, dir.x);
+            side = Vector2.Dot(at - foot, left) >= 0f ? WallSide.Left : WallSide.Right;
+        }
+
+        return best;
     }
 
     public static float RoomArea(RoomDef r)
@@ -81,49 +132,82 @@ public static class HomeMetrics
     // Openings
     // ---------------------------------------------------------------------------------------
 
-    // Passage lost to the door leaf, its stop, and the hinge offset when a swing door stands open at
-    // 90°. An estimate, and labelled as one wherever it surfaces — the whole reason
-    // OpeningDef.clearWidth exists as a stored field is so a measured value beats this.
-    private const float SWING_LEAF_LOSS  = 0.060f;   // ~2 3/8"
-    private const float POCKET_LEAF_LOSS = 0.030f;   // pocket doors lose only the jamb reveal
+    // Passage lost to the door leaf, its stop, and the hinge offset when a door stands open at 90°.
+    // An estimate, and labelled as one wherever it surfaces: the whole reason OpeningDef.clearWidth
+    // exists as a stored field is so a measured value beats this.
+    private const float LEAF_LOSS = 0.060f;   // ~2 3/8"
 
     /// <summary>
     /// The clear passage width in meters. Returns the stored measured value when present; otherwise
-    /// derives an estimate from the rough opening and the swing type. Use
-    /// <see cref="IsClearWidthMeasured"/> to tell the two apart in the UI.
+    /// derives an estimate from the rough opening: a door loses its leaf and stop, anything with no
+    /// leaf in it loses nothing. Use <see cref="IsClearWidthMeasured"/> to tell the two apart in
+    /// the UI.
     /// </summary>
     public static float ClearWidth(OpeningDef o)
     {
         if (o == null) return 0f;
         if (o.clearWidth > HomeConventions.EPS) return o.clearWidth;
 
-        switch (o.swing)
-        {
-            case OpeningSwing.Slider:
-                // A two-panel slider only ever opens half its width.
-                return Mathf.Max(0f, o.width * 0.5f);
-            case OpeningSwing.Pocket:
-                return Mathf.Max(0f, o.width - POCKET_LEAF_LOSS);
-            case OpeningSwing.None:
-                return o.width;
-            case OpeningSwing.LeftIn:
-            case OpeningSwing.LeftOut:
-            case OpeningSwing.RightIn:
-            case OpeningSwing.RightOut:
-                return Mathf.Max(0f, o.width - SWING_LEAF_LOSS);
-            default:
-                // Cased openings and pass-throughs have no leaf at all.
-                return o.kind == OpeningKind.Door
-                    ? Mathf.Max(0f, o.width - SWING_LEAF_LOSS)
-                    : o.width;
-        }
+        // Windows, cased openings and pass-throughs have no leaf at all.
+        return o.kind == OpeningKind.Door
+            ? Mathf.Max(0f, o.width - LEAF_LOSS)
+            : o.width;
     }
 
     public static bool IsClearWidthMeasured(OpeningDef o) => o != null && o.clearWidth > HomeConventions.EPS;
 
-    /// <summary>True when the opening has a raised threshold — the most common trip and wheelchair
+    /// <summary>True when the opening has a raised threshold: the most common trip and wheelchair
     /// obstacle in an existing home, and the thing a "step-free route" check would test.</summary>
     public static bool HasThreshold(OpeningDef o) => o != null && o.thresholdHeight > HomeConventions.EPS;
+
+    // ---------------------------------------------------------------------------------------
+    // Footprints
+    // ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// An item's axis-aligned footprint in world XZ. Yaw is snapped to a quarter turn before the
+    /// width/depth swap, mirroring SampleFurniture.FootprintXZ: the plans only ever use multiples of
+    /// 90, and an approximate OBB would make every "is this clear of that" test approximate too.
+    /// </summary>
+    public static Rect FootprintOf(ObjectInstance item)
+    {
+        if (item?.position == null || item.position.Length < 3) return new Rect();
+
+        // boxSizeMeters is [w, h, d]. Index 1 is height and plays no part in a footprint.
+        float w = 0.6f, d = 0.6f;
+        if (item.boxSizeMeters != null && item.boxSizeMeters.Length >= 3)
+        {
+            w = Mathf.Max(0f, item.boxSizeMeters[0]);
+            d = Mathf.Max(0f, item.boxSizeMeters[2]);
+        }
+
+        int quarter = Mathf.RoundToInt(Mathf.Repeat(item.rotationY, 360f) / 90f) % 4;
+        if (quarter == 1 || quarter == 3) { float t = w; w = d; d = t; }
+
+        return new Rect(item.position[0] - 0.5f * w, item.position[2] - 0.5f * d, w, d);
+    }
+
+    /// <summary>An item's height in meters, or a sensible default when boxSizeMeters is absent.</summary>
+    public static float HeightOf(ObjectInstance item)
+        => item?.boxSizeMeters != null && item.boxSizeMeters.Length >= 3
+            ? Mathf.Max(0f, item.boxSizeMeters[1])
+            : 0.8f;
+
+    /// <summary>Shortest distance from a point to a rect; zero when the point is inside it.</summary>
+    public static float PointRectDistance(Vector2 p, Rect r)
+    {
+        float dx = Mathf.Max(r.xMin - p.x, 0f, p.x - r.xMax);
+        float dy = Mathf.Max(r.yMin - p.y, 0f, p.y - r.yMax);
+        return Mathf.Sqrt(dx * dx + dy * dy);
+    }
+
+    /// <summary>Overlap area of two footprints; zero when they merely touch.</summary>
+    public static float OverlapArea(Rect a, Rect b)
+    {
+        float w = Mathf.Min(a.xMax, b.xMax) - Mathf.Max(a.xMin, b.xMin);
+        float h = Mathf.Min(a.yMax, b.yMax) - Mathf.Max(a.yMin, b.yMin);
+        return w <= 0f || h <= 0f ? 0f : w * h;
+    }
 
     // ---------------------------------------------------------------------------------------
     // Turning space
@@ -137,13 +221,13 @@ public static class HomeMetrics
     }
 
     /// <summary>
-    /// The largest circle that fits inside a room — i.e. the turning space available to a wheelchair
+    /// The largest circle that fits inside a room. i.e. the turning space available to a wheelchair
     /// user, which is the single most useful derived number in an accessibility review.
     ///
     /// Solved by sampling rather than exactly: the exact answer is the maximum of the polygon's medial
     /// axis, which is a lot of machinery for a value that only needs to be right to a centimetre or
-    /// two. A coarse grid finds the neighbourhood, then the window shrinks around the best sample for
-    /// a few rounds. Note this ignores furniture — it is the space the ROOM offers, and subtracting
+    /// two. A coarse grid finds the neighborhood, then the window shrinks around the best sample for
+    /// a few rounds. Note this ignores furniture. It is the space the ROOM offers, and subtracting
     /// obstacles is a rule's job, not a metric's.
     /// </summary>
     public static Circle LargestInscribedCircle(IReadOnlyList<Vector2> poly, int coarseSamples = 24, int refineSteps = 6)
@@ -175,7 +259,7 @@ public static class HomeMetrics
         }
 
         // Shrink a search window around the current best. Each round halves the window and re-samples
-        // a small neighbourhood, which converges fast enough for room-sized polygons.
+        // a small neighborhood, which converges fast enough for room-sized polygons.
         float stepX = w / n, stepY = h / n;
         for (int s = 0; s < refineSteps; s++)
         {
@@ -197,8 +281,12 @@ public static class HomeMetrics
     public static Circle LargestInscribedCircle(RoomDef room)
         => LargestInscribedCircle(PolygonTriangulator.ToVector2(room?.polygon));
 
-    // Distance from an interior point to the nearest edge; negative (well, -1) when outside.
-    private static float SignedDistanceInside(Vector2 p, IReadOnlyList<Vector2> poly)
+    /// <summary>
+    /// Distance from an interior point to the nearest edge; negative (well, -1) when outside. Public
+    /// because "does a person of radius r fit here" is the same question as "is the clearance to the
+    /// nearest wall at least r". See OccupancyModel.IsClear.
+    /// </summary>
+    public static float SignedDistanceInside(Vector2 p, IReadOnlyList<Vector2> poly)
     {
         if (!PointInPolygon(p, poly)) return -1f;
 

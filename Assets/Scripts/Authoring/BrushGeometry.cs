@@ -2,14 +2,14 @@ using UnityEngine;
 
 // Angle math for the ground-surface brush (SurfaceStrokeDef). Pure/static so it can be unit tested
 // without a scene, and so the authoring tool (live preview / snapping) and the renderer (splatmap
-// rasterization) resolve every angle through exactly the same code — a stroke must look the same
+// rasterization) resolve every angle through exactly the same code: a stroke must look the same
 // while you drag it as it does after a reload.
 //
 // All headings are in radians using the XZ-plane convention atan2(dz, dx), matching
 // WorldRenderer.WalkStroke. Authored angles are in degrees because that is what the UI shows.
 public static class BrushGeometry
 {
-    // A square footprint is 90°-symmetric — rotating it by 90° gives back the same shape — so every
+    // A square footprint is 90°-symmetric (rotating it by 90° gives back the same shape) so every
     // distinct orientation lives in [0, 90). Folding sampled angles (a building's yaw of 210°, a lot
     // edge at -60°) into that range keeps the UI slider honest and comparisons meaningful.
     public static float NormalizeSquareAngleDeg(float deg)
@@ -22,7 +22,7 @@ public static class BrushGeometry
 
     // The angle one stamp is laid down at: the stroke's fixed angle when it has one, otherwise the
     // heading of the segment the stamp sits on (auto-align, which keeps a run's edges parallel).
-    // `angleDeg` < 0 is the "auto" sentinel — the default, and what strokes saved before the fixed
+    // `angleDeg` < 0 is the "auto" sentinel: the default, and what strokes saved before the fixed
     // angle existed deserialize to.
     public static float ResolveStampAngleRad(float angleDeg, float segmentHeadingRad) =>
         angleDeg >= 0f ? angleDeg * Mathf.Deg2Rad : segmentHeadingRad;

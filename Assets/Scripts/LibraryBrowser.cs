@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Left-panel library browser — two tabs:
+// Left-panel library browser: two tabs:
 //   Environments: list, new, load, save, save-as, duplicate, archive; instance include/exclude
 //   Buildings:    list, new, edit (opens TileBuildingEditor), archive
 public class LibraryBrowser : MonoBehaviour
@@ -61,7 +61,7 @@ public class LibraryBrowser : MonoBehaviour
     private string  _newBldgName = "";
 
     // ---- public API used by EditController ----
-    // All editing operates on the active environment only — that's what enforces "edit one at a time".
+    // All editing operates on the active environment only. That's what enforces "edit one at a time".
     public EnvironmentDef                           CurrentEnvironment  => _active?.env;
     public IReadOnlyDictionary<string, BuildingDef> CurrentBuildingDefs => _active?.buildings;
     // True when the active env carries the persistent read-only "digital twin" flag. A locked env
@@ -113,7 +113,7 @@ public class LibraryBrowser : MonoBehaviour
     }
 
     // Swap the active environment's def for a restored copy (undo/redo). Keeps the same LoadedEnv
-    // slot — building defs, persisted flag — so only the layout data changes. The caller re-renders.
+    // slot (building defs, persisted flag) so only the layout data changes. The caller re-renders.
     public void ReplaceActiveEnvironment(EnvironmentDef env)
     {
         if (_active == null || env == null) return;
@@ -138,14 +138,14 @@ public class LibraryBrowser : MonoBehaviour
     }
 
     // Adopt an in-memory environment that has never been on the server (e.g. the bundled local
-    // sample). Loads exactly like any other env — tracked, active, editable — but is marked unsaved
+    // sample). Loads exactly like any other env (tracked, active, editable) but is marked unsaved
     // so the first Save POSTs it (preserving its client id) rather than PUTting to a missing id.
     public void AdoptLocalEnvironment(EnvironmentDef env, IReadOnlyDictionary<string, BuildingDef> defs)
     {
         if (env == null) return;
         var buildings = defs != null ? new Dictionary<string, BuildingDef>(defs) : null;
         InstallEnv(env, buildings, persisted: false, dirty: true);
-        _envStatus = $"Local sample: {env.name} (unsaved — press Save)";
+        _envStatus = $"Local sample: {env.name} (unsaved, press Save)";
     }
 
     // Returns the active environment, auto-creating a blank in-memory one if none is active so the
@@ -153,7 +153,7 @@ public class LibraryBrowser : MonoBehaviour
     // working env is unsaved (POSTed on first Save); Save As / Duplicate also persist it.
     public EnvironmentDef EnsureWorkingEnvironment()
     {
-        // A locked (digital twin) active env is never the working env — fall through and create
+        // A locked (digital twin) active env is never the working env. Fall through and create
         // a fresh one so e.g. a standalone tile-edit exit can't inject an instance into the twin.
         if (_active != null && !_active.env.locked) return _active.env;
 
@@ -165,7 +165,7 @@ public class LibraryBrowser : MonoBehaviour
         _loaded.Add(le);
         worldRenderer?.RenderEnvironment(env, le.buildings, makeActive: true);   // renders + makes active
         SetActive(le);
-        _envStatus = "New working environment (unsaved — press Save)";
+        _envStatus = "New working environment (unsaved, press Save)";
         return env;
     }
 
@@ -417,7 +417,7 @@ public class LibraryBrowser : MonoBehaviour
         UITheme.Divider();
 
         if (env.locked)
-            UITheme.Note("🔒 Locked (digital twin) — read-only. Save As to make an editable copy.");
+            UITheme.Note("🔒 Locked (digital twin), read-only. Save As to make an editable copy.");
 
         // Save (primary) / Save as (secondary) footer. Re-render / duplicate / archive / delete
         // live on each Loaded row's admin actions (DrawAdminRow, Admin toggle).
@@ -440,7 +440,7 @@ public class LibraryBrowser : MonoBehaviour
             GUILayout.EndHorizontal();
         }
 
-        // Contents — building + object instance include toggles (read-only when locked).
+        // Contents. Building + object instance include toggles (read-only when locked).
         GUI.enabled = !env.locked;
         DrawInstanceList($"Buildings ({env.buildingInstances?.Count ?? 0})", env.buildingInstances?.Count > 0,
             ref _bInstScroll, 104, () =>
@@ -461,7 +461,7 @@ public class LibraryBrowser : MonoBehaviour
         GUI.enabled = true;
     }
 
-    // Admin actions for one loaded environment — re-render / duplicate / archive / delete, drawn
+    // Admin actions for one loaded environment. Re-render / duplicate / archive / delete, drawn
     // under its Loaded row when the Admin toggle is on (replaces the old right-rail Manage command).
     // Delete asks first; with no hard-delete endpoint it removes via archive (recoverable).
     private void DrawAdminRow(LoadedEnv le)
@@ -622,11 +622,11 @@ public class LibraryBrowser : MonoBehaviour
     private void SaveEnvironment()
     {
         if (_active == null) return;
-        if (_active.env.locked) { _envStatus = "Locked (digital twin) — unlock to save, or Save As a copy."; return; }
+        if (_active.env.locked) { _envStatus = "Locked (digital twin). Unlock to save, or Save As a copy."; return; }
         var le = _active;
         _envBusy = true;
 
-        // An auto-created working env doesn't exist on the server yet — create it (POST), which
+        // An auto-created working env doesn't exist on the server yet. Create it (POST), which
         // preserves its client id. Once persisted, subsequent saves overwrite it (PUT).
         if (!le.persisted)
         {
@@ -702,7 +702,7 @@ public class LibraryBrowser : MonoBehaviour
             if (_loaded.Count > 0) { SetActive(_loaded[0]); republished = true; }   // SetActive publishes
             else                   editController?.OnActiveEnvironmentSwitched();
         }
-        // Closing a backdrop (or the last env) doesn't go through SetActive — republish so
+        // Closing a backdrop (or the last env) doesn't go through SetActive. Republish so
         // viewers unload it too (an empty set clears the shared pointer).
         if (!republished) PublishLive();
         _envStatus = $"Closed: {le.env.name}";
@@ -714,7 +714,7 @@ public class LibraryBrowser : MonoBehaviour
         var target = _loaded.Find(l => l.env.id == id);
         if (target?.env.locked == true || _envList?.Find(s => s.id == id)?.locked == true)
         {
-            _envStatus = "Locked (digital twin) — unlock before archiving.";
+            _envStatus = "Locked (digital twin). Unlock before archiving.";
             yield break;
         }
         _envBusy = true; _envStatus = "Archiving...";

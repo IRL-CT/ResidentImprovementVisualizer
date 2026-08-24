@@ -3,7 +3,7 @@ using System.Collections.Generic;
 // In-memory undo/redo for editor data edits. The editor is data-driven: every edit mutates a
 // plain serializable def (EnvironmentDef for env-level edits, BuildingDef for tile-level edits)
 // and the renderers are idempotent full rebuilds from that data. So undo needs no per-operation
-// inverse logic — it snapshots the relevant def as JSON before an edit and restores-by-replace
+// inverse logic. It snapshots the relevant def as JSON before an edit and restores-by-replace
 // (+ re-render) to revert. See CLAUDE.md / the plan for the design and the host wiring.
 //
 // EditHistory itself does no serialization or Unity work: an IHost (EditController) supplies the
@@ -11,7 +11,7 @@ using System.Collections.Generic;
 //
 // Granularity rules used by the host:
 //   • Discrete edits (place / delete / single click / button / key) call RecordBefore() right
-//     before mutating — one undo entry per edit.
+//     before mutating: one undo entry per edit.
 //   • Continuous gestures (drag / brush stroke / freehand path / slider) call BeginGesture()
 //     before each mutation (idempotent); the host closes them centrally on mouse-release via
 //     EndGesture(), so a whole stroke collapses to a single undo entry. No-op gestures are dropped.

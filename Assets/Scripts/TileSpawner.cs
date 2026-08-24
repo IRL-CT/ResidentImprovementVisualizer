@@ -20,7 +20,7 @@ public static class TileSpawner
             : Object.Instantiate(shapes.GetPrefab(tile.shapeId), parent);
         if (go == null) return null;
 
-        // Cells are true cubes of edge cellSize, so floors stack by the same pitch (cube edge) on Y —
+        // Cells are true cubes of edge cellSize, so floors stack by the same pitch (cube edge) on Y,
         // a tile sits exactly one cube above the one below it, seamless in all three dimensions.
         // FitToCell re-anchors on the geometry CENTER, so the cell center (not its floor surface) is
         // the placement point on every axis: X/Z use (grid+0.5)·cs and Y uses (floor+0.5)·cs. This
@@ -48,7 +48,7 @@ public static class TileSpawner
             // Deformed tiles bake their fit AND rotation directly into warped vertices authored in
             // grid-aligned cell-local space (see SpawnDeformedTile), so the GameObject carries no
             // rotation: the deform cage is a grid-space field, and re-rotating it here would tear the
-            // shared corner posts that keep skewed neighbours gap-free.
+            // shared corner posts that keep skewed neighbors gap-free.
             go.transform.localRotation = Quaternion.identity;
         }
         go.name = $"Tile_{tile.gridX}_{tile.gridZ}_F{tile.floor}";
@@ -61,8 +61,8 @@ public static class TileSpawner
     }
 
     // Scales and re-anchors the prefab so its geometry spans exactly cellSize on every axis (a true
-    // cube), with its geometry CENTER sitting on the tile's placement point. Fitting to a cube — rather
-    // than a cellSize×floorHeight×cellSize box — is what keeps a tile correctly sized at ANY rotation:
+    // cube), with its geometry CENTER sitting on the tile's placement point. Fitting to a cube. Rather
+    // than a cellSize×floorHeight×cellSize box. Is what keeps a tile correctly sized at ANY rotation:
     // a non-cubic target box stays cell-sized only while its local Y points up, so the instant a tile
     // is tipped (any rotationX/rotationZ) the box's unequal axes swap into the footprint and height and
     // the tile reads as "wider when tall". A cube is rotation-invariant, so all axes stay cellSize.
@@ -75,7 +75,7 @@ public static class TileSpawner
     // Must run after localPosition and localRotation are set, since it composes onto them.
     public static void FitToCell(GameObject go, float cellSize)
     {
-        if (!LocalGeometryBounds(go, out Bounds b)) return;  // no measurable mesh — leave as authored
+        if (!LocalGeometryBounds(go, out Bounds b)) return;  // no measurable mesh. Leave as authored
         Vector3 size = b.size;
         if (size.x <= 0f || size.y <= 0f || size.z <= 0f) return;
 
@@ -88,7 +88,7 @@ public static class TileSpawner
 
     // Axis-aligned bounds of the prefab's combined renderable geometry, expressed in the root
     // GameObject's local units (i.e. as if its localScale were 1). Covers both MeshRenderer (via
-    // MeshFilter) and SkinnedMeshRenderer — rigged FBX tiles (e.g. the curved corner) render through
+    // MeshFilter) and SkinnedMeshRenderer. Rigged FBX tiles (e.g. the curved corner) render through
     // a skinned mesh with no MeshFilter, so measuring only MeshFilters under-counts and over-scales
     // them. Each mesh's bounds are mapped through its transform relative to the root, so the root's
     // own scale and rotation cancel out.
@@ -151,7 +151,7 @@ public static class TileSpawner
         }
         else
         {
-            // The face name resolves to a submesh slot the prefab doesn't have — the data is
+            // The face name resolves to a submesh slot the prefab doesn't have: the data is
             // saved correctly, but it can't display until the '{tile.shapeId}' prefab exposes
             // one material slot per named face (see TileShapePalette.faceNames).
             Debug.LogWarning($"[TileSpawner] Tile '{tile.shapeId}' has {mats.Length} material slot(s) " +
@@ -181,7 +181,7 @@ public static class TileSpawner
     }
 
     // The square/box path: a procedural prism mesh with one submesh per face (north/east/south/west/
-    // top/bottom — same order/names as the square shape's faceNames, so the existing per-face
+    // top/bottom: same order/names as the square shape's faceNames, so the existing per-face
     // material painting keeps working) plus a matching MeshCollider for the editor's select/paint
     // raycasts.
     private static GameObject SpawnDeformedBox(TileDef tile, Transform parent,
@@ -206,7 +206,7 @@ public static class TileSpawner
     // The general (non-square) path: instantiate the real prefab, fit + rotate it into the cell
     // exactly as a plain tile would be, bake its (possibly skinned) geometry into one cell-local
     // mesh, then push every vertex through the deform cage. Because the warp is a pure function of
-    // grid position, the result stays seamless against box and curve neighbours alike, and because
+    // grid position, the result stays seamless against box and curve neighbors alike, and because
     // the prefab's per-submesh materials are carried over, the look and per-face painting survive.
     private static GameObject SpawnWarpedShape(TileDef tile, Transform parent, TileShapePalette shapes,
                                                MaterialPalette materials, GameObject prefab, float cellSize)
@@ -215,7 +215,7 @@ public static class TileSpawner
         go.transform.SetParent(parent, false);   // identity local transform == cell-local space
 
         // Pose a throwaway copy of the prefab in the cell (shape + rotation + fit), bake it, warp it,
-        // then discard the copy — only the warped static mesh survives.
+        // then discard the copy: only the warped static mesh survives.
         var temp = Object.Instantiate(prefab, go.transform);
         temp.transform.localPosition = Vector3.zero;
         temp.transform.localRotation = Quaternion.Euler(tile.rotationX, tile.rotation, tile.rotationZ)

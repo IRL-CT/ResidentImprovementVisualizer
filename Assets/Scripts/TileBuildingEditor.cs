@@ -41,7 +41,7 @@ public class TileBuildingEditor : MonoBehaviour
     public int ActiveFloor => _activeFloor;
 
     // World-space center of the building footprint at `floor`'s surface height, plus a rough
-    // horizontal radius — lets EditController frame/lift the orbit camera onto the floor being edited.
+    // horizontal radius. Lets EditController frame/lift the orbit camera onto the floor being edited.
     public bool TryGetFocus(int floor, out Vector3 worldCenter, out float radius)
     {
         float cs = CellSize();
@@ -87,13 +87,13 @@ public class TileBuildingEditor : MonoBehaviour
     // Sub-tools inside the building editor. Add = paint tiles onto the grid; Select = pick a
     // placed tile and rotate it on any axis (snap 15°); Paint = assign a material to a clicked face;
     // Decorate = "smart paint" decorative prefabs (windows/doors/vents/greenery) onto tile faces.
-    // (Whole-building Skew — acute/obtuse corners, sloped roof — now lives on the building selection
+    // (Whole-building Skew (acute/obtuse corners, sloped roof) now lives on the building selection
     // panel in EditController, next to Move/Rotate/Scale.)
     private enum SubTool { Select, Add, Paint, Decorate }   // order = tab order (Select is leftmost + default)
     private SubTool _subTool = SubTool.Select;
     private bool _confirmClearFloor;            // floor-clear confirmation (destructive, asks first)
 
-    // Decorate tool state — paints EmbeddedObjectDef entries onto tile faces from a DecorPalette.
+    // Decorate tool state. Paints EmbeddedObjectDef entries onto tile faces from a DecorPalette.
     // Pick a decor, click a tile face: one prop auto-centers, fits, and seats flush (like the Paint
     // tool assigning a face material). Dragging paints each face under the cursor; re-painting a face
     // replaces its prop (one decor per face). Erase removes painted decorations.
@@ -110,7 +110,7 @@ public class TileBuildingEditor : MonoBehaviour
     private string _hoveredKey;
     private bool   _isDragging;
 
-    // Select-tool state — supports multi-select. _primaryKey is the last tile clicked and drives
+    // Select-tool state. Supports multi-select. _primaryKey is the last tile clicked and drives
     // the panel readouts; rotation/delete apply to every key in _selectedKeys.
     private readonly HashSet<string> _selectedKeys   = new();
     private string                   _primaryKey;            // reference tile for slider/coords, or null
@@ -119,7 +119,7 @@ public class TileBuildingEditor : MonoBehaviour
     private bool       _dragSelecting;               // Select tool: left-drag accumulates tiles into the selection
     private const float ROT_SNAP = 15f;              // all Select-tool rotation snaps to this
 
-    // Fires when the user clicks "Save Changes" — EditController handles the actual PUT.
+    // Fires when the user clicks "Save Changes". EditController handles the actual PUT.
     public event Action OnSaveRequested;
 
     private static Material _glMat;
@@ -207,7 +207,7 @@ public class TileBuildingEditor : MonoBehaviour
         // typing never rotates, re-axes, or deletes a tile.
         bool typing = GUIUtility.keyboardControl != 0;
         bool ctrl   = kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed;
-        if (!typing && !ctrl)   // Ctrl held = undo/redo (handled by EditController) — don't eat Z as the Z axis
+        if (!typing && !ctrl)   // Ctrl held = undo/redo (handled by EditController). Don't eat Z as the Z axis
         {
             // X/Y/Z choose the active rotate axis for the Select tool.
             if (kb.xKey.wasPressedThisFrame) _rotAxis = 0;
@@ -261,7 +261,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // Q/E: Select tool → rotate the selected tile ±15° on the active axis; otherwise the legacy
-    // behavior — rotate the hovered tile ±90° (yaw), or cycle the new-tile placement yaw.
+    // behavior. Rotate the hovered tile ±90° (yaw), or cycle the new-tile placement yaw.
     private void HandleRotateKeys(Keyboard kb)
     {
         int dir = 0;
@@ -310,7 +310,7 @@ public class TileBuildingEditor : MonoBehaviour
         }
         if (lUp) _dragSelecting = false;
 
-        // While held, accumulate every tile dragged over (never deselects — Shift/Ctrl+click removes).
+        // While held, accumulate every tile dragged over (never deselects, Shift/Ctrl+click removes).
         if (_dragSelecting && lHeld)
         {
             string k = RaycastTileKey();
@@ -342,11 +342,11 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Select tool — rotate the selected tile on any axis, snapped to 15°
+    // Select tool. Rotate the selected tile on any axis, snapped to 15°
     // -----------------------------------------------------------------------
 
     // Adds delta degrees to the active axis of every selected tile (each rotates about its own
-    // centre) and snaps every axis to 15°.
+    // center) and snaps every axis to 15°.
     private void RotateSelectedAxis(float deltaDeg)
     {
         if (_selectedKeys.Count == 0) return;
@@ -587,7 +587,7 @@ public class TileBuildingEditor : MonoBehaviour
 
     // Determines which named face was clicked from the hit normal. Transforming the world
     // normal by the inverse of the tile GameObject's rotation removes both the building and
-    // the per-tile rotation, yielding the normal in the prefab's unrotated local frame — so
+    // the per-tile rotation, yielding the normal in the prefab's unrotated local frame, so
     // the returned face name maps to the correct submesh regardless of how the tile is turned.
     // Convention: +Z=north, +X=east, -Z=south, -X=west, +Y=top, -Y=bottom.
     private static string FaceFromNormal(GameObject tileGO, Vector3 worldNormal)
@@ -621,7 +621,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Whole-face selection — act on every exposed tile face on a building side
+    // Whole-face selection. Act on every exposed tile face on a building side
     // -----------------------------------------------------------------------
 
     private static readonly string[] FaceNames = { "north", "south", "east", "west", "top", "bottom" };
@@ -654,7 +654,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // Named face of this tile that points the given building-local direction (accounts for the
-    // tile's full rotation), or null if none lines up — e.g. a wedge with no axis-aligned face there.
+    // tile's full rotation), or null if none lines up. e.g. a wedge with no axis-aligned face there.
     private static string FacePointing(TileDef t, Vector3 dirLocal)
     {
         Quaternion rot = Quaternion.Euler(t.rotationX, t.rotation, t.rotationZ);
@@ -668,8 +668,8 @@ public class TileBuildingEditor : MonoBehaviour
         return best;
     }
 
-    // A tile face is part of the building's outer skin when no tile occupies the neighbouring cell
-    // in that direction (walls = same-floor neighbour; top/bottom = the floor above/below).
+    // A tile face is part of the building's outer skin when no tile occupies the neighboring cell
+    // in that direction (walls = same-floor neighbor; top/bottom = the floor above/below).
     private bool FaceExposed(TileDef t, Vector3 dirLocal)
     {
         if (_bdef?.tiles == null) return true;
@@ -681,7 +681,7 @@ public class TileBuildingEditor : MonoBehaviour
         return true;
     }
 
-    // Every (tile, faceName) on the building side facing dirLocal whose face is exposed — i.e. the
+    // Every (tile, faceName) on the building side facing dirLocal whose face is exposed. i.e. the
     // whole flat side of the building (across all floors) that the user clicked.
     private List<(TileDef tile, string face)> CollectFaceTiles(Vector3 dirLocal)
     {
@@ -721,7 +721,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // Copies every tile (and painted decor) on the active floor up to the floor above, then makes
-    // that the active floor — a fast way to stack repeated stories. Target cells that are already
+    // that the active floor: a fast way to stack repeated stories. Target cells that are already
     // filled are left untouched, so it's safe to run over a partially-built floor. Undoable.
     private void DuplicateFloorUp()
     {
@@ -733,7 +733,7 @@ public class TileBuildingEditor : MonoBehaviour
 
         History?.RecordBefore(EditHistory.Scope.Building, "Duplicate floor");
 
-        // Destination cells that already hold a tile — skip these so we never stomp existing work.
+        // Destination cells that already hold a tile. Skip these so we never stomp existing work.
         var occupied = new HashSet<(int, int)>();
         foreach (var t in _bdef.tiles)
             if (t.floor == dst) occupied.Add((t.gridX, t.gridZ));
@@ -747,7 +747,7 @@ public class TileBuildingEditor : MonoBehaviour
                 shapeId = t.shapeId,
                 rotation = t.rotation, rotationX = t.rotationX, rotationZ = t.rotationZ,
                 faceMaterials = t.faceMaterials != null ? new Dictionary<string, string>(t.faceMaterials) : null,
-                deform = t.deform,   // immutable cage data — replaced wholesale on edit, never mutated in place
+                deform = t.deform,   // immutable cage data. Replaced wholesale on edit, never mutated in place
             });
         }
 
@@ -794,13 +794,13 @@ public class TileBuildingEditor : MonoBehaviour
         // The active floor's surface plane (tiles rest on it; local Y = floor·cs). A pure plane
         // intersection is intuitive over open grid, but the ray punches straight through any wall in
         // front of it, so on a tall building the intersection lands on the floor far BEHIND the
-        // building — that's the "tile placed behind the building" bug.
+        // building. That's the "tile placed behind the building" bug.
         float yFloor   = _bldgWorldPos.y + _activeFloor * cs;
         var   plane    = new Plane(Vector3.up, new Vector3(0f, yFloor, 0f));
         bool  hasPlane = plane.Raycast(ray, out float planeDist);
 
         // Occlusion guard: if one of THIS building's tiles sits in front of the plane point, the
-        // plane point is hidden — snap placement to that tile's column on the active floor instead.
+        // plane point is hidden. Snap placement to that tile's column on the active floor instead.
         // Pointing at a lower roof then stacks a tile on top; pointing at a side wall extends the
         // active floor one cell outward along the hit face. (Restricted to _tileRoot's own tiles so
         // other scene geometry never hijacks the grid coordinates.)
@@ -827,17 +827,17 @@ public class TileBuildingEditor : MonoBehaviour
         Vector3 world = ray.GetPoint(planeDist);
         Vector3 local = Quaternion.Inverse(Quaternion.Euler(0f, _bldgRotY, 0f)) * (world - _bldgWorldPos);
 
-        // No quadrant clamp — a building may grow in any direction; negative cells render correctly
+        // No quadrant clamp: a building may grow in any direction; negative cells render correctly
         // (TileSpawner uses gridX/gridZ directly) and the grid overlay tracks the full min/max extent.
         int gx = Mathf.FloorToInt(local.x / cs);
         int gz = Mathf.FloorToInt(local.z / cs);
-        if (!WithinGrowRange(gx, gz)) return;   // near-horizon ray — refuse rather than hover a far cell
+        if (!WithinGrowRange(gx, gz)) return;   // near-horizon ray. Refuse rather than hover a far cell
         _hoveredKey = MakeKey(gx, gz, _activeFloor);
     }
 
     // Farthest a NEW cell may sit from the existing footprint, in cells (Chebyshev). The floor-plane
     // intersection above is unbounded, so a near-horizon ray can land thousands of meters out and one
-    // Add-click silently plants a tile there — which then blows up everything derived from tile
+    // Add-click silently plants a tile there, which then blows up everything derived from tile
     // min/max (camera framing, grid overlay, selection bounds). Any-direction growth stays allowed;
     // only cells nowhere near the building are rejected (no hover, so nothing can be placed).
     private const int MAX_GROW_CELLS = 4;
@@ -963,7 +963,7 @@ public class TileBuildingEditor : MonoBehaviour
         UITheme.Title("Building editor");
         UITheme.Note($"{_bdef?.name}   •   {_bdef?.tiles?.Count ?? 0} tiles");
 
-        // Tool selector — one active sub-tool at a time; labels must stay aligned with SubTool order.
+        // Tool selector: one active sub-tool at a time; labels must stay aligned with SubTool order.
         int ts = UITheme.Segmented((int)_subTool, new[] { "Select", "Add", "Paint", "Extras" });
         if (ts != (int)_subTool) SetSubTool((SubTool)ts);
 
@@ -1105,7 +1105,7 @@ public class TileBuildingEditor : MonoBehaviour
         GUILayout.EndHorizontal();
         UITheme.Note("Q/E = ±15° • X/Y/Z pick axis");
 
-        // Per-axis sliders (snap 15°) — show the reference tile, apply to all selected.
+        // Per-axis sliders (snap 15°). Show the reference tile, apply to all selected.
         DrawTileRotSlider(t, "X", 0);
         DrawTileRotSlider(t, "Y", 1);
         DrawTileRotSlider(t, "Z", 2);
@@ -1184,7 +1184,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // -----------------------------------------------------------------------
-    // Decorate tool — smart-paint decorative prefabs onto tile faces
+    // Decorate tool. Smart-paint decorative prefabs onto tile faces
     // -----------------------------------------------------------------------
 
     private DecorPalette.Entry ActiveDecor()
@@ -1200,8 +1200,8 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // Each qualifying frame: raycast a tile face and either erase the decoration there or place the
-    // active decor on it. Placement is systematic — one prop per face, centered, fit, and seated
-    // flush — and dragging paints each face under the cursor (one per tile per stroke, like Paint).
+    // active decor on it. Placement is systematic: one prop per face, centered, fit, and seated
+    // flush, and dragging paints each face under the cursor (one per tile per stroke, like Paint).
     private void HandleDecorate(bool lDown)
     {
         if (Mouse.current == null || mainCamera == null) return;
@@ -1256,7 +1256,7 @@ public class TileBuildingEditor : MonoBehaviour
     }
 
     // Whole-face Decorate: place the active decor on every exposed tile face of the clicked building
-    // side — e.g. windows across an entire wall in one click. Uses the same size/anchor math per face.
+    // side. e.g. windows across an entire wall in one click. Uses the same size/anchor math per face.
     private void TryDecorateWholeFace()
     {
         var entry = ActiveDecor();
@@ -1274,7 +1274,7 @@ public class TileBuildingEditor : MonoBehaviour
     // Core systematic placement shared by single-face and whole-face: seats one prop on a tile face,
     // sized to the entry's width/height fraction of the face (aspect preserved), anchored vertically,
     // and flush along the face normal. Replaces any prior decor on that face. Deform-aware: placement
-    // is derived from the host face's ACTUAL (possibly skewed/sloped) plane via DecorPlacement — the
+    // is derived from the host face's ACTUAL (possibly skewed/sloped) plane via DecorPlacement: the
     // same function the render paths re-run when the building's deform changes, so paint-time and
     // render-time placement agree by construction and props follow later skews.
     private void PlaceFaceDecor(int gx, int gz, int gf, string face, Vector3 faceNormal, bool isRoof, DecorPalette.Entry entry)
@@ -1351,7 +1351,7 @@ public class TileBuildingEditor : MonoBehaviour
         }
     }
 
-    // Prop mount bases per (prefabKey, mountAxis, flipMount), measured once per editor session —
+    // Prop mount bases per (prefabKey, mountAxis, flipMount), measured once per editor session,
     // reseating (RebuildEmbeddedVisuals) re-resolves bases on every rebuild.
     private readonly Dictionary<(string, int, bool), DecorAlignment.PropBasis> _propBasisCache = new();
 
@@ -1417,7 +1417,7 @@ public class TileBuildingEditor : MonoBehaviour
         GameObject go;
         if (prefab == null)
         {
-            Debug.LogWarning($"[TileBuildingEditor] Decorate prefab '{emb.prefabType}' not found in PrefabRegistry — spawning placeholder.");
+            Debug.LogWarning($"[TileBuildingEditor] Decorate prefab '{emb.prefabType}' not found in PrefabRegistry, so a placeholder was spawned.");
             go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.transform.SetParent(_tileRoot, false);
             go.transform.localRotation = embRot;
@@ -1546,7 +1546,7 @@ public class TileBuildingEditor : MonoBehaviour
 
         bool invalid = TileExistsAt(_hoveredKey);
 
-        // Rebuild only when the chosen shape changes — the ghost is a different prefab then.
+        // Rebuild only when the chosen shape changes: the ghost is a different prefab then.
         if (_addGhostGO == null || _addGhostShapeId != _activeShapeId)
         {
             DestroyAddGhost();
@@ -1586,7 +1586,7 @@ public class TileBuildingEditor : MonoBehaviour
         _addGhostInvalid = false;
     }
 
-    // Recolors the live ghost's (already-translucent) material instances — used to flip between the
+    // Recolors the live ghost's (already-translucent) material instances. Used to flip between the
     // normal blue tint and the red "cell occupied" tint without rebuilding the ghost prefab.
     private void TintGhost(Color tint)
     {

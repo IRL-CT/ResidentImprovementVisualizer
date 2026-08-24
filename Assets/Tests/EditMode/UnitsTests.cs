@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 // Units is the only place meters become text and text becomes meters, so a bug here is a bug in every
 // dimension the tool shows. The parse cases below are all real ways people type a measurement into
-// the calibration prompt — the field that gates the entire tracing workflow.
+// the calibration prompt: the field that gates the entire tracing workflow.
 [TestFixture]
 public class UnitsTests
 {
@@ -25,13 +25,13 @@ public class UnitsTests
     {
         Assert.AreEqual("12' 6\"", Units.FormatFeetInches(3.81f));   // 150"
         Assert.AreEqual("2' 8\"", Units.FormatFeetInches(0.8128f));  // 32"
-        Assert.AreEqual("3'", Units.FormatFeetInches(0.9144f));      // exactly 36" — no inch part
+        Assert.AreEqual("3'", Units.FormatFeetInches(0.9144f));      // exactly 36": no inch part
     }
 
     [Test]
     public void Format_SubInchRoundsToNearestEighth()
     {
-        // A 4.5" stud wall — the default interior partition thickness.
+        // A 4.5" stud wall: the default interior partition thickness.
         Assert.AreEqual("4 1/2\"", Units.FormatFeetInches(0.114f));
         Assert.AreEqual("1/2\"", Units.FormatFeetInches(0.0127f));
     }
@@ -45,7 +45,7 @@ public class UnitsTests
     [Test]
     public void Format_RoundsUpAcrossTheFootBoundaryConsistently()
     {
-        // 11.99" must read as 1', never as 0' 12" — this is why rounding happens before the split.
+        // 11.99" must read as 1', never as 0' 12": this is why rounding happens before the split.
         Assert.AreEqual("1'", Units.FormatFeetInches(11.99f * 0.0254f));
     }
 
@@ -78,7 +78,7 @@ public class UnitsTests
         AssertParses("12' 6\"", 3.81f);
         AssertParses("12'6\"", 3.81f);
         AssertParses("12 ft 6 in", 3.81f);
-        // Unclosed inches — the single most common typo, and it must not silently mean 12 feet.
+        // Unclosed inches: the single most common typo, and it must not silently mean 12 feet.
         AssertParses("12' 6", 3.81f);
     }
 
@@ -101,7 +101,7 @@ public class UnitsTests
     public void Parse_DoubleApostropheIsInchesNotFeet()
     {
         // The reason inches are matched before feet: `''` starts with `'`, so a feet-first scan
-        // would read this as six FEET — a 4x error in the most safety-relevant direction.
+        // would read this as six FEET: a 4x error in the most safety-relevant direction.
         AssertParses("6''", 0.1524f);
     }
 

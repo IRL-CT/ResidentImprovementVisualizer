@@ -1,0 +1,21 @@
+CXRHomeViz
+
+CXRHomeViz is a Windows desktop tool for drawing a home at true scale and showing what a proposed
+change would do to it. You import a photo of a floor plan, calibrate it against one known distance,
+then trace walls, doors and rooms over it. Furniture comes from a 35 item catalog with real
+dimensions, and wall mounted things like grab bars snap to the face you point at. A second layer,
+smart living, holds twenty five things that get installed rather than furnished. Sixteen are smart
+home sensors, costed from a Cornell Tech technology assessment, and they go on the elements they
+watch, so a door sensor follows its doorway when the doorway gets widened. Nine are everyday
+accessibility aids the assessment does not cover, like a rocker knife or a sock aid, which belong to
+a resident or to a room rather than to a spot on the plan and which say on every screen that their
+prices are ordinary retail rather than figures the assessment stands behind. Grab bars are offered
+there too. Every home keeps a locked record of how it stands today, and design options
+branch off that record. Comparing two of them produces a change list in plain language with
+measurements in feet and inches, and any single line can be taken back out on its own. There are
+three views. Plan for tracing, an orbiting overview, and a first person walkthrough that toggles
+between a standing and a seated eye height. Residents can be given a daily schedule, which places
+them room by room through the day and drives a simulated run of sensor activity and caregiver
+alerts. What leaves the app is a self contained HTML report, with each changed room photographed
+before and after from one camera position, that prints to PDF from any browser. It runs offline.
+Homes are JSON files on disk.

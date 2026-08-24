@@ -4,14 +4,14 @@ using UnityEngine;
 // Floor and ceiling meshes for a RoomDef polygon.
 //
 // Floor and ceiling are built as SEPARATE meshes rather than two submeshes of one. That is what makes
-// the ceiling toggle cheap: plan view and dollhouse view hide ceilings so you can see into the rooms,
+// the ceiling toggle cheap: plan view and overview view hide ceilings so you can see into the rooms,
 // walkthrough shows them, and flipping between those is then just SetActive on one renderer instead
 // of rebuilding geometry.
 //
 // WINDING (the reason PolygonTriangulator hands back "unrendered" triangles). Unity front-faces a
 // triangle when its vertices read clockwise from the viewer. Looking down at the XZ plane from +Y,
 // screen-right is +X and screen-up is +Z, so a polygon wound counter-clockwise in (x, z) also reads
-// counter-clockwise on screen — the wrong way round for an up-facing floor. Floors therefore reverse
+// counter-clockwise on screen: the wrong way round for an up-facing floor. Floors therefore reverse
 // the triangulator's order; ceilings, which face down, keep it.
 //
 // UVs are the raw world (x, z) in meters, so a 600 mm tile texture set to tile once per unit lands at
@@ -45,7 +45,7 @@ public static class RoomMeshBuilder
         return HomeConventions.DEFAULT_CEILING_HEIGHT;
     }
 
-    /// <summary>Floor area in square meters — the number shown in the room inspector.</summary>
+    /// <summary>Floor area in square meters: the number shown in the room inspector.</summary>
     public static float FloorArea(RoomDef room)
         => PolygonTriangulator.Area(PolygonTriangulator.ToVector2(room?.polygon));
 
