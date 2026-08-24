@@ -109,14 +109,19 @@ public static class ResidenceStore
         ("CXRBrownfield", "CXRHomeViz"),
     };
 
-    // Folders INSIDE the root that were renamed along with the product, old name first. Applied only
-    // to a tree that has just been moved off a legacy root, so it still carries the old folder names.
+    // Folders INSIDE the root that were renamed along with the product, old name first. The left
+    // string is a LEGACY name and must stay spelled the old way: it is an address on disk, not a
+    // word in the codebase, so a search-and-replace that renames it silently turns this into a no-op.
     private static readonly (string from, string to)[] LegacySubDirs =
     {
-        ("residences", "residences"),
+        ("homes", "residences"),
     };
 
-    static ResidenceStore() => MigrateLegacyRoot();
+    static ResidenceStore()
+    {
+        MigrateLegacyRoot();
+        MigrateLegacySubDirs();
+    }
 
     private static void MigrateLegacyRoot()
     {
@@ -135,8 +140,6 @@ public static class ResidenceStore
                 Directory.CreateDirectory(Directory.GetParent(RootDir).FullName);
                 Directory.Move(legacyRoot, RootDir);
                 Debug.Log($"[ResidenceStore] Moved the library from the previous product folder: {legacyRoot} to {RootDir}");
-
-                MigrateLegacySubDirs();
                 return;
             }
         }
@@ -148,16 +151,26 @@ public static class ResidenceStore
         }
     }
 
+    // Runs on EVERY start, not only just after a root move: a root that an earlier build already
+    // moved still carries the old subfolder names, and hanging this off the move would strand it.
+    // It is a no-op once the rename has happened.
     private static void MigrateLegacySubDirs()
     {
-        foreach (var dir in LegacySubDirs)
+        try
         {
-            string from = Path.Combine(RootDir, dir.from);
-            string to = Path.Combine(RootDir, dir.to);
-            if (!Directory.Exists(from) || Directory.Exists(to)) continue;
+            foreach (var dir in LegacySubDirs)
+            {
+                string from = Path.Combine(RootDir, dir.from);
+                string to = Path.Combine(RootDir, dir.to);
+                if (!Directory.Exists(from) || Directory.Exists(to)) continue;
 
-            Directory.Move(from, to);
-            Debug.Log($"[ResidenceStore] Renamed {dir.from} to {dir.to} inside the library.");
+                Directory.Move(from, to);
+                Debug.Log($"[ResidenceStore] Renamed {dir.from} to {dir.to} inside the library.");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[ResidenceStore] Could not rename a folder inside the library: {e.Message}");
         }
     }
 
