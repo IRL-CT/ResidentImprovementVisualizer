@@ -1,10 +1,10 @@
-# CXRHomeViz. Developer Notes
+# Residence Improvement Visualizer. Developer Notes
 
 **This repository is the Unity project.** Its root is the project root: `Assets/`, `Packages/`,
 `ProjectSettings/` are directly here, and every path below is repo-relative. Open this folder in
 Unity **6000.3.10f1**.
 
-A stand-alone desktop tool for visualising proposed improvements to a home or apartment. Widening a
+A stand-alone desktop tool for visualising proposed improvements to a residence or apartment. Widening a
 doorway, adding grab bars, removing a threshold, rearranging a bedroom so a wheelchair can turn, and
 holding "how it is now" next to "what we're proposing" so residents, families and care staff can
 compare them in a meeting.
@@ -12,8 +12,8 @@ compare them in a meeting.
 **It requires no Python and no server, and it works offline.** The one exception is opt-in and
 per-press: *Read the plan* in the Import rail sends that one sketch image to the Anthropic API and
 gets a floor plan back: only when a key has been entered and the button pressed. Everything else,
-including every home you have, stays on the machine. Homes are files under
-`Application.persistentDataPath/CXRHomeViz/`.
+including every residence you have, stays on the machine. Residences are files under
+`Application.persistentDataPath/ResidenceImprovementVisualizer/`.
 
 > **Legacy. CXRSite.** This project also still contains the original outdoor site-visioning
 > tool: the `BasicModel` / `VRViewer` scenes, `EditController`, `WorldRenderer`, `TileBuildingEditor`,
@@ -22,7 +22,7 @@ including every home you have, stays on the machine. Homes are files under
 > **its Python backend now lives outside this repository** at `../CXRLayoutGen/` (Flask server on
 > :5002, LLM layout generation, the JSON data store, sketch inputs, and the RI pilot study). Some of
 > its code is genuinely shared: `WorldRenderer`, `PrefabRegistry`, `SiteDef`/`PathDef`/`FenceDef`,
-> `EnvironmentScale`, `TransformGizmo`, because HomeViz renders through it. Do not "clean up" those.
+> `EnvironmentScale`, `TransformGizmo`, because ResidenceViz renders through it. Do not "clean up" those.
 
 ## Working in this repo
 
@@ -42,7 +42,7 @@ reasoning: rationale, history, bug post-mortems.
 
 | Area | Rules (path-scoped) | Reasoning |
 |---|---|---|
-| Sample homes, `PlanBuilder` | [`.claude/rules/samples-and-planbuilder.md`](.claude/rules/samples-and-planbuilder.md) | [`docs/design/samples-and-planbuilder.md`](docs/design/samples-and-planbuilder.md) |
+| Sample residences, `PlanBuilder` | [`.claude/rules/samples-and-planbuilder.md`](.claude/rules/samples-and-planbuilder.md) | [`docs/design/samples-and-planbuilder.md`](docs/design/samples-and-planbuilder.md) |
 | Walls, openings, rooms, floor finish, the fits | [`.claude/rules/walls-and-rooms.md`](.claude/rules/walls-and-rooms.md) | [`docs/design/walls-and-rooms.md`](docs/design/walls-and-rooms.md) |
 | Workflow stages, the tools table | [`.claude/rules/workflow-and-tools.md`](.claude/rules/workflow-and-tools.md) | [`docs/design/ui.md`](docs/design/ui.md) |
 | UI rules (no prose, the fields, buttons, spacing scale, layout) | [`.claude/rules/ui.md`](.claude/rules/ui.md) | [`docs/design/ui.md`](docs/design/ui.md) |
@@ -56,19 +56,20 @@ reasoning: rationale, history, bug post-mortems.
 
 ## Running it
 
-Open `Assets/Scenes/HomeViz.unity` and press Play. **The first launch seeds six sample homes.**
+Open `Assets/Scenes/ResidenceViz.unity` and press Play. **The first launch seeds six sample residences.**
 
-Build with **Build → HomeViz (PC, Windows)** (`Ctrl+Shift+H`) → `Builds/HomeViz/CXRHomeViz.exe`. That
-build ships **only** the HomeViz scene; the Site stack is absent from it.
+Build with **Build → ResidenceViz (PC, Windows)** (`Ctrl+Shift+H`) →
+`Builds/ResidenceViz/ResidenceImprovementVisualizer.exe`. That build ships **only** the ResidenceViz
+scene; the Site stack is absent from it.
 
 ## Concepts
 
-- **Home** (`HomeDoc`): one dwelling. The unit of save/load, of the library list, and of export.
-- **Variant** (`VariantDef`): one design option. Every home has a **baseline** ("Existing", locked by
+- **Residence** (`ResidenceDoc`): one dwelling. The unit of save/load, of the library list, and of export.
+- **Variant** (`VariantDef`): one design option. Every residence has a **baseline** ("Existing", locked by
   default) plus any number of named proposals. Switching is a re-render. Comparing two variants gives
   a plain-English change list, any line of which can be reverted on its own. See `ModeBand`.
 - **Level** (`LevelDef`): one storey. **One is edited and rendered at a time**, chosen by the floor
-  chip in the top bar (drawn only when the home has more than one).
+  chip in the top bar (drawn only when the residence has more than one).
 - **Underlay** (`UnderlayDef`): the imported floor-plan sketch, calibrated so tracing is at true scale.
   One per storey, keyed by `levelId`.
 - **Occupant** (`OccupantDef`): someone who lives here, with a 24-hour timeline. Their position is
@@ -77,7 +78,7 @@ build ships **only** the HomeViz scene; the Site stack is absent from it.
 ## Data model: `Assets/Scripts/Authoring/Interior/InteriorTypes.cs`
 
 ```
-HomeDoc
+ResidenceDoc
  ├ underlays: [ UnderlayDef ]       one traced sketch PER STOREY, keyed by levelId
  └ variants: [ VariantDef ]
       ├ levels: [ LevelDef ]
@@ -98,24 +99,25 @@ furniture type** (`boxSizeMeters` = the item's true size), and **`SiteDef` is th
 (`PathDef` a ramp or walkway, `FenceDef` a railing, `SurfaceStrokeDef` a patio).
 
 Deleted fields, on purpose and not deprecated (Newtonsoft's `MissingMemberHandling` defaults to
-`Ignore`, so homes on disk simply drop the keys): `RoomDef.floorMaterial` / `ceilingMaterial` (floor
+`Ignore`, so residences on disk simply drop the keys): `RoomDef.floorMaterial` / `ceilingMaterial` (floor
 finish is now `RoomFinish.FloorMaterial(roomType)`), `WallDef.structural`, `OpeningDef.swing`
-(`HomeMetrics.ClearWidth`: a door loses its leaf and stop; a measured `OpeningDef.clearWidth` still
-wins). `HomeDoc.underlay` stays *declared* because `HomeStore.Migrate` folds it into `underlays`.
+(`ResidenceMetrics.ClearWidth`: a door loses its leaf and stop; a measured `OpeningDef.clearWidth` still
+wins). `ResidenceDoc.underlay` stays *declared* because `ResidenceStore.Migrate` folds it into `underlays`.
 
 ## Deliberate decisions. Do not re-open
 
 Each of these was argued out; the reasoning is in the linked notes.
 
 - **US English, no dashes, nothing said by contrast** in every display string, the report and the
-  Anthropic prompt. `"None"` is the empty placeholder. `SampleHomeInstaller.LegacyNames` keeps its
-  em dashes because those names key homes already on disk. → ui
+  Anthropic prompt. `"None"` is the empty placeholder. `SampleResidenceInstaller.LegacyNames` keeps its
+  em dashes because those names key residences already on disk. → ui
 - **No PDF writer** for the report. Self-contained HTML that prints to PDF. (The PDF *reader* is the
   opposite call: rasterizing is a different problem.) → variants-and-report, import-and-sketch
 - **The API key is plaintext** on disk; DPAPI is a stated not-yet. → import-and-sketch
 - **The ghost draws no openings.** → variants-and-report
 - **`SensorPackages.Recommend` is not extended** to everyday aids; **package tiers are gone**. → smart-living
-- **`Assets/Resources/PrefabRegistry.asset` is never touched**; HomeViz uses `HomeCatalogRegistry.asset`. → furniture
+- **`Assets/Resources/PrefabRegistry.asset` is never touched**; ResidenceViz uses
+  `ResidenceCatalogRegistry.asset`. → furniture
 - **`Tile_Bath` is never a floor**; `Wall_Edge` does not move; the sun stays at its exposure. → walls-and-rooms, view-and-people
 - **14 catalog items stay labeled boxes**: `wheelchair`, `walker`, `hospital_bed`, `transfer_bench`,
   `patient_lift`, `shower_seat`, `roll_in_shower`, `grab_bar_24`, `grab_bar_36`, `handrail`,
@@ -124,14 +126,14 @@ Each of these was argued out; the reasoning is in the linked notes.
   considered** by the fits; `PlanBuilder.Free` is unguarded; wall mounts do not check each other. → smart-living, samples-and-planbuilder
 - **Deleted, not deprecated**: `Mode.Plan`, `WallDef.structural`, `OpeningDef.swing`,
   `RoomDef.floorMaterial`/`ceilingMaterial`, `TabTight`, `MeasureField`/`DrawMoveControls`, the inch
-  preset chips, the sensor tier bar. `HomeDoc.underlay` stays **declared** for migration. → walls-and-rooms, ui, view-and-people
-- **`SampleHomes.Generation` was not bumped** for the RoomFinish and swing schema changes (nothing
+  preset chips, the sensor tier bar. `ResidenceDoc.underlay` stays **declared** for migration. → walls-and-rooms, ui, view-and-people
+- **`SampleResidences.Generation` was not bumped** for the RoomFinish and swing schema changes (nothing
   visible moved). → walls-and-rooms
 - **Neither `Relink` nor `Sync` runs after a generated plan**, on load, in `Migrate`, or from
   `VariantRevert`. → import-and-sketch, walls-and-rooms
-- **Turning circles** are reported only in `MeasureTool`; `HomeMetrics.LargestInscribedCircle` stays
+- **Turning circles** are reported only in `MeasureTool`; `ResidenceMetrics.LargestInscribedCircle` stays
   (used by `OccupancyModel`, `StandableStart`, `RoomRegions.Sync`). → ui
-- **Not ported from the Site server**: content-hash dedup, multi-client sync. **Not in HomeViz**:
+- **Not ported from the Site server**: content-hash dedup, multi-client sync. **Not in ResidenceViz**:
   ground painting, scatter, lot editing.
 - **`ReportCapture` keeps its own orthographic plan camera** although Plan view mode is gone. → view-and-people
 - **Clock follows the units chip** (metric ⇒ 24-hour). → ui
@@ -140,24 +142,27 @@ Each of these was argued out; the reasoning is in the linked notes.
 
 `ClearanceRules.Registry` ships **empty**. The data a rule would need exists: `OpeningDef.clearWidth`,
 `OpeningDef.thresholdHeight`, `FurnitureCatalog.Entry.clearanceFront/Side`, `ObjectInstance.boxSizeMeters`,
-`HomeMetrics.LargestInscribedCircle`.
+`ResidenceMetrics.LargestInscribedCircle`.
 
 ## Storage
 
 ```
-<persistentDataPath>/CXRHomeViz/
-    homes/<id>.json              one HomeDoc per file
-    homes/_archive/<id>.json     soft-deleted; nothing is ever destroyed
-    underlays/<id>/<image>       the traced sketches, one per storey
-    reports/<home> - <proposal> - <date>.html
+<persistentDataPath>/ResidenceImprovementVisualizer/
+    residences/<id>.json            one ResidenceDoc per file
+    residences/_archive/<id>.json   soft-deleted; nothing is ever destroyed
+    underlays/<id>/<image>          the traced sketches, one per storey
+    reports/<residence> - <proposal> - <date>.html
     settings.json
-    anthropic.key                the API key, if one was entered; NOT in settings.json
+    anthropic.key                   the API key, if one was entered; NOT in settings.json
 ```
 
-Writes are atomic (temp file + `File.Replace`). Sharing is **Export/Import**: a `.homeviz` zip of
-`home.json` plus every storey's underlay, and, for people without the app, the HTML report.
-`persistentDataPath` derives from `productName` (was `CXRBrownfield`); `HomeStore`'s **static
-constructor** runs `MigrateLegacyRoot` once (a failed move only warns). `HomeStore.Migrate` runs on
+Writes are atomic (temp file + `File.Replace`). Sharing is **Export/Import**: a `.riv` zip of
+`residence.json` plus every storey's underlay, and, for people without the app, the HTML report.
+`persistentDataPath` derives from `productName`, which has changed twice (`CXRBrownfield`, then
+`CXRHomeViz`), so `ResidenceStore.LegacyRoots` is an ordered **chain** of previous roots, newest
+first, each pairing a product folder with the folder that sat inside it. `ResidenceStore`'s **static
+constructor** runs `MigrateLegacyRoot` once: it moves the first root it finds and renames the inner
+`homes/` to `residences/` (a failed move only warns). `ResidenceStore.Migrate` runs on
 every load and import. Ported from the Site server: atomic write, version bump, name uniquing,
 soft-delete.
 
@@ -175,14 +180,14 @@ directly.
 `Assets/Tests/EditMode/` (assembly `EditModeTests`), run through the Unity Test Runner or the MCP
 `tests-run` tool. **`CXRAuthoring`** (`Assets/Scripts/Authoring/`) is the dependency-free, testable
 assembly: that is why `SampleRefresh`, `Stories`, `ScrubMath`, `RoomFinish`, `RoomRegions` and the
-`Sketch/` compiler live there. **`Assembly-CSharp`** (`HomeStore`, the tools, `HomeRenderer`,
+`Sketch/` compiler live there. **`Assembly-CSharp`** (`ResidenceStore`, the tools, `ResidenceRenderer`,
 `PdfRaster`) cannot be referenced by an asmdef and is verified by running the Editor.
 
 Fixtures: `BrushGeometryTests`, `DecorAlignmentTests`, `DecorPlacementTests`, `FenceBuilderTests`,
-`FenceLinkerTests`, `HomeMetricsTests`, `LayoutConverterTests`, `OpeningFitTests`, `PathGeometryTests`,
+`FenceLinkerTests`, `ResidenceMetricsTests`, `LayoutConverterTests`, `OpeningFitTests`, `PathGeometryTests`,
 `PathMeshTests`, `PlanBuilderTests`, `PolygonTriangulatorTests`, `RoomMeshBuilderTests`,
-`SampleHomesTests`, `TileDeformTests`, `UnitsTests`, `VariantDiffTests`, `WallLayoutTests`,
-`WallMeshBuilderTests`, `WallSnappingTests`. `SampleHomesTests` runs every structural, placement and
+`SampleResidencesTests`, `TileDeformTests`, `UnitsTests`, `VariantDiffTests`, `WallLayoutTests`,
+`WallMeshBuilderTests`, `WallSnappingTests`. `SampleResidencesTests` runs every structural, placement and
 occupancy check over all six samples, because the samples are data and data has no compiler.
 
 ## Repository layout
@@ -196,13 +201,13 @@ docs/SITE.md              legacy CXRSite developer notes
 docs/SMARTHOME.md         every sensing device, cost and threshold, mapped to its report section
 docs/design/              the design notes: the reasoning behind the rules, per area
 Assets/                   the Unity project
-    Editor/BuildMenu.cs   Build menu (HomeViz + Legacy Site)
+    Editor/BuildMenu.cs   Build menu (ResidenceViz + Legacy Site)
     Editor/CatalogArtBinder.cs   catalog id → furniture-pack prefab; generates the wrappers
     Plugins/x86_64/pdfium.dll    the PDF rasterizer (BSD-3); see PdfRaster.cs
-    Scripts/HomeViz/      HomeViz controllers, renderer, store, tools
+    Scripts/ResidenceViz/      ResidenceViz controllers, renderer, store, tools
     Scripts/Authoring/    CXRAuthoring asmdef: dependency-free geometry
     Scripts/              legacy Site runtime
-    Scenes/HomeViz.unity  the app
+    Scenes/ResidenceViz.unity  the app
     Tests/EditMode/       the EditMode tests
 Packages/  ProjectSettings/
 .claude/  .mcp.json       Claude Code config, rules, Unity MCP skills

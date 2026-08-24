@@ -1,8 +1,8 @@
-# CXRHomeViz. Application Summary
+# Residence Improvement Visualizer. Application Summary
 
 ## What it is
 
-A desktop application for **visualizing proposed changes to a home or apartment at true scale, and
+A desktop application for **visualizing proposed changes to a residence or apartment at true scale, and
 holding "how it is now" next to "what we're proposing"** so the two can be compared in a meeting.
 
 ## Who it is for
@@ -26,7 +26,7 @@ A floor plan cannot tell you:
 - Whether a threshold makes an otherwise fine doorway **not step-free**.
 - What someone **seated in a wheelchair** can see over a counter or through a window: the
   walkthrough has a standing 1.60 m / seated 1.19 m eye-height toggle for exactly this.
-- Whether a **smart home package would actually cover this home**: which way out nothing is watching,
+- Whether a **smart home package would actually cover this residence**: which way out nothing is watching,
   which bedroom would notice a fall, what the whole thing costs, and what a caregiver's phone would
   have shown at three in the morning.
 - What the **rest of living there** costs and who it is for: the grab bar, the rocker knife, the sock
@@ -58,7 +58,7 @@ A floor plan cannot tell you:
    the timeline, and a mock caregiver console fill with the report's own wording: *"Bernard left bed
    at 3:10 AM and has not returned."* Switching the console's role to **Family** or **Resident** shows
    exactly what each person would and would not be able to see.
-6. **Branch and compare.** Every home has a locked **"Existing"** baseline recording how the home
+6. **Branch and compare.** Every residence has a locked **"Existing"** baseline recording how the residence
    actually is. Design options branch off it. Comparing two produces a plain-English change list:
 
    > • Changed Bathroom door: width 2' 8" → 3', clear width 2' 5 5/8" → 2' 9 5/8", threshold removed (step-free)
@@ -76,24 +76,24 @@ A floor plan cannot tell you:
 
 **No Python, no server, and it works offline**: with one opt-in exception, *Read the plan*, which
 sends a single sketch image to the Anthropic API and returns a floor plan. Open the repository folder in Unity 6000.3.10f1, open
-`Assets/Scenes/HomeViz.unity`, and press Play. First launch seeds six complete sample homes so the
+`Assets/Scenes/ResidenceViz.unity`, and press Play. First launch seeds six complete sample residences so the
 tool opens on something walkable rather than an empty library. **The two five-bedroom care homes ship
 a costed smart home proposal beside their baseline**, so Compare tells that story without anyone
 having to build it first.
 
-Ship with **Build → HomeViz (PC, Windows)** → `Builds/HomeViz/CXRHomeViz.exe`.
+Ship with **Build → ResidenceViz (PC, Windows)** → `Builds/ResidenceViz/ResidenceImprovementVisualizer.exe`.
 
-Homes are plain JSON files under `Application.persistentDataPath/CXRHomeViz/`, written atomically and
-soft-deleted rather than destroyed. Sharing a home between machines is Export/Import of a single
-`.homeviz` archive holding the home plus its underlay image.
+Residences are plain JSON files under `Application.persistentDataPath/ResidenceImprovementVisualizer/`, written atomically and
+soft-deleted rather than destroyed. Sharing a residence between machines is Export/Import of a single
+`.riv` archive holding the residence plus its underlay image.
 
 ## Deliberately out of scope
 
 - **No server and no accounts.** Storage is local files; sharing is a file you send someone.
-- **No layout generation.** Homes are traced by a person over a calibrated plan, not inferred by a
+- **No layout generation.** Residences are traced by a person over a calibrated plan, not inferred by a
   model. (The sketch→layout pipeline belongs to the legacy Site tool and now lives outside
   this repository.)
-- **No VR.** The HomeViz build never initializes XR.
+- **No VR.** The ResidenceViz build never initializes XR.
 - **No accessibility rules engine, yet.** `ClearanceRules.Registry` ships empty *on purpose*. Every
   input a rule would need is already measured and stored: clear width, threshold height, per-item
   front and side clearances, true footprints, and the largest inscribed circle per room. Adding a
@@ -111,7 +111,7 @@ soft-deleted rather than destroyed. Sharing a home between machines is Export/Im
 ## Also in this repository
 
 The legacy **CXRSite** outdoor site-visioning tool shares this Unity project. It is not part of
-the HomeViz build. See [docs/SITE.md](docs/SITE.md); its Python backend lives outside the
+the ResidenceViz build. See [docs/SITE.md](docs/SITE.md); its Python backend lives outside the
 repository at `../CXRLayoutGen/`.
 
 `Assets/Resources/SmartHomeTechnology/SmartHomeReport.pdf` is the source for the sensing half of that

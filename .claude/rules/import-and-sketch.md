@@ -1,9 +1,9 @@
 ---
 paths:
-  - "Assets/Scripts/HomeViz/Sketch/**"
+  - "Assets/Scripts/ResidenceViz/Sketch/**"
   - "Assets/Scripts/Authoring/Interior/Sketch/**"
-  - "Assets/Scripts/HomeViz/PdfRaster.cs"
-  - "Assets/Scripts/HomeViz/Tools/UnderlayTool.cs"
+  - "Assets/Scripts/ResidenceViz/PdfRaster.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/UnderlayTool.cs"
   - "Assets/Scripts/Authoring/Interior/Stories.cs"
   - "Assets/Plugins/x86_64/**"
 ---
@@ -24,7 +24,7 @@ paths:
 - Only the rendered PNG is stored, never the PDF. `.bmp` is out of the import filter (`LoadImage`
   cannot decode it); a failed decode is a visible `UITheme.Glyph`, remembered by key.
 
-**Read the plan** (`Assets/Scripts/HomeViz/Sketch/`) is the only network call in HomeViz; it sends the
+**Read the plan** (`Assets/Scripts/ResidenceViz/Sketch/`) is the only network call in ResidenceViz; it sends the
 sketch image and nothing else.
 
 ```
@@ -69,7 +69,7 @@ sketch → Claude →│ regularize → validate ─┐                     │�
   validator does not re-check what `PlanBuilder` already checks.
 - **`SketchInstall.Adopt` replaces, never merges**. Keeps the storey's `id`, `name`, `elevation`.
   **Neither `Relink` nor `Sync` runs afterwards.** Every id is re-stemmed (`SketchPlanCompiler.Reid`,
-  `g<4 hex>_`) because `HomeRenderer.Mark` keeps one flat dictionary. Read this plan keeps a short
+  `g<4 hex>_`) because `ResidenceRenderer.Mark` keeps one flat dictionary. Read this plan keeps a short
   label; the `⚠` glyph beside it names what it replaces; one undo takes it all back (`RecordEdit`
   snapshots at apply time).
 - **The rail leads with Floors, merged with Plan**: each floor is **one row**: an inline name
@@ -88,29 +88,29 @@ sketch → Claude →│ regularize → validate ─┐                     │�
   `RunGeneration` runs the reader as its own coroutine; a run that ends without answering is
   reported. `_genOutcome` keeps the installed counts (off the **level**) in the rail.
 - The coroutine writes `_genPhase`/`_genRunning`; `Tick` latches them once per frame; `DrawRail`
-  reads only the latch. The result carries the `homeId`/`levelId` it was asked for and apply refuses
+  reads only the latch. The result carries the `residenceId`/`levelId` it was asked for and apply refuses
   anywhere else; `Exit()` aborts an in-flight call.
 - The image is resampled on the **CPU** (`SketchImageResample`, box filter, point-sampling drops
   1 px walls); **PNG, JPEG only above 3.5 MB**.
 - **The key**: `ApiKeyStore`: `ANTHROPIC_API_KEY` first, then `<RootDir>/anthropic.key`. Not in
-  `HomeSettings`, not in `HomeDoc`, not in the export zip. From the environment: badge, no Forget
+  `ResidenceSettings`, not in `ResidenceDoc`, not in the export zip. From the environment: badge, no Forget
   button. Written **plaintext** (DPAPI is a deliberate not-yet; the rail says so). The field is
   `UITheme.SecretRow`: visible while typing, a short fixed placeholder and disabled when hidden, one
   `GUI.TextField` always, the eye toggle's click claimed **before** the field is drawn; drawn whenever
   the Import tab is open; save/forget deferred via `_pendingKeySave`/`_pendingKeyForget` and the
   `Source` latched in `Tick`.
 
-**Stories: `Stories.cs`** (in `CXRAuthoring`, testable; `HomeStore` delegates to it).
-- `HomeEditController.Level` is indexed by `_levelIndex` (the same index `HomeRenderer` already took).
-- `HomeDoc.underlays` is one sketch per storey keyed by `levelId`; `Migrate` folds the old `underlay`
+**Stories: `Stories.cs`** (in `CXRAuthoring`, testable; `ResidenceStore` delegates to it).
+- `ResidenceEditController.Level` is indexed by `_levelIndex` (the same index `ResidenceRenderer` already took).
+- `ResidenceDoc.underlays` is one sketch per storey keyed by `levelId`; `Migrate` folds the old `underlay`
   in, idempotently.
 - **A storey is a fact about the building**: `Stories.Add` writes an empty level into **every
   variant, sharing one id** (pairs storeys in `VariantDiff.MatchLevel`, keys the underlay, reports no
   change, needs no unlock).
 - `VariantRevert` addresses the level a change was reported from; `VariantDiff.Change` carries
   `levelId`/`levelIndex` (stamped in `Compare`'s level loop; occupants and exterior are `-1`).
-- `OccupancyModel.Pose.elsewhereInHome` is the third answer beside present and away. The sensing
-  rollups (`SensorCoverage.WholeHomeCoverage`, ways out, `SensorCost.Of`) have `VariantDef` overloads
+- `OccupancyModel.Pose.elsewhereInResidence` is the third answer beside present and away. The sensing
+  rollups (`SensorCoverage.WholeResidenceCoverage`, ways out, `SensorCost.Of`) have `VariantDef` overloads
   that walk every storey in one pass (the system fee is charged **once** per building).
   `ReportCapture.Shot` carries a level index; one rebuild per (variant, storey).
 - The floor chip cycles (no menu), is drawn only with more than one storey, is in the measured

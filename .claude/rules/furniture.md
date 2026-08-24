@@ -1,16 +1,16 @@
 ---
 paths:
   - "Assets/Editor/CatalogArtBinder.cs"
-  - "Assets/Scripts/HomeViz/CatalogArtFit.cs"
-  - "Assets/Scripts/HomeViz/FurnitureCatalog.cs"
-  - "Assets/Scripts/HomeViz/MountPlacement.cs"
-  - "Assets/Scripts/HomeViz/HomeRenderer.cs"
-  - "Assets/Scripts/HomeViz/Tools/FurnitureTool.cs"
+  - "Assets/Scripts/ResidenceViz/CatalogArtFit.cs"
+  - "Assets/Scripts/ResidenceViz/FurnitureCatalog.cs"
+  - "Assets/Scripts/ResidenceViz/MountPlacement.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceRenderer.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/FurnitureTool.cs"
   - "Assets/Scripts/Authoring/Interior/FurnitureFit.cs"
   - "Assets/Scripts/TransformGizmo.cs"
-  - "Assets/Prefabs/HomeViz/Catalog/**"
+  - "Assets/Prefabs/ResidenceViz/Catalog/**"
   - "Assets/Resources/FurnitureCatalog.asset"
-  - "Assets/Resources/HomeCatalogRegistry.asset"
+  - "Assets/Resources/ResidenceCatalogRegistry.asset"
 ---
 
 # Furniture catalog and transform handles
@@ -19,13 +19,13 @@ paths:
 
 ## Furniture catalog
 
-`Assets/Resources/FurnitureCatalog.asset` holds 35 items with real dimensions. `HomeRenderer` resolves each id against **`HomeCatalogRegistry.asset`**
+`Assets/Resources/FurnitureCatalog.asset` holds 35 items with real dimensions. `ResidenceRenderer` resolves each id against **`ResidenceCatalogRegistry.asset`**
 (owned by the binder: never `Assets/Resources/PrefabRegistry.asset`, which the Site tool's Place and
 Paint palettes render): a prefab if one exists, otherwise a correctly sized labeled box. **21 of the
 35 have art**; 14 stay boxes on purpose (see *Deliberate decisions* in CLAUDE.md).
 
-- **`Assets/Editor/CatalogArtBinder.cs`** (Tools → HomeViz → Catalog Art Binder) generates one wrapper
-  per bound id at `Assets/Prefabs/HomeViz/Catalog/<id>.prefab`: unscaled floor-pivoted root carrying
+- **`Assets/Editor/CatalogArtBinder.cs`** (Tools → ResidenceViz → Catalog Art Binder) generates one wrapper
+  per bound id at `Assets/Prefabs/ResidenceViz/Catalog/<id>.prefab`: unscaled floor-pivoted root carrying
   `CatalogArtFit`, an `Art` child holding the baked fit scale and pivot offset, the pack prefab nested
   inside with a quarter-turn yaw (both packs face −Z; `rotationY = 0` looks down +Z). **Yaw sits
   inside the scaled node** and must be a multiple of 90°. **The `Rows` table is the source of truth**;
@@ -40,8 +40,8 @@ Paint palettes render): a prefab if one exists, otherwise a correctly sized labe
   added, both defaulting to Site's behaviour). **Shift snaps here** (and means draw-free in the drawing
   tools). **Scale means resize in real units** (`boxSizeMeters`; `ObjectInstance.scale` is not read;
   `Reset to catalog size` in the rail). **Yaw only, no Y.** **The re-fit runs on release**, not per
-  frame; `HomeRenderer.PoseFurnitureGO` re-poses the live GameObject during a drag and only the release
+  frame; `ResidenceRenderer.PoseFurnitureGO` re-poses the live GameObject during a drag and only the release
   calls `RebuildFurniture()`. **Placing selects what you placed.** Wall mounts get no gizmo. Rail
-  controls plus a drag that re-hosts via `HomeMetrics.NearestWall`.
+  controls plus a drag that re-hosts via `ResidenceMetrics.NearestWall`.
 
 → [`docs/design/furniture.md`](../../docs/design/furniture.md)

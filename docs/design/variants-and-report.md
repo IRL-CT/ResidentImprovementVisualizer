@@ -11,7 +11,7 @@ each one as `"• " + c`, which calls `ToString()` and throws all three away, so
 bathroom door had been widened and gave you no way to find that door, and no way to change your mind
 about it short of hunting it down by hand or undoing back past every good change made since.
 
-A **tool** rather than a foldout, because comparing needs all three of `IHomeTool`'s surfaces and a
+A **tool** rather than a foldout, because comparing needs all three of `IResidenceTool`'s surfaces and a
 foldout has none: a rail for the list, `DrawOverlay` for the markers that put each change where it
 happens, and `HandleInput` for clicking those markers. Rows are grouped by the room the change falls
 in: the unit a resident thinks in, and the unit the report is sectioned by: with a trailing
@@ -35,18 +35,18 @@ catches the realistic failure (a kind nobody handled) which no per-field check w
 It follows the `OpeningFit` convention. Slide where possible, refuse only where nothing is legal,
 return a `reason` written to be shown verbatim. There is exactly one refusal and it is real:
 restoring an opening or a mount onto a wall the proposal has since removed would write a `wallId`
-that resolves to nothing, which `WallLayout` clamps and `HomeRenderer` skips *silently*. Reverting an
+that resolves to nothing, which `WallLayout` clamps and `ResidenceRenderer` skips *silently*. Reverting an
 **added** wall cascades to its openings and mounts, mirroring `SelectTool.DeleteSelected` so the two
 cannot disagree about what removing a wall means.
 
 **Ids are preserved on every path.** A revert that minted a fresh id would leave this comparison empty
 and report "door removed, door added" on the next one. That is also why the deep copies are written
-out by hand: `CXRAuthoring` cannot reach `HomeStore.Clone` (`Assembly-CSharp`, which asmdefs cannot
+out by hand: `CXRAuthoring` cannot reach `ResidenceStore.Clone` (`Assembly-CSharp`, which asmdefs cannot
 reference), and "keep the id, copy everything else" should be readable rather than implied by a
 serializer. A shared `float[]` is the failure mode: two variants pointing at one array, so moving a
 wall in the proposal moves it in the baseline too, and there is a test for exactly that.
 
-It must also address the **level** the change was reported from: on a two-storey home the same shape of
+It must also address the **level** the change was reported from: on a two-storey residence the same shape of
 change on each floor reverts on its own floor, never on `levels[0]`.
 
 ### Two things `VariantDiff` was quietly not reporting
@@ -74,7 +74,7 @@ The state is `_ghostVariantId` / `_ghostOn` on the renderer and `Rebuild` re-app
 rooms, furniture and mounts ghost red from the *other* variant's level where they **were**, and green
 from this one's where they **are**. The green half is ghosted rather than tinted in place because
 tinting means holding every touched renderer's original materials and restoring them, and getting that
-wrong leaves a home permanently green. Building both halves into `_ghostRoot` keeps
+wrong leaves a residence permanently green. Building both halves into `_ghostRoot` keeps
 `ClearGroup(_ghostRoot)` the one and only teardown. Ghosts get **no colliders**: a picture of something
 that is not there must never be walked into, nor win a raycast in front of the real element it
 describes. `MountPose` was lifted out of `PoseMount` so a removed grab bar can be placed from the level
@@ -93,7 +93,7 @@ Three things this needs that the added/removed-only version did not:
 - **`GeometryDiffers` gates it.** A rename, a type change or a note is a modification with
   identical geometry, and ghosting one stacks a red and a green copy of the same floor on the same
   plane. It compares only what the four ghost builders actually draw from.
-- **The material is translucent, and it was not.** `ghostMaterial` is unassigned in `HomeViz.unity`, so
+- **The material is translucent, and it was not.** `ghostMaterial` is unassigned in `ResidenceViz.unity`, so
   the fallback runs, and URP/Lit defaults to **opaque**, so the `a: 0.35` in `ghostAdded` /
   `ghostRemoved` was simply ignored and every ghost rendered as a solid box. It is now configured the
   way `UnderlayTool` and `TileBuildingEditor` already do it here: `_Surface`, the blend pair, and
@@ -109,7 +109,7 @@ which is why `CompareTool` switches the view to its After when the chip goes on.
 Review from the base environment (the common case: the After picker is not even drawn until there are
 two proposals) lit the chip while `BuildGhost` returned on `other == _variant`. The targeted rebuilds
 end in `BuildGhost` for the matching reason: the overlay is a picture of a diff, so an edit that skips
-it leaves the ghost describing the home as it was before that edit.
+it leaves the ghost describing the residence as it was before that edit.
 
 **Openings are still deliberately absent, and the cost is real.** The old note claimed a changed door
 "reads as the changed wall ghost around it". It does not. Widening a door leaves its host wall's own
@@ -117,10 +117,10 @@ fields untouched, so `VariantDiff` reports no wall change and there is no ghost 
 proposal that only widens doorways and drops thresholds therefore draws nothing here; the change list,
 the markers and the report all still carry it.
 
-## The before/after report: `Assets/Scripts/HomeViz/Report/`
+## The before/after report: `Assets/Scripts/ResidenceViz/Report/`
 
 The output of a meeting is a decision, and there was no artifact to carry it: `Export` writes a
-`.homeviz` zip only this app can open. One button now produces a shareable document: the plan, a 3/4
+`.riv` zip only this app can open. One button now produces a shareable document: the plan, a 3/4
 overview, and every changed room, each photographed twice from one camera pose.
 
 **Self-contained HTML with a print stylesheet.** There is no PDF library here and adding one is a real
@@ -128,7 +128,7 @@ dependency for something that runs once per meeting; a single `.html` with the i
 needs nothing, opens anywhere, emails as one attachment, and prints to a real PDF through the
 browser's own Save-as-PDF. The `@page` block is therefore not a nicety, it is the PDF half of the
 deliverable. `ReportDoc` exists so that a real PDF writer, when it comes, is a second renderer over
-the model rather than a second pass over the `HomeDoc`.
+the model rather than a second pass over the `ResidenceDoc`.
 
 `ReportCapture` is the delicate file, and each of its four rules has already caught this codebase out:
 
@@ -175,20 +175,20 @@ stops at whichever runs out first, so **any future unphotographed section must a
 or the two lists slip by one and every caption lies.
 
 **Turning circles are not among them.** `RoomMetrics` had a "Largest turning circle" row and
-`WholeHomeMetrics` a "Rooms with a 5' turning circle" count; both came out with the rest of the
+`WholeResidenceMetrics` a "Rooms with a 5' turning circle" count; both came out with the rest of the
 turning system, along with the `TurningCircle` const and `RoomsThatTurn`. The reason is not only
 consistency: `LargestInscribedCircle` is computed on the **bare** room, so every figure those rows
 printed described a room emptied of its furniture: a claim a reader takes at face value and is wrong
 about. What remains is floor area, the narrowest way into each room, its threshold, and the two
-whole-home counts.
+whole-residence counts.
 
 ## The ghost is on when Review opens
 
 The overlay is the picture of what the change list says, and Review is where you go to see it, so
 `CompareTool.Enter` runs the same two lines the toggle runs (view to After, ghost on) and the rail
 opens already showing red and green. It stays sticky within the stage (Compare ↔ Measure), and
-`HomeEditController.SetStage` turns it off on the way out, because drawing walls under a red-and-green
+`ResidenceEditController.SetStage` turns it off on the way out, because drawing walls under a red-and-green
 overlay of where they used to be is not editing, it is guessing. The toggle still wins either way.
-Proposals are named `Proposal MM/DD/YYYY` now, with the home's proposal ordinal in front of the date
+Proposals are named `Proposal MM/DD/YYYY` now, with the residence's proposal ordinal in front of the date
 from the second onwards. Letters walked past Z, and deleting "B" minted a second "B".
 

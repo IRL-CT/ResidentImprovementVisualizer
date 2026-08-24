@@ -1,12 +1,12 @@
-# Design notes. Sample homes and `PlanBuilder`
+# Design notes. Sample residences and `PlanBuilder`
 
-> Why the six sample homes exist, how they stay fresh on disk, and why plans are authored as room
+> Why the six sample residences exist, how they stay fresh on disk, and why plans are authored as room
 > rectangles with everything error-prone derived. The rules are summarised in
 > [`.claude/rules/samples-and-planbuilder.md`](../../.claude/rules/samples-and-planbuilder.md); the reasoning lives here.
 
-## Sample homes
+## Sample residences
 
-`SampleHomes` ships six complete, furnished, single-storey dwellings. They exist because the library
+`SampleResidences` ships six complete, furnished, single-storey dwellings. They exist because the library
 used to start empty and the only way in was the hardest step of the workflow. Import a plan, calibrate
 it, trace it, so nobody could see what the tool does without first doing that.
 
@@ -25,40 +25,40 @@ Four of the six ship with **only the locked "Existing" baseline**. Branching is 
 change* is for, and *Unlock* is one click. **The two five-bedroom care settings ship a second locked
 variant, "Smart home package"**, so opening one and pressing Compare tells the whole sensing-layer
 story without anyone having to build it first; see *Two samples ship a proposal* in [smart-living.md](smart-living.md). Both open on
-the baseline regardless: a sample shows the home as it is, and the proposal is a click away in the
+the baseline regardless: a sample shows the residence as it is, and the proposal is a click away in the
 mode band.
 
-Two entry points: seeded on first run (guarded by `HomeSettings.samplesSeeded`, so archiving a sample
-keeps it archived), and a **Sample homes** picker in the left rail that adds a fresh copy at any time.
+Two entry points: seeded on first run (guarded by `ResidenceSettings.samplesSeeded`, so archiving a sample
+keeps it archived), and a **Sample residences** picker in the left rail that adds a fresh copy at any time.
 Each install gets a new GUID and a uniqued name, so pulling the same sample twice is fine.
 
-`SampleHomeInstaller.BackfillOccupants` (guarded by its own `HomeSettings.occupantsBackfilled`) exists
+`SampleResidenceInstaller.BackfillOccupants` (guarded by its own `ResidenceSettings.occupantsBackfilled`) exists
 because that seeding guard cuts both ways: occupants postdate the samples, so on any install that
 predates them all six sit in the library with nobody in them and the timeline opens empty. Re-seeding
 would resurrect archived samples and duplicate kept ones, so the roster is filled in place instead,
-only for a home tagged `sample`, only when its roster is empty, and only when its room ids still match
+only for a residence tagged `sample`, only when its roster is empty, and only when its room ids still match
 the sample it is named after. That last condition is the real guard: schedules address rooms by id, so
 a reworked plan is left alone rather than having a household dropped into rooms that moved.
 
-### The samples on disk go stale: `SampleHomes.Generation`
+### The samples on disk go stale: `SampleResidences.Generation`
 
 That backfill fixed **one** instance of a problem the seeding guard creates every time: a sample is
 written to disk once and never rewritten, so *every* later improvement to a plan is invisible on any
 machine that has already launched the app. It is not hypothetical. The opening-avoidance work below
-landed after the first seed, and long after `SampleHomesTests` went green the six homes in the library
+landed after the first seed, and long after `SampleResidencesTests` went green the six residences in the library
 still had a wardrobe across a cased opening, a bath across a bathroom door and a dresser across a
 bedroom door. About fifty blocking items across five of the six, none of which any test could see,
 because the tests build the samples fresh and the app does not.
 
-So each installed home carries `HomeDoc.sampleKey` and `HomeDoc.sampleGeneration`, and
-`SampleHomeInstaller.RefreshStaleSamples` (called from `Start`, after the backfill) re-installs any
-that has fallen behind. **Bump `SampleHomes.Generation` whenever a plan changes**: that is the entire
+So each installed residence carries `ResidenceDoc.sampleKey` and `ResidenceDoc.sampleGeneration`, and
+`SampleResidenceInstaller.RefreshStaleSamples` (called from `Start`, after the backfill) re-installs any
+that has fallen behind. **Bump `SampleResidences.Generation` whenever a plan changes**: that is the entire
 contract, and forgetting it is the one way to reintroduce this.
 
 `SampleRefresh.Evaluate` decides *whether*, and lives in `CXRAuthoring` so it can be tested at all,
 the installer is in `Assembly-CSharp`, which asmdefs cannot reach. Its bar is deliberately high,
 because a refresh replaces the whole document rather than merging: one variant, still the locked
-baseline, no traced underlay. Branch a proposal, unlock the baseline or import a plan and the home
+baseline, no traced underlay. Branch a proposal, unlock the baseline or import a plan and the residence
 stops being a sample and starts being yours: the automatic path gives up, and the rail's **Reset to
 the latest sample** (confirming, and saying how many proposals it discards) is the only way in.
 
@@ -68,14 +68,14 @@ replaces the plan too, so the only question worth asking is whether anything wou
 
 Display names are not a stable key ("Group home apartment" became "Shared home apartment") so
 `LegacyNames` maps every retired name to its key. Without it the one sample with the worst geometry
-would have been the one that could never be matched, and therefore never fixed. A home still carrying
+would have been the one that could never be matched, and therefore never fixed. A residence still carrying
 a retired name verbatim is renamed as part of the refresh; anything else a user typed is left alone.
 
 ### Why there is a builder: `PlanBuilder`
 
 **Nothing downstream of the schema complains about bad geometry.** `WallLayout` silently *clamps* an
 opening that hangs off its wall, `WallMeshBuilder` leaves a ~57 mm notch wherever two wall endpoints
-miss each other by more than 1 mm, and `HomeRenderer` skips an opening whose `wallId` does not resolve.
+miss each other by more than 1 mm, and `ResidenceRenderer` skips an opening whose `wallId` does not resolve.
 Six plans of raw coordinate literals would be thousands of unreviewable lines, wrong in ways nobody
 would notice. So the plans are authored as **room rectangles** and everything error-prone is derived:
 
@@ -103,7 +103,7 @@ who is queueing at half past seven.
 
 **`SampleFurniture` mirrors the 35 `FurnitureCatalog` ids** because `FurnitureCatalog` is a
 ScriptableObject in `Assembly-CSharp` and `CXRAuthoring` cannot reach it. That is the one unavoidable
-duplication here; `SampleHomeInstaller.VerifyAgainstCatalog` compares the two on seed and warns on
+duplication here; `SampleResidenceInstaller.VerifyAgainstCatalog` compares the two on seed and warns on
 drift. There is deliberately no `shower_seat` in any sample: these render as massing boxes, and a seat
 inside a shower would be one box buried in another.
 
@@ -143,7 +143,7 @@ repair turn on a wall that should not have existed.
   room's `r_` id, which is what `OccupancyModel` and every sensor host address.
 
 **Every rectangle in all six sample plans is a whole room**, so `DropInteriorEdges` returns early and
-the derivation is provably untouched, which is what keeps three properties true together: `SampleHomesTests` passes, `WallLinker.Relink`
+the derivation is provably untouched, which is what keeps three properties true together: `SampleResidencesTests` passes, `WallLinker.Relink`
 is a no-op on all six plans, and `RoomRegions.Find` reproduces the sample rooms exactly.
 
 ### Openings are the other thing nothing downstream complains about
@@ -179,9 +179,9 @@ This is also why **openings must be declared before furniture** in every plan: `
 ## What the tests pin
 
 `PlanBuilderTests` pins the three wall derivations (shared edges collapse, partial overlaps resolve,
-T-junctions split). `SampleHomesTests` runs every check over all six samples, because the samples are
+T-junctions split). `SampleResidencesTests` runs every check over all six samples, because the samples are
 data and data has no compiler: no builder warnings, ids unique across **all** element types including
-occupants and activities (`HomeRenderer.Mark` uses one flat dictionary, so a wall colliding with a chair
+occupants and activities (`ResidenceRenderer.Mark` uses one flat dictionary, so a wall colliding with a chair
 breaks selection), every opening `IsValid` on a resolvable wall, no surviving T-junction or wall overlap,
 rooms tiling the footprint and matching the advertised bedroom/bathroom counts, every furniture footprint
 inside its room and clear of every other, and the accessibility floor for the two care plans.
@@ -213,11 +213,11 @@ over, an item in one piece blocking an item in the other, and a window on the pa
 to the part's own wall.
 
 
-`HomeStore` and the tools live in `Assembly-CSharp`, which asmdefs cannot reference, so they are
+`ResidenceStore` and the tools live in `Assembly-CSharp`, which asmdefs cannot reference, so they are
 verified by driving the real filesystem and the real renderer rather than by unit test. For the samples
-that meant: rendering all six through the scene's real `HomeRenderer` (wall/floor/furniture/mount
+that meant: rendering all six through the scene's real `ResidenceRenderer` (wall/floor/furniture/mount
 counts and bounds all correct, everything a labeled box as expected), round-tripping two through
-`HomeStore.Save`/`Load` (including the `float[][]` polygons that are the reason this schema uses
+`ResidenceStore.Save`/`Load` (including the `float[][]` polygons that are the reason this schema uses
 Newtonsoft rather than `JsonUtility`), and branching a proposal to confirm `VariantDiff` reports the
 change list in feet and inches.
 

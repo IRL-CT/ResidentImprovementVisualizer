@@ -1,6 +1,6 @@
 # Smart living: where every number comes from
 
-The **Smart living** stage holds twenty-five things that can be installed in a home. Sixteen of them
+The **Smart living** stage holds twenty-five things that can be installed in a residence. Sixteen of them
 sense, and every one of those is derived, device for device and figure for figure, from
 **`Assets/Resources/SmartHomeTechnology/SmartHomeReport.pdf`**: *Smart Home Technology Solutions for
 Individuals with Intellectual and Developmental Disabilities*, Olzhas Yessenbayev, Cornell Tech /
@@ -21,7 +21,7 @@ is allowed to give.
 > **The stage used to be called Sense**, and the catalog was these sixteen devices alone. Nothing was
 > renamed on disk: `LevelDef.sensors`, `SensorDef`, `SensorCatalog.asset` and the thirteen `Sensor*.cs`
 > files keep their names, because renaming the field would silently drop the whole layer out of every
-> home already saved. This is the precedent Sketch → Import set: *the word survives everywhere it is
+> residence already saved. This is the precedent Sketch → Import set: *the word survives everywhere it is
 > still accurate*, and `SensorDef` is still accurate about the SHAPE of the record. An everyday aid is
 > that record with no envelope and no rules.
 
@@ -34,7 +34,7 @@ Two sources of truth carry the data, and they are deliberately duplicated:
 
 `SensorCatalog` is a ScriptableObject in `Assembly-CSharp` and asmdefs cannot reach it, so the pure
 geometry and simulation code cannot read the asset: the identical constraint `SampleFurniture`
-carries against `FurnitureCatalog`, handled the identical way. `SampleHomeInstaller
+carries against `FurnitureCatalog`, handled the identical way. `SampleResidenceInstaller
 .VerifyAgainstCatalog(SensorCatalog)` compares the two on every seed and warns on drift in size,
 coverage, cost, host kind or privacy tier.
 
@@ -42,9 +42,9 @@ coverage, cost, host kind or privacy tier.
 
 ## The architecture (§3.1)
 
-The report's system is three parts, and HomeViz models each one:
+The report's system is three parts, and ResidenceViz models each one:
 
-| Report | HomeViz |
+| Report | ResidenceViz |
 |---|---|
 | **Peripheral sensors** (§3.1.2) | `SensorDef` on `LevelDef`, hosted on the element each watches |
 | **Central hub** (§3.1.3) | the `central_hub` device, and where the system's monthly fee lives |
@@ -88,7 +88,7 @@ middle of the stated arc.
 
 | id | § | Purchase | Monthly | Coverage | Privacy | Vendors named |
 |---|---|---|---|---|---|---|
-| `smart_thermostat` | 4.2.1 | $100-$250 |: | the home | passive | Sensi Touch 2 $149, Honeywell T9 $169, Nest $249, Ecobee Premium $250 |
+| `smart_thermostat` | 4.2.1 | $100-$250 |: | the residence | passive | Sensi Touch 2 $149, Honeywell T9 $169, Nest $249, Ecobee Premium $250 |
 | `med_dispenser` | 4.2.2 | $219.95-$299.95 | $24.95-$29.95 | its tray | passive | Livi $199+$19.99/mo, Hero $99+$29.99/mo, MedMinder $49.99/mo, e-pill $299 |
 
 ### Staff communication: §4.5
@@ -111,7 +111,7 @@ entry-way only"*. The console's Family role hides it entirely.
 §5.4 prices a bundle as *hub + 3-5 custom sensors + one monthly fee*, and every sensor row in §4.1
 says *"Monthly: Part of system fee"*. **`SensorCost` is the only place these are added up**, and it
 puts the system fee on the hub alone: a per-device monthly would count it five times over on a care
-home. Only the pendant and the dispenser, which §4.5.1 and §4.2.2 price separately, carry a monthly
+residence. Only the pendant and the dispenser, which §4.5.1 and §4.2.2 price separately, carry a monthly
 of their own.
 
 ### Emerging: §2.2.4 and §3.1.2, **not specified by the report**
@@ -170,7 +170,7 @@ nightstand instead (a `Furniture` host on a `SensorFit.Surfaces` item), never fl
 `button_hook` and `zipper_pull` are separate rows although they are usually sold as one combined tool,
 so a plan can say a resident needs only one of the two.
 
-### Kept in the home
+### Kept in the residence
 
 Drawn as a small labeled box: at or above the scale of a `motion_sensor` (0.06 × 0.06 × 0.08). The
 measuring set sits on a counter (`SensorHost.Furniture`, on a `SensorFit.Surfaces` item); the bin
@@ -197,12 +197,12 @@ person. What separates the two tiers is what the badge SAYS, not who may see it.
 
 ### Why these are not furniture
 
-`FurnitureCatalog` is where a grab bar lives, and it is the obvious home for a sock aid too. It is the
+`FurnitureCatalog` is where a grab bar lives, and it is the obvious residence for a sock aid too. It is the
 wrong one, and the reasons are mechanical rather than aesthetic:
 
 - A 2 cm entry **renders as a 2 cm speck under a ~0.35 m label floating seven times its own height
   above it**: `AddLabel` has no minimum, so the label would be the item on screen.
-- `HomeEditController.MIN_ITEM_SIZE` (0.05) **silently inflates it 2.5×** the moment anyone touches the
+- `ResidenceEditController.MIN_ITEM_SIZE` (0.05) **silently inflates it 2.5×** the moment anyone touches the
   resize gizmo, and `SelectTool`'s dimension slider cannot display its true size at all.
 - `FurnitureFit` never conflicts with anything at that scale, so the doorway rule that justifies the
   whole fit pass does nothing.
@@ -212,13 +212,13 @@ wrong one, and the reasons are mechanical rather than aesthetic:
   its counter.
 
 The device path has none of these, because an assigned personal aid is **never drawn**, and one put
-down in the home sits on a surface at a scale this renderer has always handled.
+down in the residence sits on a surface at a scale this renderer has always handled.
 
 ### Grab bars, which stayed furniture
 
 `grab_bar_24`, `grab_bar_36` and `handrail` are offered in the Smart living rail under a **Fixtures**
 chip, and **their data did not move**: placing one still writes a `WallMountDef` through
-`MountPlacement`, exactly as the Furnish rail does. Stored homes, all six samples, `VariantDiff`,
+`MountPlacement`, exactly as the Furnish rail does. Stored residences, all six samples, `VariantDiff`,
 `VariantRevert` and the wall-mount inspector are untouched by construction. It is a second door into
 the same room, not a migration.
 
@@ -236,8 +236,8 @@ half-built here.
 
 ## The eight rules
 
-Each is a sentence from the report with a number in it, expressed as a `SensorRuleDef` so a home can
-move the number without moving it for every other home.
+Each is a sentence from the report with a number in it, expressed as a `SensorRuleDef` so a residence can
+move the number without moving it for every other residence.
 
 | Rule | Default | Window | Severity | Report |
 |---|---|---|---|---|
@@ -278,7 +278,7 @@ Both are the false-alarm floor (an ordinary day raises nothing on every sample),
 
 **Coverage** is computed, not claimed: `SensorCoverage` grids each room at 0.15 m: the same step
 `OccupancyModel` stands people on, and clips each sensor to its own room, because a 9.1 m radius is
-longer than most homes and an unclipped disc would report one sensor in a hall as covering five
+longer than most residences and an unclipped disc would report one sensor in a hall as covering five
 bedrooms through their walls.
 
 **The labour offset** is quoted at a stated assumption rather than derived from the demonstration day.
@@ -308,7 +308,7 @@ samples select between, not a control anybody presses.
 | Tier | What it adds |
 |---|---|
 | Essential | hub, every exterior door, the range, water at every wet fixture |
-| Standard | + movement sensing through the home, a doorbell, a thermostat |
+| Standard | + movement sensing through the residence, a doorbell, a thermostat |
 | Care home | + a pad under every bed, a pendant per resident, spoken prompts, medication |
 
 **Motion sensors go in a corner, not the middle**, and a room longer than 0.8 × the sensor's radius
@@ -331,8 +331,8 @@ the care homes' corridors that single decision took coverage from 49% to 93%.
 | `Authoring/Interior/SensorSim.cs` | a day, derived from the household's schedule |
 | `Authoring/Interior/SensorRules.cs` | events → alerts |
 | `Authoring/Interior/SensorPackages.cs` | a whole package, derived from the plan |
-| `HomeViz/SensorCatalog.cs` | the ScriptableObject, with vendors and the report's own prose |
-| `HomeViz/SensorOverlay.cs` | coverage drawn over the plan |
-| `HomeViz/Tools/SensorTool.cs` | placing devices, everyday aids and fixtures: the Equipment rail |
-| `HomeViz/MountPlacement.cs` | putting a wall-mounted fixture on a wall; shared with `FurnitureTool` |
-| `HomeViz/Tools/MonitorTool.cs` | the DSP console: §3.1.4 |
+| `ResidenceViz/SensorCatalog.cs` | the ScriptableObject, with vendors and the report's own prose |
+| `ResidenceViz/SensorOverlay.cs` | coverage drawn over the plan |
+| `ResidenceViz/Tools/SensorTool.cs` | placing devices, everyday aids and fixtures: the Equipment rail |
+| `ResidenceViz/MountPlacement.cs` | putting a wall-mounted fixture on a wall; shared with `FurnitureTool` |
+| `ResidenceViz/Tools/MonitorTool.cs` | the DSP console: §3.1.4 |

@@ -1,13 +1,13 @@
 ---
 paths:
-  - "Assets/Scripts/HomeViz/ModeBand.cs"
-  - "Assets/Scripts/HomeViz/OverlayDraw.cs"
-  - "Assets/Scripts/HomeViz/SelectionOverlay.cs"
-  - "Assets/Scripts/HomeViz/SensorOverlay.cs"
-  - "Assets/Scripts/HomeViz/LabelBillboard.cs"
-  - "Assets/Scripts/HomeViz/LabelOutline.cs"
-  - "Assets/Scripts/HomeViz/TimelineBar.cs"
-  - "Assets/Scripts/HomeViz/HomeEditController.cs"
+  - "Assets/Scripts/ResidenceViz/ModeBand.cs"
+  - "Assets/Scripts/ResidenceViz/OverlayDraw.cs"
+  - "Assets/Scripts/ResidenceViz/SelectionOverlay.cs"
+  - "Assets/Scripts/ResidenceViz/SensorOverlay.cs"
+  - "Assets/Scripts/ResidenceViz/LabelBillboard.cs"
+  - "Assets/Scripts/ResidenceViz/LabelOutline.cs"
+  - "Assets/Scripts/ResidenceViz/TimelineBar.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceEditController.cs"
 ---
 
 # UI chrome rules. Mode band, overlays, text over the scene
@@ -23,11 +23,11 @@ and `locked` are read separately, never collapsed into one field:
 | yes | **no** | `EDITING BASE ENVIRONMENT`, **amber** (`UITheme.Warn`) | `Done` |
 | no | no | `PROPOSAL 08/23/2026 · 11 CHANGES ▾`, accent | `Compare`, `Report` |
 
-A new proposal is named by `HomeStore.NewProposalName`: `Proposal MM/DD/YYYY`, then `Proposal n
-MM/DD/YYYY` with n the home's proposal ordinal, bumped past any name already taken.
+A new proposal is named by `ResidenceStore.NewProposalName`: `Proposal MM/DD/YYYY`, then `Proposal n
+MM/DD/YYYY` with n the residence's proposal ordinal, bumped past any name already taken.
 
 A plain class the controller draws from `OnGUI`, re-derived per frame (undo restores the whole
-`HomeDoc` without notifying anyone). No subtitle; the explanation is the title's tooltip. **Actions
+`ResidenceDoc` without notifying anyone). No subtitle; the explanation is the title's tooltip. **Actions
 are `UITheme.BandButton`** (white field + rim: the band's washes equal `Btn`, so a `SecondaryButton`
 vanished on them) and `ActionsWidth` measures with `BandButtonStyle`. **The title is a pill only when
 `switchable`** (more than one variant), otherwise a plain label; `TitleInk` is `Ink` in Base (never
@@ -43,12 +43,12 @@ on screen with 15% hysteresis (**apparent size, not distance**) toggling rendere
 GameObject; the stroke is built lazily so the child count is watched too.
 
 **Units chip** in the top bar switches `Units.Display` for the whole app (and the clock: metric ⇒
-24-hour). Display defaults to **metres** (dragged numbers read better); `HomeStore.MigrateSettings`
+24-hour). Display defaults to **metres** (dragged numbers read better); `ResidenceStore.MigrateSettings`
 carries `unitsDefaultVersion` to flip old installs once. `Units.BareUnit.FollowDisplay` is what typed
 fields pass: `WallTool`'s typed run length and `UnderlayTool`'s calibration included.
 
 **Overlays** (`SelectionOverlay`, `SensorOverlay`, `OccupancyClock`) are plain classes the controller
-owns and draws **outside** the `!PointerOverUI` guard that gates `IHomeTool.DrawOverlay` /
+owns and draws **outside** the `!PointerOverUI` guard that gates `IResidenceTool.DrawOverlay` /
 `HandleInput`: the cursor is on the rail precisely while reading what it describes. Everything they
 draw is re-derived per frame.
 

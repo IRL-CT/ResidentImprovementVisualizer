@@ -9,18 +9,18 @@ paths:
   - "Assets/Scripts/Authoring/Interior/OpeningFit.cs"
   - "Assets/Scripts/Authoring/Interior/FurnitureFit.cs"
   - "Assets/Scripts/Authoring/Interior/SensorFit.cs"
-  - "Assets/Scripts/Authoring/Interior/HomeMetrics.cs"
+  - "Assets/Scripts/Authoring/Interior/ResidenceMetrics.cs"
   - "Assets/Scripts/Authoring/Interior/PlanBuilder.cs"
-  - "Assets/Scripts/HomeViz/Tools/WallTool.cs"
-  - "Assets/Scripts/HomeViz/Tools/OpeningTool.cs"
-  - "Assets/Scripts/HomeViz/Tools/RoomTool.cs"
-  - "Assets/Scripts/HomeViz/Tools/SelectTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/WallTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/OpeningTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/RoomTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/SelectTool.cs"
   - "Assets/Materials/Interior/**"
   - "Assets/Tests/EditMode/WallLayoutTests.cs"
   - "Assets/Tests/EditMode/WallMeshBuilderTests.cs"
   - "Assets/Tests/EditMode/WallSnappingTests.cs"
   - "Assets/Tests/EditMode/OpeningFitTests.cs"
-  - "Assets/Tests/EditMode/HomeMetricsTests.cs"
+  - "Assets/Tests/EditMode/ResidenceMetricsTests.cs"
   - "Assets/Tests/EditMode/RoomMeshBuilderTests.cs"
 ---
 
@@ -31,7 +31,7 @@ paths:
 ## Geometry rules
 
 Nothing downstream of the schema complains about bad geometry: `WallLayout` clamps, `WallMeshBuilder`
-leaves a notch, `HomeRenderer` skips, so these rules are what keeps it right.
+leaves a notch, `ResidenceRenderer` skips, so these rules are what keeps it right.
 
 **Walls and openings**
 - `WallLayout.Build` emits solid boxes only *between* openings. Panels, a header above each, a sill
@@ -80,7 +80,7 @@ leaves a notch, `HomeRenderer` skips, so these rules are what keeps it right.
 - `Sync` is called from `WallTool.CommitSegment` (both paths), `SelectTool.DeleteSelected` for a
   wall, and the Rooms rail's **Detect rooms**: each inside the caller's `RecordEdit`. **Never** on
   thickness/height edits, from `PlanBuilder`, on load, in `Migrate`, or from `VariantRevert` (which
-  restores polygons by `Copy`, so the diff is empty by construction). `HomeRenderer` renders
+  restores polygons by `Copy`, so the diff is empty by construction). `ResidenceRenderer` renders
   `level.rooms`, never `Find`.
 - `RoomRegions.RemoveRoom` is the **one** room-removal cascade (`SelectTool.DeleteSelected`,
   `VariantRevert.RevertRoom`). **A room cannot be deleted on its own**: the walls still enclose it

@@ -44,7 +44,7 @@ Three things fences have no analogue for:
 `Relink` restores the invariant after a drag and **is idempotent**. It runs on every drag-release, and a
 version that churned ids would wreck `VariantDiff`. The rule that matters most: `Relink` is a **no-op on all six sample plans**: 179 walls that `PlanBuilder` derived by a completely different
 (axis-aligned, span-union) route, agreeing with the arbitrary-angle linker. That is the cheapest possible
-guarantee this cannot mangle a home someone already has.
+guarantee this cannot mangle a residence someone already has.
 
 `Spans` (`Union`/`Split`/`Subtract`) was moved verbatim out of `PlanBuilder`, which is authoring-time
 only, because the linker and the stamp need the same interval algebra. `PlanBuilder.TOL` is now tied to
@@ -103,7 +103,7 @@ usually the **drawn endpoint**, up to 20 mm off the through-wall's centerline (`
   wall's rendered body, so a Shift free-drawn wall stopping visibly short still closes nothing. Welding
   (step B) stays at 1 mm, so distinct junctions stay distinct, and step C only *reuses* canonical
   vertices, so the bare-X property holds by construction. Derivation-time rather than commit-time because
-  it repairs homes already saved with an off-centerline refused junction on their next `Sync`/Detect,
+  it repairs residences already saved with an off-centerline refused junction on their next `Sync`/Detect,
   where a commit-time weld-order change would help only future draws and would touch the bit-identical
   junction invariant. The "identical angles cannot occur after D" claim survives: exact ties still force
   split-then-dedupe, and near-ties at worst walk a ≤20 mm sliver face that `MinArea` swallows (sub-0.35 m²
@@ -129,7 +129,7 @@ same count, every authored corner at `1e-6`, no extra vertices, areas to `1e-4` 
 `RoomRegionsTests`). That is the analogue of `Relink` being a no-op on all six samples, and it is worth more than any
 synthetic case: `PlanBuilder` derives those 179 walls from room rectangles by a completely different
 (axis-aligned, span-union) route, so an arbitrary-angle face walk agreeing corner for corner is the cheapest
-possible guarantee this cannot mangle a home someone already has.
+possible guarantee this cannot mangle a residence someone already has.
 
 Note the tolerance is **two** numbers, not one, and collapsing them breaks something either way: a corner is
 compared *directly* and is exact at `1e-6`, while an extra vertex is compared by *projecting* it onto an
@@ -149,7 +149,7 @@ centroid → most corners contained), no polygon boolean: the decision only has 
 | Two rooms → one region | A wall was deleted. The **larger** keeps its identity, so removing the wall between a living room and a nook leaves the living room. |
 | One room → two regions | A wall was drawn across it. Falls out of the same rule with no extra code: the larger keeps id/name/type, the other is owned by nobody and becomes an `Untyped` newcomer. |
 | Region claims nothing | A new room, `Untyped`, unnamed, and **real from that instant**: floor, id, area, holds furniture, places people, picked up by sensor coverage. |
-| Room claimed by nothing | Removed, with a warning. This is also what fires on the first wall edit in a home whose rooms were traced by hand under the old tool. Destructive, and undoable only because Sync runs inside the caller's `RecordEdit`. |
+| Room claimed by nothing | Removed, with a warning. This is also what fires on the first wall edit in a residence whose rooms were traced by hand under the old tool. Destructive, and undoable only because Sync runs inside the caller's `RecordEdit`. |
 
 **Surviving rooms keep their existing order.** Rebuilding the list in region order was the obvious thing and
 it is wrong: it reshuffles `level.rooms` on any wall edit anywhere, rewriting the stored document for no
@@ -178,24 +178,24 @@ And **not from `VariantRevert`**, for three reasons in order of force:
    how this codebase gets its 57 mm notches.
 3. A locked baseline has no editing session in which to derive anything.
 
-Corollary: **`HomeRenderer` keeps rendering `level.rooms`**, never `Find`.
+Corollary: **`ResidenceRenderer` keeps rendering `level.rooms`**, never `Find`.
 
 ## The floor finish was the room type wearing a picker: `RoomFinish`
 
 `RoomDef.floorMaterial` and `ceilingMaterial` are **gone**. Not deprecated-but-declared: the rule that kept
-`HomeDoc.underlay` declared is that deleting it drops data that cannot be recovered, and a floor finish can,
+`ResidenceDoc.underlay` declared is that deleting it drops data that cannot be recovered, and a floor finish can,
 `RoomTool.SetType` overwrote the user's choice every time the type changed, `PlanBuilder.FloorFor` derived it
 from `roomType` for all six samples with the comment *"Matches RoomTool's defaults, so a sample room is
 indistinguishable from a drawn one"*, and the two never diverged. `ceilingMaterial` was a constant wearing a
 field's clothes. Hard-coded `"ceiling_white"` at both write sites, never diffed. Leaving them declared would
 have been an active trap: `CompareRooms` would go on reporting *"new floor finish"* for a field no UI can set.
-(Newtonsoft's `MissingMemberHandling` defaults to `Ignore`, so homes already on disk simply drop the keys.)
+(Newtonsoft's `MissingMemberHandling` defaults to `Ignore`, so residences already on disk simply drop the keys.)
 
 `RoomFinish.FloorMaterial(roomType)` replaces both. It lives in `CXRAuthoring` rather than on the palette for
 the split `MeasureUI`/`Units` already keeps. Domain knowledge that must be testable, while
 `InteriorMaterialPalette` is a ScriptableObject in `Assembly-CSharp` the EditMode tests cannot reach. An
 unknown type falls through to `floor_untyped`, which is the graceful degradation that is the whole stated
-reason `RoomType` is string constants and not an enum. `SampleHomeInstaller.VerifyFloorFinishes` warns at seed
+reason `RoomType` is string constants and not an enum. `SampleResidenceInstaller.VerifyFloorFinishes` warns at seed
 if any type maps to a material the palette lacks: the same cross-assembly problem `SampleFurniture` has,
 solved the same documented way, because the failure is otherwise silent: `Get` falls back to `defaultFloor`
 and the room just renders as vinyl.
@@ -243,10 +243,10 @@ sitting nearest the threshold.
 `RoomType.Untyped` is new and leads the list. It is distinct from `Other`: `Other` is a deliberate "none of
 these", `Untyped` means "nobody has said yet", which is why the Rooms tool draws it dashed.
 
-**`SampleHomes.Generation` is deliberately NOT bumped.** The samples' walls, rooms, ids and polygons come out
+**`SampleResidences.Generation` is deliberately NOT bumped.** The samples' walls, rooms, ids and polygons come out
 byte-identical; the only data change is two fields nothing reads ceasing to be written, and the visible tint
 is derived at render time from `roomType`, which all six already set on every room. Bumping would re-install
-six homes on every machine for no visible difference. (The standing contract is "bump whenever a plan
+six residences on every machine for no visible difference. (The standing contract is "bump whenever a plan
 changes": this is a schema change, not a plan change.)
 
 ### A room can no longer be deleted on its own
@@ -307,7 +307,7 @@ list. Nothing enforced it, nothing measured it and no rule read it, so it assert
 the building that the app could neither check nor act on, in a tool whose audience is care staff
 rather than architects. It is **deleted rather than deprecated**, on the `RoomFinish` precedent:
 leaving the field declared would keep `CompareWalls` reporting *"marked structural"* for a flag no UI
-can set. Newtonsoft's `MissingMemberHandling` defaults to `Ignore`, so homes already on disk simply
+can set. Newtonsoft's `MissingMemberHandling` defaults to `Ignore`, so residences already on disk simply
 drop the key.
 
 ## …and so is `OpeningDef.swing`
@@ -319,17 +319,17 @@ drawn with, exactly as a window's sill was before `FitVertical` was wired up.
 
 Nothing draws it either. An opening is a gap `WallLayout` skips. There is no leaf, no arc, no hinge
 anywhere in the renderer, in `SelectionOverlay` or in the report, so the swing was invisible in every
-view of the home, in a tool whose whole argument is made by looking at the plan. Its one consumer was
-`HomeMetrics.ClearWidth`, and that is now the honest form of the same estimate: **a door loses its leaf
+view of the residence, in a tool whose whole argument is made by looking at the plan. Its one consumer was
+`ResidenceMetrics.ClearWidth`, and that is now the honest form of the same estimate: **a door loses its leaf
 and stop, anything with no leaf in it loses nothing**. The stored `OpeningDef.clearWidth` is untouched
 and still beats the estimate, which is the field to reach for when a real doorway was measured on site.
 
 **Deleted rather than deprecated**, on the `WallDef.structural` and `RoomFinish` precedent: leaving it
 declared would keep `CompareOpenings` reporting *"swing L in → Slide"* for a value no UI can set.
 
-**`SampleHomes.Generation` is deliberately NOT bumped.** No sample ever passed a swing: all six took
+**`SampleResidences.Generation` is deliberately NOT bumped.** No sample ever passed a swing: all six took
 `PlanBuilder`'s `LeftIn` default, whose clear width is `width − 0.060` and still is. The geometry, the
-ids and every derived figure come out identical, so a refresh would re-install six homes for no change.
+ids and every derived figure come out identical, so a refresh would re-install six residences for no change.
 
 The one behaviour that does move: a door a **user** placed as `Slide` or `Pocket` had a wider derived
 clear passage (half its width, or `width − 0.030`), and now reads as a swing door like every other. A
@@ -341,7 +341,7 @@ measured `clearWidth` on that door still wins, which is the route back.
 Two things about doors and windows were backwards, and they turn out to be the same thing.
 
 **An opening is not something you can point at.** It has no geometry. It is a gap `WallLayout`
-skips, so `HomeRenderer.RenderOpeningHandles` fabricates an invisible `BoxCollider` filling the
+skips, so `ResidenceRenderer.RenderOpeningHandles` fabricates an invisible `BoxCollider` filling the
 void, built `0.02 m` proud of the wall on both faces *specifically so it beats its host wall in the
 raycast*. Clicking a doorway therefore selected the hole rather than the wall the hole is in, and
 there was no route from a wall to the openings it hosts: `DrawWall` printed a bare **count**, so it
@@ -359,13 +359,13 @@ Five things this needs that a first pass would get wrong:
 - **Redirect, do not ignore.** `PickElement` returns the **first** marker along the ray and stops.
   Skipping opening hits would fall through to nothing. Clicking a doorway would select *nothing*,
   which reads as the tool being broken rather than as a rule.
-- **The handle GameObject stays.** `HomeEditController.FocusElement` resolves ids through
-  `HomeRenderer.GetGO` → `_byId`, which only `Mark` populates, so deleting it would break **F** on a
+- **The handle GameObject stays.** `ResidenceEditController.FocusElement` resolves ids through
+  `ResidenceRenderer.GetGO` → `_byId`, which only `Mark` populates, so deleting it would break **F** on a
   selected opening and `CompareTool`'s focus on every opening change row. `FocusPoint`'s
   degenerate-bounds fallback was written for this renderer. It is no longer a selection handle; it is
   what `_byId`, the redirect and the overlay all still need.
 - **The list is drawn on a LOCKED baseline too**, above the `IsLocked` early return. Locked is the
-  default state of every home in the library, and reading which doors a wall has is inspecting, not
+  default state of every residence in the library, and reading which doors a wall has is inspecting, not
   editing: with the scene click gone, gating it would make an opening unreachable in the common case.
 - **The list is drawn by `DrawOpening` as well as by `DrawWall`.** Selecting an opening replaces the
   wall's rail with the opening's, so a list drawn only by `DrawWall` would vanish the instant you
@@ -380,7 +380,7 @@ Five things this needs that a first pass would get wrong:
 **And every dimension is now a free number.** The five inch presets are gone from both rails. They
 were defended on the grounds that this is how doors are specified, but a measured field had been
 added directly beneath them, so the rail offered one dimension twice in two idioms, and no chip can
-express the 34 1/2" doorway measured off a real home. Height and sill were worse: `OpeningTool`
+express the 34 1/2" doorway measured off a real residence. Height and sill were worse: `OpeningTool`
 offered both at placement and the inspector offered **neither**, so a window's sill was frozen at
 whatever it was drawn with. Both now run through `OpeningFit.FitVertical`, which had existed since
 the file was written and was called by nobody. Position along the wall joins them, because an

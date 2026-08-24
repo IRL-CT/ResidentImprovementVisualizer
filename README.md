@@ -1,12 +1,12 @@
-# CXRHomeViz
+# Residence Improvement Visualizer
 
-CXRHomeViz is a Unity desktop application for drawing a home to scale and testing changes to it
+Residence Improvement Visualizer is a Unity desktop application for drawing a residence to scale and testing changes to it
 before anyone builds. You import a photo or scan of a floor plan, calibrate it by clicking two points
 and typing the real distance between them, then trace walls, doors, windows and rooms on top of it.
 From there you furnish the space from a catalog of real-dimension items and place smart home devices
 on the elements they watch.
 
-Every home keeps a locked baseline of how it stands today. Design options branch off that baseline,
+Every residence keeps a locked baseline of how it stands today. Design options branch off that baseline,
 and comparing any two produces a plain-English list of what changed, down to clear widths and
 threshold heights. It is built for residents, families and care staff in shared homes and assisted
 living, along with the occupational therapists and coordinators who work with them.
@@ -17,12 +17,12 @@ otherwise fine doorway from being step-free. What someone seated can see over a 
 
 ## Quick start
 
-Open this folder in Unity 6000.3.10f1, open `Assets/Scenes/HomeViz.unity`, and press Play. First
-launch seeds sample homes, so there is something to walk through straight away. To ship a build, use
-Build → HomeViz (PC, Windows) (`Ctrl+Shift+H`), which writes `Builds/HomeViz/CXRHomeViz.exe`. That
-build carries the HomeViz scene alone.
+Open this folder in Unity 6000.3.10f1, open `Assets/Scenes/ResidenceViz.unity`, and press Play. First
+launch seeds sample residences, so there is something to walk through straight away. To ship a build, use
+Build → ResidenceViz (PC, Windows) (`Ctrl+Shift+H`), which writes `Builds/ResidenceViz/ResidenceImprovementVisualizer.exe`. That
+build carries the ResidenceViz scene alone.
 
-There is nothing to install, no server to start, and no account. Homes stay on the machine. One
+There is nothing to install, no server to start, and no account. Residences stay on the machine. One
 feature reaches the network and it is opt-in per press. "Read the plan", in the Import rail, sends a
 single sketch image to the Anthropic API and gets a floor plan back, and it runs only after you have
 entered your own API key and pressed the button.
@@ -33,7 +33,7 @@ entered your own API key and pressed the button.
 
 Bring in a photo, a scan, or a PDF. Calibrate it by clicking two points and typing the distance
 between them; everything traced afterwards sits at true scale. A multi-page PDF can put one page on
-each storey. Homes with more than one floor get a floor chip in the top bar, and one storey is edited
+each storey. Residences with more than one floor get a floor chip in the top bar, and one storey is edited
 and rendered at a time.
 
 ### Tracing the shell
@@ -84,7 +84,7 @@ the eye-height toggle: 1.60 m standing, 1.19 m for a wheelchair user.
 ### Outdoors
 
 Off by default. Switch it on to draw entry ramps with a live 1:12 slope check, walkways, railings and
-patios around the home.
+patios around the residence.
 
 ### Handing something over
 
@@ -94,10 +94,10 @@ covering the technology, its coverage and its cost.
 
 ## Storage and sharing
 
-Homes are plain JSON files under `Application.persistentDataPath/CXRHomeViz/`, one file per home,
-written atomically. Deleting a home moves it into an archive folder rather than destroying it.
+Residences are plain JSON files under `Application.persistentDataPath/ResidenceImprovementVisualizer/`, one file per residence,
+written atomically. Deleting a residence moves it into an archive folder rather than destroying it.
 Underlay images live beside them, one per storey, and reports land in their own folder. Sharing
-between machines is Export and Import of a single `.homeviz` archive holding the home and its
+between machines is Export and Import of a single `.riv` archive holding the residence and its
 underlays. For anyone without the app, the HTML report is the thing you send.
 
 ---
@@ -105,5 +105,5 @@ underlays. For anyone without the app, the HTML report is the thing you send.
 Product overview in [ApplicationSummary.md](ApplicationSummary.md); developer notes in
 [CLAUDE.md](CLAUDE.md), with the per-area rules in [`.claude/rules/`](.claude/rules/) and the
 reasoning behind them in [docs/design/](docs/design/). The legacy CXRSite outdoor site-visioning tool
-shares this Unity project, is absent from the HomeViz build, and is documented in
+shares this Unity project, is absent from the ResidenceViz build, and is documented in
 [docs/SITE.md](docs/SITE.md).

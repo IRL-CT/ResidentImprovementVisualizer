@@ -1,6 +1,6 @@
 # CXRSite. Legacy site-visioning tool
 
-> **This is the legacy half of the repository.** CXRHomeViz is the product; see
+> **This is the legacy half of the repository.** Residence Improvement Visualizer is the product; see
 > [`../CLAUDE.md`](../CLAUDE.md). Nothing in the Site stack was deleted: `EditController`,
 > `WorldRenderer`, `TileBuildingEditor`, `LibraryClient`, `SyncClient`, `ModelRequester` and the
 > `BasicModel` / `VRViewer` scenes are all still here and still compile.
@@ -234,7 +234,7 @@ runs flat. So `BasicModel` (and any other scene) is a normal PC app, and VR acti
 **Builds via the `Build` menu** (`Assets/Editor/BuildMenu.cs`): each bakes in its own scene + target,
 so the builds stay separate regardless of the shared Build Settings list (which stays **BasicModel-only =
 the default PC build**). The Site and VR items live under a **`Legacy Site`** submenu,
-because this repo's product is CXRHomeViz; they were demoted, not deleted, so the Site stack that
+because this repo's product is Residence Improvement Visualizer; they were demoted, not deleted, so the Site stack that
 is still in this repo remains buildable:
 - **Build → Legacy Site → Desktop (PC, Windows)** (`Ctrl+Shift+D`): the PC app as before,
   ships only `BasicModel`, no VR.

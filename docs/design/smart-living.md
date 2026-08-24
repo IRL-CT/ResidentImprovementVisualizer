@@ -21,8 +21,8 @@ aid, a key turner, a touch-free bin, a smart bulb, and the report does not menti
 are here because what decides whether someone lives independently is often not sensing at all, which
 is the same argument the report makes about a stove sensor reached from the other end.
 
-So the stage is **Smart living** and the tool is **Equipment**. `HomeStage.Sense` became
-`HomeStage.SmartLiving`, and `HomeWorkflow.Label` now splits the enum member at each capital rather
+So the stage is **Smart living** and the tool is **Equipment**. `ResidenceStage.Sense` became
+`ResidenceStage.SmartLiving`, and `ResidenceWorkflow.Label` now splits the enum member at each capital rather
 than gaining a second table of display names: *the enum member IS the tab label* survives, and every
 other member is one word so nothing else moves. (It is 12 characters against `Structure`'s 9, so it is
 now the first label `UITheme.FitAll` shortens; `StageTips` already leads a shortened tab's tooltip
@@ -31,8 +31,8 @@ with the full name.)
 **`LevelDef.sensors`, `SensorDef`, `SensorCatalog.asset`, the tool id `"sensor"` and the thirteen
 `Sensor*.cs` files all keep their names**, on the Sketch → Import precedent: *the word survives
 everywhere it is still accurate*. Renaming the field would make Newtonsoft drop the whole layer out of
-every home already saved, renaming the asset moves a GUID reference in `HomeViz.unity`, and renaming
-the tool id breaks `HomeWorkflow.StageOf` and every `RequestTool` call. None of it for anything a user
+every residence already saved, renaming the asset moves a GUID reference in `ResidenceViz.unity`, and renaming
+the tool id breaks `ResidenceWorkflow.StageOf` and every `RequestTool` call. None of it for anything a user
 can see. What `SensorDef` has to be right about is the SHAPE of the record: host, cost, privacy,
 coverage, rules. **An everyday aid is that record with no envelope and no rules**, and that is the
 whole of why nine new rows cost almost nothing.
@@ -41,7 +41,7 @@ Being inert is not luck, it is the two zeroes. `coverageRadius = 0` and no `Defa
 `SensorOverlay` skips them (it returns on a zero radius), `SensorSim`'s per-device dispatch emits
 nothing, `SensorRules` sees no events and `SensorCoverage` counts nothing, so **`SensorSim`,
 `SensorRules`, `SensorCoverage` and `SensorPose` needed no change at all**, and no figure this app
-prints about what a home can see moves when an aid is installed. Two invariants hold over all six samples: an everyday item changes no coverage figure and raises no
+prints about what a residence can see moves when an aid is installed. Two invariants hold over all six samples: an everyday item changes no coverage figure and raises no
 gap, and added to a full package it still raises nothing.
 
 Three things that were NOT free, each because they had quietly assumed every device senses:
@@ -84,9 +84,9 @@ without a person, and the half above is the half that decides.)
 ### A personal item no longer needs a person
 
 A pendant belongs to a resident and a key turner lives in a pocket, so both hang off `OccupantDef`,
-and while that was the **only** answer, eight of the twenty-five entries were unplaceable in a home
+and while that was the **only** answer, eight of the twenty-five entries were unplaceable in a residence
 with an empty roster. The rail refused them with a warning whose only advice was to go and use a
-different tab, in a tool used to lay a home out *before* deciding who moves into it. Every other tile
+different tab, in a tool used to lay a residence out *before* deciding who moves into it. Every other tile
 in that grid answers one gesture (click, and something appears in the plan) and these answered none.
 
 The rail's `Worn by` / `Belongs to` row now leads with **Nobody**, and that is the default because it
@@ -97,15 +97,15 @@ beside it. Naming a resident still does what it always did.
 
 Three things make this cost almost nothing, and each is the reason a whole subsystem needed no line:
 
-- **`Room` is the hub's host and the dispenser's**, so `HomeRenderer` already draws it,
+- **`Room` is the hub's host and the dispenser's**, so `ResidenceRenderer` already draws it,
   `RoomRegions.RemoveRoom` already cascades it, `VariantRevert` already restores it and `VariantDiff`
   already reports it.
-- **No figure about what the home can see moves**, because every worn entry has a zero envelope and no
+- **No figure about what the residence can see moves**, because every worn entry has a zero envelope and no
   rules: the two invariants stated above (no coverage figure moves, nothing is raised). A pendant kept in
   a room is not worn by anybody, so `SensorSim`'s panic case (`d.def.hostId == who`) correctly never
   fires for it; the one on a resident is unchanged.
 - **`KeptHeight` has to be stated at all** only because the catalog's mount height for anything worn is
-  **zero**: right while nothing drew one, and wrong the moment something does: `HomeRenderer` centres
+  **zero**: right while nothing drew one, and wrong the moment something does: `ResidenceRenderer` centres
   a device's box on its pose, so zero is half a zipper pull below the floor plane. The fit returns it
   and `SensorTool.Place` writes it onto the instance, so the inspector can move it like any other
   height.
@@ -117,12 +117,12 @@ resident it belongs to"*), and naming a resident who has since left the househol
 ### Grab bars are surfaced here, not migrated: `MountPlacement`
 
 `grab_bar_24`, `grab_bar_36` and `handrail` appear under a **Fixtures** chip in the Equipment rail, and
-**their data does not move**: placing one still writes a `WallMountDef`, so stored homes, all six
+**their data does not move**: placing one still writes a `WallMountDef`, so stored residences, all six
 samples, `VariantDiff`, `VariantRevert` and the wall-mount inspector are untouched by construction.
 
 Two rails placing wall mounts is two chances to disagree about which face of a wall a click came from,
-so `MountPlacement` (`Assets/Scripts/HomeViz/MountPlacement.cs`) holds Hover / Fit / Place / Ghost and
-**both** tools call it: the same call `HomeMetrics.NearestWall` already represents, made once more.
+so `MountPlacement` (`Assets/Scripts/ResidenceViz/MountPlacement.cs`) holds Hover / Fit / Place / Ghost and
+**both** tools call it: the same call `ResidenceMetrics.NearestWall` already represents, made once more.
 
 A fixture shows **no price**, and that is honest rather than unfinished: `FurnitureCatalog` has no cost
 field at all, and a bar is a change to the *building*, reported in the plan and the report's room
@@ -135,14 +135,14 @@ second time.
 
 It is *"the report's placement guidance made mechanical"*, and the report has no guidance on who needs
 a rocker knife. Auto-recommending one would have the tool invent a clinical judgement in the one place
-it has no business doing so. It also means `SampleHomes.Generation` does not move and no home is
+it has no business doing so. It also means `SampleResidences.Generation` does not move and no residence is
 re-installed: the two care samples ship exactly the package they always did.
 
-The report's system is three parts and each has a home here. Peripheral sensors (§3.1.2) are
+The report's system is three parts and each has a residence here. Peripheral sensors (§3.1.2) are
 `SensorDef` on `LevelDef`, the central hub (§3.1.3) is a device like any other, and remote care access
 (§3.1.4) is `MonitorTool`, which authors nothing.
 
-**Installing sensing IS a proposal, and that is why this cost so little to build.** HomeViz was
+**Installing sensing IS a proposal, and that is why this cost so little to build.** ResidenceViz was
 already a before/after machine, so putting sensors on the level meant `VariantDiff` → `CompareTool`
 markers → `VariantRevert` → the ghost → the report all carried them with additions rather than new
 subsystems. The five files that are genuinely new are the ones that answer questions nothing else
@@ -155,7 +155,7 @@ A door sensor belongs to an `OpeningDef`, a pressure pad to the `ObjectInstance`
 sensor to the range, a pendant to an `OccupantDef`. Storing `(x, z)` instead would repeat the mistake
 `OccupantDef` exists to avoid: widen a doorway or move a bed in a proposal, and the device is left
 describing geometry that moved. `SensorPose.Resolve` derives the pose, and takes an **explicit
-level** for the reason `HomeRenderer.MountPose` does: the ghost has to place a REMOVED device from
+level** for the reason `ResidenceRenderer.MountPose` does: the ghost has to place a REMOVED device from
 the variant that still has its host.
 
 It is also what makes the simulation possible at all. "Did anyone go through the front door" is a
@@ -182,7 +182,7 @@ so the doomed opening ids are collected before the openings are removed.
 
 `OccupancyModel.PoseAll(variant, level, minute)` already answers where everyone is at every minute.
 `SensorSim` walks all 1,440 of them and turns that into events; `SensorRules` turns events into
-alerts. Nothing is scripted per home: move a resident to a different bedroom in a proposal and a
+alerts. Nothing is scripted per residence: move a resident to a different bedroom in a proposal and a
 different motion sensor is the one that goes quiet.
 
 **Deterministic, and nothing is stored.** The timeline, the console, the report and the tests all
@@ -194,7 +194,7 @@ that is the system working, and §4 names false alarms as an evaluation criterio
 that cries wolf is one staff learn to ignore. So `Mode.Routine` is the household's ordinary day and
 it must produce **zero alerts on all six samples**. But a package that raises
 nothing also *shows* nothing, and the report's argument is entirely about the exceptional day, so
-`Mode.Eventful` injects seven of its own scenarios onto this home's real people and real devices, at
+`Mode.Eventful` injects seven of its own scenarios onto this residence's real people and real devices, at
 fixed times so every screenshot and assertion describes the same afternoon. The console labels the
 two "Typical day" and "Day with incidents" rather than letting anyone mistake the second for a
 forecast.
@@ -212,13 +212,13 @@ The false-alarm floor is three specific clauses, and each was found by that test
   a fall every time somebody crossed from one cone into the other.
 
 **One incident happens in one place.** Injecting a leak into every water sensor gave a four-bathroom
-home four simultaneous floods, which demonstrates nothing except carelessness.
+residence four simultaneous floods, which demonstrates nothing except carelessness.
 
 ### Coverage is clipped to the room: `SensorCoverage`
 
-The same shape as `HomeMetrics`, one step over: that file asks whether a wheelchair fits through a
+The same shape as `ResidenceMetrics`, one step over: that file asks whether a wheelchair fits through a
 doorway, this asks whether anyone would know if something happened. A PIR sensor's 9.1 m range
-(§4.3.1) is longer than most homes, so an **unclipped disc would report one sensor in the hall as
+(§4.3.1) is longer than most residences, so an **unclipped disc would report one sensor in the hall as
 covering five bedrooms through their walls**, and a figure that flatters a plan is worse than none,
 because the entire point of the figure is to find the gap.
 
@@ -274,7 +274,7 @@ day and answering its alerts is a read.
 
 ### What the plan and the timeline show
 
-`HomeRenderer` renders each device as a small labeled box at its true size, `PickOnly` like every
+`ResidenceRenderer` renders each device as a small labeled box at its true size, `PickOnly` like every
 other non-shell collider, with a **material per device** so `UpdateSensorStates` can tint it idle /
 active / alerting as the clock moves. That is what makes playing the day legible in the plan rather
 than only on the timeline: the timeline says an alert lands at 03:20, and the plan says where.
@@ -315,7 +315,7 @@ second press could not double anything. All of that UI is **deleted**, along wit
 that existed only to serve it: `SensorPackages.Missing`, `Label` and `Describe`.
 
 **`SensorPackages.Recommend` and `Tier` stay, and must.** They are what builds the two care-home
-samples' shipped proposal (`SampleHomes`). What the removal costs is the *"one function, two callers"* argument that file's header used
+samples' shipped proposal (`SampleResidences`). What the removal costs is the *"one function, two callers"* argument that file's header used
 to lead with: the rail and the samples can no longer disagree about what a complete package is, because
 the rail no longer has an opinion. Devices are placed one at a time, through `SensorFit`, which is the
 gesture the rest of the tool was always built around.
@@ -328,11 +328,11 @@ that calls it, so what ships is still derived from the plan rather than listed b
 samples stay bare.
 
 That broke `SampleRefresh.Evaluate`, which asked "is there exactly one variant". It was the same
-question while every sample shipped only a baseline; the day two of them ship two, a home is born
+question while every sample shipped only a baseline; the day two of them ship two, a residence is born
 tripping the count on its first launch and is **frozen at whatever generation installed it forever**,
-precisely the staleness trap `SampleHomes.Generation` exists to close, reintroduced by the mechanism
+precisely the staleness trap `SampleResidences.Generation` exists to close, reintroduced by the mechanism
 meant to close it. `VariantDef.fromSample` asks it properly: refresh when every variant is one of ours
-and still locked. It defaults to false, so homes already on disk take the old path unchanged with no
+and still locked. It defaults to false, so residences already on disk take the old path unchanged with no
 migration, and anything a user branches is false by construction.
 
 ### Nothing floats. Hosts tightened, faces respected (2026-08-24)

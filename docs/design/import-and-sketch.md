@@ -1,7 +1,7 @@
 # Design notes. Import: PDF, *Read the plan*, and storeys
 
-> `PdfRaster`, the sketch-to-plan pipeline under `Assets/Scripts/HomeViz/Sketch/` (the one thing in
-> HomeViz that touches the network), where the API key lives, and how the app became multi-storey.
+> `PdfRaster`, the sketch-to-plan pipeline under `Assets/Scripts/ResidenceViz/Sketch/` (the one thing in
+> ResidenceViz that touches the network), where the API key lives, and how the app became multi-storey.
 > The rules are summarised in [`.claude/rules/import-and-sketch.md`](../../.claude/rules/import-and-sketch.md); the
 > reasoning lives here.
 
@@ -47,7 +47,7 @@ frame, because forty pages in one `OnGUI` hitches. From there: one page onto the
 
 **The PDF itself is not stored**, only the rendered PNG. That keeps `UnderlayDef.imageFileName` meaning
 exactly what it always meant, leaves the load path untouched, and keeps the export zip at one file per
-sketch: the alternative walks straight into the `underlay/` loop in `HomeStore.ImportHome`.
+sketch: the alternative walks straight into the `underlay/` loop in `ResidenceStore.ImportResidence`.
 
 ### …and `.bmp` was in the filter the whole time and never worked
 
@@ -58,14 +58,14 @@ rail rather than silence: the same treatment every fit refusal gets, because a w
 is a warning nobody reads. The failure is also remembered by key, so a broken file is read once rather
 than on every frame the tool is open.
 
-## …and it can be read for you: `Assets/Scripts/HomeViz/Sketch/`
+## …and it can be read for you: `Assets/Scripts/ResidenceViz/Sketch/`
 
 Importing a plan got you a picture to trace. Tracing it is the hardest step in the workflow and the
-one everything else is gated on. It is why the six sample homes exist at all. **Read the plan** in
+one everything else is gated on. It is why the six sample residences exist at all. **Read the plan** in
 the Import rail sends the calibrated sketch to the Anthropic API and turns what comes back into
 walls, rooms, doors, windows and catalog furniture on the current storey, in one undoable edit.
 
-This is **the only thing in HomeViz that touches the network**, it happens only when a key is present
+This is **the only thing in ResidenceViz that touches the network**, it happens only when a key is present
 and the button is pressed, and it sends the sketch image and nothing else. CLAUDE.md's opening claim
 is narrowed rather than dropped: no Python, no server, works offline, one opt-in exception.
 
@@ -284,7 +284,7 @@ asserts. `Sync` would additionally rewrite `polygon` on rooms that already have 
 
 **Every id is re-stemmed** (`SketchPlanCompiler.Reid`, `g<4 hex>_`). `PlanBuilder` authors `w_0`,
 `r_bath`, `o_3` identically every time, which is right for the samples and wrong the moment two
-storeys of one home are both generated: `HomeRenderer.Mark` keeps a **single flat dictionary** across
+storeys of one residence are both generated: `ResidenceRenderer.Mark` keeps a **single flat dictionary** across
 every element type, so a second `w_0` would take the first one's place and selection would start
 picking the wrong wall.
 
@@ -304,9 +304,9 @@ tooltip. That works wherever it is called from `OnGUI`. `BeginGeneration` and `A
 called from **`Tick`**, because everything the rail queues is deferred there, so the helper drew into
 nothing, returned `true`, and the method returned. The one signal a user got was the absence of one.
 
-It bit in the worst possible place. **Locked is the default state of every home in the library**, all
+It bit in the worst possible place. **Locked is the default state of every residence in the library**, all
 six samples included, and the rest of the Import tab is deliberately *not* gated: an underlay hangs
-off `HomeDoc` rather than off the variant, so importing a plan and calibrating it are not variant
+off `ResidenceDoc` rather than off the variant, so importing a plan and calibrating it are not variant
 edits and never needed an unlock. Only generating writes into the level. So the whole tab worked,
 right up to the one button that mattered.
 
@@ -339,8 +339,8 @@ nothing are the same experience.
   `OnGUI`. That is the `Mismatched LayoutGroup` this codebase's whole deferral discipline exists to
   prevent. So the coroutine writes `_genPhase`/`_genRunning`, `Tick` latches them into
   `_railPhase`/`_railRunning` **once per frame**, and `DrawRail` reads only the latched pair.
-- **A call outlives the storey it was for.** A minute is long enough to switch home, switch floor or
-  close the document, so the result carries the `homeId` and `levelId` it was asked *for* and apply
+- **A call outlives the storey it was for.** A minute is long enough to switch residence, switch floor or
+  close the document, so the result carries the `residenceId` and `levelId` it was asked *for* and apply
   refuses anywhere else: the discipline `ModeBand` follows for a held `VariantDef`, at a slower
   timescale. `Exit()` aborts an in-flight call beside `ClosePdf()`, for the reason that line already
   gives: leaving the Import tab is the ordinary way somebody abandons a request.
@@ -356,12 +356,12 @@ precisely the detail the model has to read.
 
 ### The key is not in `settings.json`
 
-`ApiKeyStore` reads `ANTHROPIC_API_KEY` first, then `<RootDir>/anthropic.key`. **Not `HomeSettings`**:
+`ApiKeyStore` reads `ANTHROPIC_API_KEY` first, then `<RootDir>/anthropic.key`. **Not `ResidenceSettings`**:
 that file is serialized wholesale, holds preferences rather than secrets, and is the first thing
 anyone pastes into a bug report. Its own file, named for what it is, cannot be swept up by a
-serializer that does not know one field is different from the others. It is not in `HomeDoc`, so not
-in the undo snapshots, and `ExportHome` zips `home.json` plus the underlay images only, so it cannot
-ride along in a `.homeviz` archive **by construction**.
+serializer that does not know one field is different from the others. It is not in `ResidenceDoc`, so not
+in the undo snapshots, and `ExportResidence` zips `residence.json` plus the underlay images only, so it cannot
+ride along in a `.riv` archive **by construction**.
 
 When the key comes from the environment the app shows a badge and **no Forget button**: it must not
 offer to delete something it did not write.
@@ -435,42 +435,42 @@ correctly through walls, floors, ceilings, sensors, the furniture gizmo and the 
 The *application* was single-level at exactly three choke points, and a multi-page plan set is the
 thing that needs them opened.
 
-- **`HomeEditController.Level` was `levels[0]`**, and every tool sees the level through it
-  (`HomeToolContext.Level`). It is now indexed by `_levelIndex`. `HomeRenderer` has taken a level index
+- **`ResidenceEditController.Level` was `levels[0]`**, and every tool sees the level through it
+  (`ResidenceToolContext.Level`). It is now indexed by `_levelIndex`. `ResidenceRenderer` has taken a level index
   since it was written, clamps it identically, and reads the *same* index out of the other variant for
   the compare ghost, but nothing ever passed one, so the app had two notions of "the current level"
   that agreed only because one of them was always zero. Changing that one property lights up the tools,
   the click plane, the camera framing and the ghost together.
-- **`HomeDoc.underlay` was one sketch per HOME.** It is now `underlays`, one per storey, keyed by
-  `UnderlayDef.levelId`. `HomeStore.Migrate` folds the old field in and clears it; the field stays
-  *declared* because deleting it would make Newtonsoft silently drop the traced sketch of every home
+- **`ResidenceDoc.underlay` was one sketch per RESIDENCE.** It is now `underlays`, one per storey, keyed by
+  `UnderlayDef.levelId`. `ResidenceStore.Migrate` folds the old field in and clears it; the field stays
+  *declared* because deleting it would make Newtonsoft silently drop the traced sketch of every residence
   already on disk. `Migrate` runs on every load and every import, so the fold must be idempotent: a sketch traced
   before storeys existed is stamped with the ground floor once and never duplicated.
 - **A storey is a fact about the BUILDING**, so `Stories.Add` writes an empty level into **every
-  variant, sharing one id**: the same split `HomeDoc.exteriorEnabled` already makes against
+  variant, sharing one id**: the same split `ResidenceDoc.exteriorEnabled` already makes against
   `VariantDef.exterior`. That buys three things at once: level ids match across variants, which is what
   `VariantDiff.MatchLevel` pairs storeys by and what the underlay key needs; the new level is empty on
   both sides of every diff, so adding one **reports no change**; and because it asserts nothing about
-  the home it does **not** need the baseline unlocked. Drawing on the new floor still does, which is
+  the residence it does **not** need the baseline unlocked. Drawing on the new floor still does, which is
   where the lock should bite.
 
 It lives in `CXRAuthoring` for the reason `SampleRefresh` does, so it can be tested at all.
-`HomeStore` is in `Assembly-CSharp`, which asmdefs cannot reference, and its static constructor
+`ResidenceStore` is in `Assembly-CSharp`, which asmdefs cannot reference, and its static constructor
 reaches for `Application.persistentDataPath`, so anything left there is reachable only by running the
-Editor. `HomeStore` keeps the parts that genuinely need a disk and delegates the rest.
+Editor. `ResidenceStore` keeps the parts that genuinely need a disk and delegates the rest.
 
 **The floor chip cycles rather than opening a menu.** A dropdown would need a rect of its own in the
 `PointerOverUI` test and a deferred open/close for its control count: the machinery `ModeBand`'s
-variant list needs: to choose between two or three items. It is **drawn only when the home has more
+variant list needs: to choose between two or three items. It is **drawn only when the residence has more
 than one storey**, the same conditional-visibility rule the Outdoors stage follows, and its width joins
 `DrawTopBar`'s *measured* reserve: a control that is not in the reserve is a control that silently
 pushes another one off the end, which is exactly how Undo and Redo disappeared once before. The switch
 itself is deferred like every other request drawn in `OnGUI`, because it rebuilds every GameObject in
-the home. Picking, naming and removing a specific floor is in the Import rail's **Floors** section.
+the residence. Picking, naming and removing a specific floor is in the Import rail's **Floors** section.
 
 ### Two bugs a second storey activates
 
-Both were pre-existing, both were invisible while every home had one floor, and both produce **silently
+Both were pre-existing, both were invisible while every residence had one floor, and both produce **silently
 wrong output** rather than an error. They are the cost of entry, not optional cleanup.
 
 - **`VariantRevert.Revert` reverted the wrong level.** Its comment said levels were matched "by id then
@@ -489,24 +489,24 @@ wrong output** rather than an error. They are the cost of entry, not optional cl
 ### What else had to stop answering for one floor
 
 Occupants hang off the *variant* while rooms hang off a *level*, so `OccupancyModel` resolved an
-upstairs bedroom to no room and reported the resident as **away from home**, and `Validate` warned
-that a correct schedule named "not a room here". `Pose.elsewhereInHome` is the missing third answer:
+upstairs bedroom to no room and reported the resident as **away from residence**, and `Validate` warned
+that a correct schedule named "not a room here". `Pose.elsewhereInResidence` is the missing third answer:
 `present` stays false (nothing to draw on this floor, and no sensor here can see them) but "not on this
 floor" and "not in the building" are different things to tell a caregiver.
 
 The sensing rollups were each named for the building and answered for one floor of it,
-`SensorCoverage.WholeHomeCoverage`, the ways-out count, `SensorCost.Of`. Each gained a `VariantDef`
+`SensorCoverage.WholeResidenceCoverage`, the ways-out count, `SensorCost.Of`. Each gained a `VariantDef`
 overload, and the cost one walks every storey's devices in **one pass** rather than summing per-level
 estimates: §5.4 prices a bundle as hub + sensors + **one** monthly fee, so two summed estimates would
-sell a two-storey home two subscriptions. Every one of these is a figure that would have flattered the
+sell a two-storey residence two subscriptions. Every one of these is a figure that would have flattered the
 plan, in the rows a funder reads most closely.
 
 The report photographs per storey: `ReportCapture.Shot` carries a level index and the capture loop
 rebuilds once per **(variant, storey)** rather than once per variant. Still not once per shot: every
 framing of a given storey comes from one rebuild, which is what guarantees a before/after pair shares a
-camera pose exactly. On a single-storey home that is two rebuilds, exactly as it always was.
+camera pose exactly. On a single-storey residence that is two rebuilds, exactly as it always was.
 
-**`SensorSim` needed nothing.** Its "nobody home" logic is all room-scoped ("on, with nobody in the
+**`SensorSim` needed nothing.** Its "nobody residence" logic is all room-scoped ("on, with nobody in the
 room"), which is already correct per floor, and it resolves occupancy through `PoseAll`, which now
 passes the variant down.
 
@@ -514,14 +514,14 @@ passes the variant down.
 ## Verification
 
 **The PDF reader has no EditMode coverage, and cannot have any.** `PdfRaster` is P/Invoke into a native
-plugin from `Assembly-CSharp`, so it is in the same category as `HomeStore` and the tools: verified by
+plugin from `Assembly-CSharp`, so it is in the same category as `ResidenceStore` and the tools: verified by
 running it. What it was verified against is a real 40-page PDF, rasterized and inspected. Page count,
 per-page size in points, the derived document dpi, and the rendered image checked to be the right way
 up and the right colour, which is what proves the BGRA swizzle and the vertical flip together.
 
 ## The rail is in the order the work happens
 
-It drew Floors first ("+ Add a floor" above "Import plan…" on every home) then the plan, its
+It drew Floors first ("+ Add a floor" above "Import plan…" on every residence) then the plan, its
 scale, Read the plan, and only then opacity, angle and lock, with Replace and Remove stacked under
 those. Four piles, none of which said which came first. Now it reads Plan → Scale → Read the plan →
 Floors: the display tweaks fold under the plan they adjust (set once, rarely touched), Replace and

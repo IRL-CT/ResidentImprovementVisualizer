@@ -1,22 +1,22 @@
 ---
 paths:
-  - "Assets/Scripts/Authoring/Interior/SampleHomes.cs"
+  - "Assets/Scripts/Authoring/Interior/SampleResidences.cs"
   - "Assets/Scripts/Authoring/Interior/SampleFurniture.cs"
   - "Assets/Scripts/Authoring/Interior/SampleRefresh.cs"
   - "Assets/Scripts/Authoring/Interior/PlanBuilder.cs"
-  - "Assets/Scripts/HomeViz/SampleHomeInstaller.cs"
-  - "Assets/Tests/EditMode/SampleHomesTests.cs"
+  - "Assets/Scripts/ResidenceViz/SampleResidenceInstaller.cs"
+  - "Assets/Tests/EditMode/SampleResidencesTests.cs"
   - "Assets/Tests/EditMode/PlanBuilderTests.cs"
   - "Assets/Resources/FurnitureCatalog.asset"
 ---
 
-# Sample homes and PlanBuilder
+# Sample residences and PlanBuilder
 
 > Loaded when a file under the paths above is read. Rules only: the reasoning is in the design note linked at the end. Edit this file when a rule changes; update CLAUDE.md only if something every session needs moves.
 
-## Sample homes
+## Sample residences
 
-`SampleHomes` ships six complete, furnished, single-storey dwellings, each occupied by the headcount
+`SampleResidences` ships six complete, furnished, single-storey dwellings, each occupied by the headcount
 its blurb advertises:
 
 | | Apartments | Houses |
@@ -31,18 +31,18 @@ and a 1.5 m turning circle in every bedroom and bathroom. Four samples ship only
 baseline; the two five-bedroom ones also ship a locked **"Smart home package"** proposal (built by
 `SensorPackages.Recommend`). All open on the baseline.
 
-- **Entry points:** seeded on first run (`HomeSettings.samplesSeeded`), and the **Sample homes** picker
+- **Entry points:** seeded on first run (`ResidenceSettings.samplesSeeded`), and the **Sample residences** picker
   in the left rail, which adds a fresh copy (new GUID, uniqued name) any time.
-- **Bump `SampleHomes.Generation` whenever a plan changes.** Each installed home carries
-  `HomeDoc.sampleKey` / `sampleGeneration`; `SampleHomeInstaller.RefreshStaleSamples` (from `Start`)
+- **Bump `SampleResidences.Generation` whenever a plan changes.** Each installed residence carries
+  `ResidenceDoc.sampleKey` / `sampleGeneration`; `SampleResidenceInstaller.RefreshStaleSamples` (from `Start`)
   re-installs any that has fallen behind. `SampleRefresh.Evaluate` (in `CXRAuthoring`, testable)
-  refreshes only a home whose variants are all `VariantDef.fromSample` and still locked, with no traced
+  refreshes only a residence whose variants are all `VariantDef.fromSample` and still locked, with no traced
   underlay: anything the user touched is theirs, and the rail's **Reset to the latest sample** is the
   only way back. `LegacyNames` maps retired display names to keys, and now carries the six em-dashed names the
   US-English rewrite retired; they must stay byte-exact. A schema-only change (nothing
   visible moves) does **not** bump `Generation`.
-- `SampleHomeInstaller.BackfillOccupants` (guarded by `HomeSettings.occupantsBackfilled`) fills an
-  empty roster in place, only for a `sample`-tagged home whose room ids still match.
+- `SampleResidenceInstaller.BackfillOccupants` (guarded by `ResidenceSettings.occupantsBackfilled`) fills an
+  empty roster in place, only for a `sample`-tagged residence whose room ids still match.
 - **`PlanBuilder` authors every sample**: rooms as rectangles (`Room`, `RoomPart` for an L-shape),
   walls **derived** (unioned per line and re-split at every significant point, so shared edges collapse
   to one `WallDef` and every T-junction endpoint coincides), openings by relationship
@@ -52,7 +52,7 @@ baseline; the two five-bedroom ones also ship a locked **"Smart home package"** 
   empty**. Openings must be declared before furniture. Occupants via `Person` / `Does`, resolved by
   `BuildOccupants(level)` after `Build()`.
 - **`SampleFurniture` mirrors the 35 `FurnitureCatalog` ids** (the ScriptableObject is in
-  `Assembly-CSharp`, unreachable from `CXRAuthoring`); `SampleHomeInstaller.VerifyAgainstCatalog` and
+  `Assembly-CSharp`, unreachable from `CXRAuthoring`); `SampleResidenceInstaller.VerifyAgainstCatalog` and
   `VerifyFloorFinishes` warn on drift at seed.
 
 → [`docs/design/samples-and-planbuilder.md`](../../docs/design/samples-and-planbuilder.md)

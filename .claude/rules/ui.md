@@ -2,11 +2,11 @@
 paths:
   - "Assets/Scripts/UITheme.cs"
   - "Assets/Scripts/UITooltip.cs"
-  - "Assets/Scripts/HomeViz/ModeBand.cs"
-  - "Assets/Scripts/HomeViz/TimelineBar.cs"
-  - "Assets/Scripts/HomeViz/MeasureUI.cs"
-  - "Assets/Scripts/HomeViz/HomeEditController.cs"
-  - "Assets/Scripts/HomeViz/Tools/**"
+  - "Assets/Scripts/ResidenceViz/ModeBand.cs"
+  - "Assets/Scripts/ResidenceViz/TimelineBar.cs"
+  - "Assets/Scripts/ResidenceViz/MeasureUI.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceEditController.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/**"
   - "Assets/Scripts/Authoring/Interior/ScrubMath.cs"
 ---
 
@@ -27,11 +27,11 @@ paths:
 - **`"None"` is the empty-value placeholder** in a report table and a rail readout, never a bare `—`.
 - **Say what is, not what it is not.** No "X, not Y", no "rather than", no "instead of" in anything
   on screen. State the rule positively and let the negative go unsaid.
-- The historical display names in `SampleHomeInstaller.LegacyNames` are the one exception: they are
-  keys matching homes already on disk, and they keep their em dashes forever.
+- The historical display names in `SampleResidenceInstaller.LegacyNames` are the one exception: they are
+  keys matching residences already on disk, and they keep their em dashes forever.
 
 **No prose on screen; a control names itself; sentences live on hover.**
-- Nothing in HomeViz prints a sentence. Captions, hints and explanations are tooltips. Exceptions:
+- Nothing in ResidenceViz prints a sentence. Captions, hints and explanations are tooltips. Exceptions:
   content the panel exists to show (change list, a sample's blurb, a person's note, a proposal's
   description).
 - Every editable control carries **one or two words inside itself, on the left** (`Thickness`,
@@ -77,11 +77,11 @@ paths:
   `Cursor.lockState`).
 - `ScrubMath` (`CXRAuthoring`): the accumulator carries a value, not pixels; quantisation on the way
   out; **every field has a min and max**: a structure field's fixed bounds are the named
-  `HomeConventions.MIN_*/MAX_*` constants, never inline numbers; angle and time-of-day wrap. Fast
+  `ResidenceConventions.MIN_*/MAX_*` constants, never inline numbers; angle and time-of-day wrap. Fast
   events accelerate superlinearly (`AccelPx`/`AccelMax`; never under Shift-fine) so a range wider
   than the screen is still draggable. `MeasureUI.DisplayStep` snaps the step to the roundest value
   in the unit on screen (nearest by ratio); a typed value is never quantised.
-- `HomeEditController.TypingInUI` (`GUIUtility.keyboardControl != 0`) gates every global key.
+- `ResidenceEditController.TypingInUI` (`GUIUtility.keyboardControl != 0`) gates every global key.
 
 **Layout discipline.**
 - Anything that changes a panel's **height or control count** inside `OnGUI` is deferred to
@@ -114,7 +114,7 @@ paths:
   `Section()` 14: never `GUILayout.Space(n)`. **`Header` and `Foldout` own the space above them**
   (`SectionH` in their margin): no `Gap`/`Section` before either, including before a method that
   opens with one. `Divider` carries its own 7 px. Stacked button rows get one `Gap` between them.
-  The command bar's gaps are `HomeEditController.BarGap` (= `SectionH`), counted once into the
+  The command bar's gaps are `ResidenceEditController.BarGap` (= `SectionH`), counted once into the
   reserve and spent once in the draw.
 - **Every glyph button (`✕`, `☰`, `‹`) is `UITheme.GlyphW` (26) wide**; a row sharing its line
   reserves `UITheme.GlyphReserve`. A row delete is `DangerButton`, everywhere. A small in-row action

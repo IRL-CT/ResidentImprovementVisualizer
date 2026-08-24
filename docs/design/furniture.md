@@ -21,7 +21,7 @@ walls the item is actually **against** are considered (an approach strip in fron
 thing that was tried and reverted). `FitMount` is the bounded form for wall-mounted items, because a
 grab bar hanging off the end of its own wall is not a placement.
 
-Two things differ from `HomeMetrics.FootprintOf` on purpose. `FurnitureFit.Footprint` bounds the
+Two things differ from `ResidenceMetrics.FootprintOf` on purpose. `FurnitureFit.Footprint` bounds the
 **truly rotated** rectangle instead of snapping to a quarter turn: the tool hands out 15° steps and a
 continuous slider, and at 45° the snap understates the extent by most of a diagonal. And the placement
 ghost now draws at the **fitted** position, rotated the way `Quaternion.Euler` actually rotates: it had
@@ -36,7 +36,7 @@ handful of conflicts are placed explicitly, with comments), and wall mounts do n
 `FurnitureTool.Place` wrote an `ObjectInstance` into the level and that was the last time anything
 touched it. `SelectTool` offered one rotation slider; **nothing anywhere wrote `position` or
 `boxSizeMeters` after placement**, so moving a chair 30 cm meant deleting it and clicking again.
-`HomeToolBase.LeftHeld`/`LeftReleased` had existed, unused, the whole time: nothing in HomeViz
+`ResidenceToolBase.LeftHeld`/`LeftReleased` had existed, unused, the whole time: nothing in ResidenceViz
 dragged anything.
 
 The Site tool has had the answer since long before: pick from a searchable grid, drop it, then grab /
@@ -51,16 +51,16 @@ times the size of the toilet) and `Tick(acceptInput)`.
 **Shift snaps here, and means draw free in the drawing tools.** That inversion is Site's and it is
 deliberate: drawing wants snapping by default, transforming wants free by default.
 
-Four things are HomeViz's rather than Site's:
+Four things are ResidenceViz's rather than Site's:
 
-- **Scale means resize in REAL UNITS.** `boxSizeMeters` is the item's true size: what `HomeRenderer`
+- **Scale means resize in REAL UNITS.** `boxSizeMeters` is the item's true size: what `ResidenceRenderer`
   draws, what `FurnitureFit` tests against a doorway, what the occupancy checks stand people clear of.
   A free 0.1-5× multiplier, the way Site scales a tree, would leave a 1.4×-scaled toilet reporting
   clearances for a toilet that does not exist. So the gizmo's additive scale delta is applied as a
   proportional factor to the real dimensions, the rail shows the user's chosen units, and **Reset to catalog
-  size** is always one click away. (`ObjectInstance.scale` is *not* the field: HomeViz's render path
+  size** is always one click away. (`ObjectInstance.scale` is *not* the field: ResidenceViz's render path
   has never read it.)
-- **Yaw only, no Y.** Every footprint in the app: `FurnitureFit`, `HomeMetrics`, `SelectionOverlay`,
+- **Yaw only, no Y.** Every footprint in the app: `FurnitureFit`, `ResidenceMetrics`, `SelectionOverlay`,
   the occupancy checks. Is computed from `rotationY` alone and furniture stands on `Level.elevation`,
   so an X/Z tilt or a lifted item would show on screen and in none of the numbers.
 - **The re-fit runs on RELEASE, not per frame.** `FurnitureFit` slides rather than refuses, and an
@@ -71,12 +71,12 @@ Four things are HomeViz's rather than Site's:
   window.
 - **A wall mount gets no gizmo.** It is parameterised by `(wallId, offset, side, mountHeight)`,
   there is no direction it can travel that is not along a wall, so it gets rail controls plus a drag
-  that re-hosts it onto the nearest wall. `HomeMetrics.NearestWall` is that answer, lifted out of
+  that re-hosts it onto the nearest wall. `ResidenceMetrics.NearestWall` is that answer, lifted out of
   `FurnitureTool` so placing and re-hosting cannot disagree about which side of a wall the cursor is on.
 
-`HomeRenderer.PoseFurnitureGO` is what makes a drag affordable: a drag writes the def **and** re-poses
+`ResidenceRenderer.PoseFurnitureGO` is what makes a drag affordable: a drag writes the def **and** re-poses
 the live GameObject, and only the release rebuilds. The obvious alternative (mutate and `Rebuild()`) 
-destroys and respawns every GameObject in the home each frame, and `BuildPlaceholderBox` does a
+destroys and respawns every GameObject in the residence each frame, and `BuildPlaceholderBox` does a
 `Shader.Find` and a `new Material` per item, so a drag over a furnished plan would allocate hundreds
 of materials a second. Worse, it would destroy the very object the gizmo is holding. The long-dead
 `RebuildFurniture()` is what the release calls. Spawn and re-pose go through one method, so an item a
@@ -116,8 +116,8 @@ directly, for three reasons that are each fatal on their own:
 - **Both packs are Blender exports, so every model faces −Z**, while `PlanBuilder.YawFacingInto` is
   explicit that *"rotationY = 0 looks down +Z"*.
 
-So `Assets/Editor/CatalogArtBinder.cs` (**Tools → HomeViz → Catalog Art Binder**) generates one
-wrapper per bound id at `Assets/Prefabs/HomeViz/Catalog/<id>.prefab`: an unscaled, floor-pivoted root
+So `Assets/Editor/CatalogArtBinder.cs` (**Tools → ResidenceViz → Catalog Art Binder**) generates one
+wrapper per bound id at `Assets/Prefabs/ResidenceViz/Catalog/<id>.prefab`: an unscaled, floor-pivoted root
 carrying `CatalogArtFit`, an `Art` child holding the baked fit scale and pivot offset, and the pack
 prefab nested inside that with a quarter-turn yaw. **Yaw sits inside the scaled node**, because Unity
 applies `localScale` before `localRotation` on one transform and a non-quarter turn under a non-uniform
@@ -127,7 +127,7 @@ parent scale is a shear: the binder refuses any yaw that is not a multiple of 90
 artifact and regenerating overwrites it; `CatalogArtFit.handTuned` is the escape hatch for a one-off.
 
 **The fit stretches each axis independently** to the exact catalog size, matching what the placeholder
-box does, so the picture keeps agreeing with the numbers `FurnitureFit` and `HomeMetrics` report. The
+box does, so the picture keeps agreeing with the numbers `FurnitureFit` and `ResidenceMetrics` report. The
 cost is distortion when a donor's proportions differ, which the binder reports as a **squash** figure
 (1.00 = undistorted) and which is what picks the donors: `Measure Family` ranks a whole folder on it,
 turning 50 candidates into a dozen before any screenshot is taken. Donors were chosen best-fit-first
@@ -174,13 +174,13 @@ the placeholder box straddles it, so half an item's depth is inside the wall. In
 bar, 165 mm on a 0.33 m wall cabinet. Hence `PivotZ.Back` on that row. The proper fix is to push the
 placeholder, the ghost and `MountPose` out by half the depth together.
 
-## The registry was split: `HomeCatalogRegistry.asset`
+## The registry was split: `ResidenceCatalogRegistry.asset`
 
 `Assets/Resources/PrefabRegistry.asset` is **not** touched, and must not be: besides `WorldRenderer`,
 `EditController` renders its `entries` as the Site tool's **Place → Objects** thumbnail grid and its
 **Paint Objects** brush list. Twenty-one interior rows there would put a sofa and a toilet in the site
-editor's object palette. `HomeRenderer.prefabRegistry` in `HomeViz.unity` points at
-`Assets/Resources/HomeCatalogRegistry.asset` instead, which the binder owns outright, which is also
+editor's object palette. `ResidenceRenderer.prefabRegistry` in `ResidenceViz.unity` points at
+`Assets/Resources/ResidenceCatalogRegistry.asset` instead, which the binder owns outright, which is also
 what makes regeneration a safe wholesale rewrite.
 
 Adding art for one of the remaining 14 is a row in `Rows` plus a regenerate. Nothing about the schema

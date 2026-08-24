@@ -1,7 +1,7 @@
 ---
 paths:
   - "Assets/Scripts/**/Sensor*.cs"
-  - "Assets/Scripts/HomeViz/Tools/MonitorTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/MonitorTool.cs"
   - "Assets/Resources/SensorCatalog.asset"
   - "Assets/Resources/SmartHomeTechnology/**"
   - "docs/SMARTHOME.md"
@@ -19,11 +19,11 @@ July 2025), mapped section by section in [`docs/SMARTHOME.md`](../../docs/SMARTH
 figure is worse than none.
 
 - **Catalog (`SensorCatalog.asset`): 25 items = 16 sensing devices + 9 everyday aids.** The stage is
-  `HomeStage.SmartLiving`, the tool is Equipment, but **`LevelDef.sensors`, `SensorDef`, the asset,
+  `ResidenceStage.SmartLiving`, the tool is Equipment, but **`LevelDef.sensors`, `SensorDef`, the asset,
   the tool id `"sensor"` and the `Sensor*.cs` files keep their names** (renaming drops the layer out
-  of saved homes / moves a GUID / breaks `StageOf`). An aid is a `SensorDef` with `coverageRadius = 0`
+  of saved residences / moves a GUID / breaks `StageOf`). An aid is a `SensorDef` with `coverageRadius = 0`
   and no `DefaultRules` ⇒ `SensorOverlay`, `SensorSim`, `SensorRules`, `SensorCoverage` ignore it;
-  **no figure about what the home can see moves when an aid is installed**. `provenance` and
+  **no figure about what the residence can see moves when an aid is installed**. `provenance` and
   `speculative` stay as **data only**: the rail/console ⚠ glyphs and the report's per-row notes were
   removed on request, and no user-facing surface prints them; `SensorPrivacy.None` ("Not connected")
   ranks 0 tied with `Passive`. `SensorTool.RaisesAlerts` scopes the duplicate guard to devices that
@@ -63,7 +63,7 @@ figure is worse than none.
   beside the result.
 - **`MonitorTool`** filters by role through `SensorPrivacy` (`video_doorbell` is the only Video
   device); responses are console state, never document state.
-- `HomeRenderer` draws each device as a labeled box with a material per device (`UpdateSensorStates`
+- `ResidenceRenderer` draws each device as a labeled box with a material per device (`UpdateSensorStates`
   tints idle / active / alerting; `ReportCapture` freezes them idle). `TimelineBar` has an alert lane.
   `SensorOverlay` is controller-owned.
 - **The package tiers are gone** (`SensorPackages.Missing`/`Label`/`Describe` deleted); **`Recommend`

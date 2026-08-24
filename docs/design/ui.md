@@ -23,7 +23,7 @@ generated plan with no click at all. **Structure** names what the stage produces
 which was deleted precisely because nothing here can check a claim about the building. The tab is the
 shell of the dwelling, not a load-bearing assertion about it.
 
-`HomeWorkflow.Label` is `stage.ToString()`, so the enum member IS the tab label. Renaming the member
+`ResidenceWorkflow.Label` is `stage.ToString()`, so the enum member IS the tab label. Renaming the member
 is the whole change, and there is no second table of display names to fall out of step with it.
 `Structure` is 9 characters, the longest label in the bar, so it is the first one `UITheme.FitAll`
 shortens below about 1100 px; `StageTips` leads a shortened tab's tooltip with the full name, which is
@@ -33,7 +33,7 @@ the mechanism that already existed for exactly this.
 
 `Select` used to lead every stage's tool array. It is the pointer, not a phase of work, but as a chip
 it was drawn six times, took digit `1` away from every stage, and still put the inspector off to one
-side of whatever else was on screen. It is now `HomeStage.Select`, first in the enum and first in the
+side of whatever else was on screen. It is now `ResidenceStage.Select`, first in the enum and first in the
 bar, and `PrimaryToolId` collapses to `ToolIdsFor(stage)[0]`. **Review therefore opens on Compare**,
 not on the pointer: the exception that rule used to carry now has a tab of its own.
 
@@ -43,13 +43,13 @@ Two consequences worth knowing:
   drawing a lone permanently-active chip that cannot do anything. Draw and Review keep a chip row. Combined
   with dropping the stage header and tool header the rail used to reprint: both already highlighted in
   the command bar: the rail for most stages now opens directly on the tool's own controls.
-- **`HomeEditController.TryAutoSelect`** carries you to the tab: clicking a piece of furniture, a wall
+- **`ResidenceEditController.TryAutoSelect`** carries you to the tab: clicking a piece of furniture, a wall
   mount or a resident from any other tab selects it and switches. It runs *before* the active tool and
-  sets `HomeToolContext.ClickConsumed`, which `HomeToolBase.LeftClicked` reads: one line, so all nine
-  tools respect it without knowing it exists. `IHomeTool.ClaimsClicks` opts a tool out (always for
+  sets `ResidenceToolContext.ClickConsumed`, which `ResidenceToolBase.LeftClicked` reads: one line, so all nine
+  tools respect it without knowing it exists. `IResidenceTool.ClaimsClicks` opts a tool out (always for
   Opening/Furniture/People/Outdoor, only mid-run for Wall/Room, only mid-wizard for Underlay).
 
-  **The whitelist is load-bearing.** `RoomMeshBuilder` gives every floor a `HomeElementMarker`, so
+  **The whitelist is load-bearing.** `RoomMeshBuilder` gives every floor a `ResidenceElementMarker`, so
   admitting `Floor`/`Room`/`Ceiling` would make every click inside an existing room select the floor
   instead of placing a wall corner: a bug that would read as "the wall tool stopped working". Walls
   and openings are excluded too, because clicking a wall is what the doors and windows tool is *for*.
@@ -143,12 +143,12 @@ published. `UITheme` now keeps a small stack of it, maintained by `BeginPanel`/`
 `BeginScroll`, and read by everything that has to fit.
 
 - **`BeginScroll` can never grow a horizontal scrollbar.** It passes `GUIStyle.none` as the horizontal
-  scrollbar: the idiom the legacy Site rail and `FurnitureTool` already used, which HomeViz's own two
+  scrollbar: the idiom the legacy Site rail and `FurnitureTool` already used, which ResidenceViz's own two
   rails never adopted: *and* reserves `ScrollbarW` (16). Both halves are needed: without the reserve,
   content laid out to the full view width overflows by exactly the vertical bar's width the moment
   that bar appears, which is a horizontal scrollbar appearing from nowhere.
 - **`StateRow` wraps.** `_rowTitle` was explicitly `wordWrap = false`, and it draws every list title in
-  the app. Home names, sample names, occupant names, proposal names, `VariantDiff` change labels, all
+  the app. Residence names, sample names, occupant names, proposal names, `VariantDiff` change labels, all
   of them data. The two five-bedroom samples ship 37-character names in a box that holds 28, so they
   were cut mid-glyph with no ellipsis and no tooltip. It now wraps, and `StateRow` passes an explicit
   width, which is the other half: a word-wrapped label with no width still asks for its full natural
@@ -201,7 +201,7 @@ scrollbar is now accounted for once, before any of the three is drawn.
 
 ## Which of the two jobs you are doing: `ModeBand`
 
-HomeViz is two editors wearing one face. **Correcting the record**. Making the model match the home
+ResidenceViz is two editors wearing one face. **Correcting the record**. Making the model match the residence
 that actually exists, and **proposing a change** to it are different acts with different
 consequences, and the app used to look identical in both.
 
@@ -215,8 +215,8 @@ malfunction rather than as an answer. Switching variants meant: go to Review, sc
 
 | `isBaseline` | `locked` | Reads | Actions |
 |---|---|---|---|
-| yes | yes | `EXISTING HOME · LOCKED`, slate | `Correct the record`, `Propose a change` |
-| yes | **no** | `RECORDING THE EXISTING HOME`, **amber** | `Done. Lock the record` |
+| yes | yes | `EXISTING RESIDENCE · LOCKED`, slate | `Correct the record`, `Propose a change` |
+| yes | **no** | `RECORDING THE EXISTING RESIDENCE`, **amber** | `Done. Lock the record` |
 | no | no | `PROPOSAL A ▾ · 11 CHANGES`, accent | `Compare`, `Report` |
 | no | yes | as above plus a `Locked` badge | `Unlock`, then as above |
 
@@ -234,7 +234,7 @@ unlocked baseline is the reason the band exists.
 "Design options" named neither, which is why that label is gone.
 
 Mechanically it follows `TimelineBar` and `SelectionOverlay` exactly: a plain class the controller
-owns and draws from `OnGUI`, everything re-derived per frame (undo restores the whole `HomeDoc`
+owns and draws from `OnGUI`, everything re-derived per frame (undo restores the whole `ResidenceDoc`
 without notifying anyone, so a held `VariantDef` would describe a variant that no longer exists). Two
 things it must keep:
 
@@ -244,16 +244,16 @@ things it must keep:
   `_pendingTimelineToggle`. Expanding the band into its variant list changes its height *and* its
   control count, which mid-`OnGUI` is the `Mismatched LayoutGroup` this file's whole deferral
   discipline exists to prevent. `RequestVariant` and `RequestReport` are deferred for the same reason
-a variant switch rebuilds every GameObject in the home, and a report renders a camera.
+a variant switch rebuilds every GameObject in the residence, and a report renders a camera.
 
 It draws **no subtitle**, deliberately. Per the no-prose rule below, the explanation is the title's
-tooltip; a band printing "how the home actually is today" under its own heading would be exactly the
+tooltip; a band printing "how the residence actually is today" under its own heading would be exactly the
 paragraph the rest of the UI had just removed.
 
 
 ## A control names itself; only sentences live on hover: `UITooltip`
 
-**Nothing in HomeViz prints a sentence any more.** Every caption, every hint, every paragraph is a
+**Nothing in ResidenceViz prints a sentence any more.** Every caption, every hint, every paragraph is a
 hover tooltip. The one exception is content the panel exists to show: the variant change list (what
 gets read aloud in a meeting), a sample's blurb, a library row's version, a person's own note.
 
@@ -359,7 +359,7 @@ rectangle.** A blank panel reads as a bug, and a message nobody can reach is wor
 - The calibration wizard gets `UITheme.Step(n, 3, instruction)` (a compact `1 / 3` indicator) **and**
   the prompt mirrored at the cursor over the image via `OverlayDraw.Readout`, which is where you are
   actually looking while the app waits for a click. Stage 1 previously had nothing on the image at all.
-- Empty states are the action button already in the panel ("New home", "Start from a floor plan",
+- Empty states are the action button already in the panel ("New residence", "Start from a floor plan",
   "+ Add person"), carrying the sentence as its tooltip.
 - The reset confirmation puts its cost in the **button's own label** (`Reset, discards 3 proposals`).
   A count is not a subtitle, and a destructive button that states its price beats one that does not.
@@ -383,7 +383,7 @@ outline is the whole reason this file exists.
 
 Two placement decisions, both load-bearing and both the same shape as the `OccupancyClock` one:
 
-- **Not in a tool.** `HomeEditController` gates `IHomeTool.DrawOverlay` on `!PointerOverUI`, so an
+- **Not in a tool.** `ResidenceEditController` gates `IResidenceTool.DrawOverlay` on `!PointerOverUI`, so an
   overlay drawn from `SelectTool` blanks the instant the cursor reaches the rail, which is exactly
   where the cursor goes to read the inspector describing what was just selected. It is drawn from the
   controller, outside that guard and *before* the tool overlay so a live preview stays on top.
@@ -392,7 +392,7 @@ Two placement decisions, both load-bearing and both the same shape as the `Occup
   tool, and needs no scene wiring to do it.
 
 Everything is re-derived from the schema every frame rather than cached, because undo restores the whole
-`HomeDoc` without notifying anyone: a cached `WallDef` would be a stale object outlining a wall that no
+`ResidenceDoc` without notifying anyone: a cached `WallDef` would be a stale object outlining a wall that no
 longer exists. The handle layer will have to hold ids for the same reason.
 
 `OverlayDraw` grew `Polyline`, `Haloed` and `Handle` for this. `Haloed` draws the outline twice, a wide
@@ -408,7 +408,7 @@ drawn a **second** time as a readout chip over the scene. Below that, the inspec
 exact-entry fields (`12' 6"`) for X/Z position and for W/D/H, on top of the sliders that already set
 the same three dimensions.
 
-That is an *audit* reading of the tool. The work it is actually for is arranging a home so a wheelchair
+That is an *audit* reading of the tool. The work it is actually for is arranging a residence so a wheelchair
 fits through it, and that is done by looking at the plan. So the order inverted: **name first, controls
 second, figures last**, as one muted `UITheme.MutedLine` above Delete. Nothing was lost: every number
 is still exact and still on screen. It simply stopped being the first thing said.
@@ -423,14 +423,14 @@ nothing at all.
 Four things this needs that the old arrangement did not:
 
 - **The summary is RETURNED by each `Draw*`, not drawn by it.** Four of the six return early when the
-  variant is locked, and locked is the **default** state of every home in the library: a line emitted
+  variant is locked, and locked is the **default** state of every residence in the library: a line emitted
   inside them would have been invisible in the common case. `DrawRail` collects the `(line, tip)` pair
   and emits it after the switch, which is also what keeps it below the controls rather than above them.
 - **The step-free badge stays a badge.** It is a verdict, not a figure, and it is the one thing about a
   doorway worth seeing without reading. Folding it into the summary line would have buried the single
   most consequential fact the inspector knows.
 - **The turning circle is gone from the rail, the scene and the report**, and survives only in
-  `MeasureTool`. `HomeMetrics.LargestInscribedCircle` is *not* dead and must not be removed:
+  `MeasureTool`. `ResidenceMetrics.LargestInscribedCircle` is *not* dead and must not be removed:
   `OccupancyModel` stands people with it and `ViewController.StandableStart` spawns the walkthrough
   with it. Only the display call sites went.
 - **`MeasureField` and `DrawMoveControls` are deleted.** Typing a raw X/Z coordinate was never how
@@ -514,7 +514,7 @@ button enough times drove wall thickness, opening height and walkway width negat
 anywhere complaining. `Settle` clamps, or *wraps* for the two circular ranges: an angle and a time of
 day: where 359 degrees to 1 is two degrees of travel rather than a 358-degree spring back.
 
-Two consequences worth knowing. **`HomeEditController.TypingInUI` had to exist**: `HandleGlobalKeys`
+Two consequences worth knowing. **`ResidenceEditController.TypingInUI` had to exist**: `HandleGlobalKeys`
 and `SelectTool.HandleTransformKeys` read digits, Esc, F, arrows and Z/X unconditionally, which was a
 latent bug (typing `z` into a room name rotated the selected chair) and becomes a constant one with
 ~25 focusable fields in the rail. `ViewController` and the legacy `EditController` have each declared
@@ -524,12 +524,12 @@ at all. Those chips are now **gone**, in both rails: a measured field had been a
 them, so one dimension was offered twice in two idioms, and the five sizes people ask for are not the
 sizes buildings have. 32" and 36" are ADA spec *names* rather than measurements and that is still
 true. It just belongs in the tooltip and the clear-passage readout, not in a control that cannot
-express a 34 1/2" doorway measured off a real home.
+express a 34 1/2" doorway measured off a real residence.
 
 ## The units chip, and why the default is metres
 
-`HomeSettings.metricUnits` has existed since the store was written and is wired to `Units.Display`
-through `HomeStore.ApplySettings`. **It had no UI**, so the only way to switch was to hand-edit
+`ResidenceSettings.metricUnits` has existed since the store was written and is wired to `Units.Display`
+through `ResidenceStore.ApplySettings`. **It had no UI**, so the only way to switch was to hand-edit
 `settings.json`.
 
 Worse, the app was showing *both* systems at once. The old `UITheme.ValueStepper` and `ValueSlider`
@@ -547,7 +547,7 @@ chip is one click away. What changed is that numbers are now *dragged*, and a va
 A unit you can read while it moves beats one you can quote afterwards.
 
 A plain default only reaches new installs: every `settings.json` already on disk records the old
-imperial default explicitly, so `HomeStore.MigrateSettings` carries `unitsDefaultVersion` and flips
+imperial default explicitly, so `ResidenceStore.MigrateSettings` carries `unitsDefaultVersion` and flips
 those over once. It is the one place here that overwrites a stored preference, and it is a move of the
 DEFAULT rather than of the user's choice: the chip still switches back, and the version guard means it
 never fires twice.
@@ -597,7 +597,7 @@ literals kept in step by hand. Every `✕` is `GlyphW` wide (they were 24, 26 an
 checkbox, two were a lit chip and one a chip whose label changed with its state. `UITheme.Toggle` is
 one labelled row in the fields' own chrome (name left, `●`/`○` in the gutter, tint wash when on) 
 so a setting lines up with the number above it. The timeline's scrubber was the last
-`HorizontalSlider` in HomeViz, beside a read-only time: the one number you could not type. It is a
+`HorizontalSlider` in ResidenceViz, beside a read-only time: the one number you could not type. It is a
 `MeasureUI.Time` field now (six pixels a quarter-hour makes the row's width most of a day; Ctrl is
 coarser), the ruler jumps to a click (that used to expand the bar, which is the chevron's job) and
 the speed chip wraps instead of sticking at the top after four presses. The two typed-length paths
@@ -632,7 +632,7 @@ themselves every time the clock moves someone and assigning `TextMesh.text` rege
 
 ### …and a label nobody can read is not drawn at all
 
-Every item, every device and every resident carries one, so a five-bedroom home draws well over a
+Every item, every device and every resident carries one, so a five-bedroom residence draws well over a
 hundred names at once. Pulled back far enough to see the whole dwelling they overlap into a band of
 grey mush that hides the plan they are annotating and cannot be read anyway. So `LabelBillboard` hides
 a label once it would draw shorter than `minPixelHeight` (11 px) on screen, and re-shows it on the way
@@ -668,9 +668,9 @@ Two things follow from the shape of a label rather than from the rule:
 Every key the app reads was already gated on `GUIUtility.keyboardControl != 0`, and it still
 happened: a name typed into the People rail panned the overview. The guard was read from `Update`,
 and in the Editor that static is only dependably the game view's focus state *inside* an OnGUI pass,
-read between passes it can answer for whichever IMGUI context last ran. So `HomeEditController`
+read between passes it can answer for whichever IMGUI context last ran. So `ResidenceEditController`
 latches it once per `OnGUI` (exactly the arrangement `PointerOverUI` has always had), and
-`ViewController` and `HomeToolBase.KeyDown` read the latch. The tools gained the gate at the same
+`ViewController` and `ResidenceToolBase.KeyDown` read the latch. The tools gained the gate at the same
 time: their `HandleInput` runs only with the cursor off the rails, but a field keeps focus wherever
 the cursor goes, so Z/X, Delete and the wall tool's typed digits fired under a focused field.
 
@@ -694,7 +694,7 @@ already had) and the opening row is named `Add`, so it reads "Add · Door". The 
 floor's rooms as `StateRow`s instead of a lone glyph that said "click inside a room" only on hover.
 Furnish's and Smart living's `Show` was the last leading chip-row label, the pattern `DrawStageTools`
 had already dropped for `Tool`. And the unselected `StateRow`: every resident, room, proposal and
-home in the app. Was clickable borderless text; it carries the white-field + rim surface now, with
+residence in the app. Was clickable borderless text; it carries the white-field + rim surface now, with
 the People rail adding a `›` so a row visibly opens something.
 
 ## Heights have to include the margin

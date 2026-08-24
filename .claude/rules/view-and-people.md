@@ -1,15 +1,15 @@
 ---
 paths:
-  - "Assets/Scripts/HomeViz/ViewController.cs"
-  - "Assets/Scripts/HomeViz/HomeRenderer.cs"
-  - "Assets/Scripts/HomeViz/OccupancyClock.cs"
-  - "Assets/Scripts/HomeViz/TimelineBar.cs"
-  - "Assets/Scripts/HomeViz/LabelBillboard.cs"
-  - "Assets/Scripts/HomeViz/InteriorMaterialPalette.cs"
+  - "Assets/Scripts/ResidenceViz/ViewController.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceRenderer.cs"
+  - "Assets/Scripts/ResidenceViz/OccupancyClock.cs"
+  - "Assets/Scripts/ResidenceViz/TimelineBar.cs"
+  - "Assets/Scripts/ResidenceViz/LabelBillboard.cs"
+  - "Assets/Scripts/ResidenceViz/InteriorMaterialPalette.cs"
   - "Assets/Scripts/Authoring/Interior/OccupancyModel.cs"
   - "Assets/Scripts/Authoring/Interior/OccupantTypes.cs"
   - "Assets/Scripts/Authoring/Interior/Clock.cs"
-  - "Assets/Scripts/HomeViz/Tools/PeopleTool.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/PeopleTool.cs"
   - "Assets/Materials/Interior/**"
   - "Assets/Resources/InteriorMaterialPalette.asset"
 ---
@@ -22,7 +22,7 @@ paths:
 
 There is **no tonemapping**, so anything over 1.0 clips per channel. Ambient is tuned so an up-facing
 surface totals about **0.83×** (sun 52°, N·L 0.788): **do not raise the sun back to 1.1**; the
-headroom is what the palette spends. Every material here is HomeViz-only (referenced by
+headroom is what the palette spends. Every material here is ResidenceViz-only (referenced by
 `InteriorMaterialPalette.asset` and the scene's `GroundPad`).
 
 | Surface | Albedo | Renders about | L\* |
@@ -70,9 +70,9 @@ against (ΔE contract in `.claude/rules/walls-and-rooms.md`); it does not move.
   walkthrough keys.
 - **`ClampLift` bounds the camera, not the pivot**, re-run every frame; the upper cap moves onto the
   eye when looking up.
-- `FocusOn(point, closeUp)` only ever tightens (5 m). `HomeEditController.FocusElement` is the single
+- `FocusOn(point, closeUp)` only ever tightens (5 m). `ResidenceEditController.FocusElement` is the single
   entry point (roster rows, **F**); clicking a marker in the plan does not focus.
-- **Only the shell is solid**: `HomeRenderer.PickOnly` marks every pick-only subtree (opening
+- **Only the shell is solid**: `ResidenceRenderer.PickOnly` marks every pick-only subtree (opening
   handles, furniture, occupants, devices) `isTrigger`; `Physics.RaycastAll` still hits them.
   `EnterWalkthrough` sets `skinWidth` to a tenth of the radius, `minMoveDistance` 0, and spawns at
   `StandableStart` (centre of the room's largest inscribed circle).
@@ -93,14 +93,14 @@ against (ΔE contract in `.claude/rules/walls-and-rooms.md`); it does not move.
   taller than 0.15 m; `TryFindClearSpot` grids from the inscribed centre and **relaxes rather than
   refusing** (smaller radius, then zero). `WheelchairRadius` is 0.45. Several people in one room fan
   onto a ring; co-anchored people spread along the item. The grid search is memoised per `LevelDef`
-  (`InvalidateCache` from `HomeRenderer` on rebuild).
-- **`OccupancyClock` is a plain class held by `HomeRenderer`**, ticked from its `Update`. Not in a
+  (`InvalidateCache` from `ResidenceRenderer` on rebuild).
+- **`OccupancyClock` is a plain class held by `ResidenceRenderer`**, ticked from its `Update`. Not in a
   tool (gated on `!PointerOverUI`) and not in the document (undo/dirty). `Advance` returns true only
   on a whole-minute change; `UpdateOccupantPoses` writes transforms on cached markers, no teardown.
 - Markers are tinted capsules with name + activity; `usesWheelchair` gives a seated marker over a
   wheelchair-sized pad. No walking, no animation.
 - **`TimelineBar`** is a permanent full-width strip along the bottom (plain class, drawn from
-  `HomeEditController.OnGUI`, everything derived). Collapsed `CollapsedHeight` (114 px: hour ruler, a
+  `ResidenceEditController.OnGUI`, everything derived). Collapsed `CollapsedHeight` (114 px: hour ruler, a
   3 px lane per person up to four, the alert lane, the transport: each a named constant, summed);
   expanded it is **`ExpandedHeight(n)`**: exactly one 46 px row per person, capped at 0.55 × the
   window, past which the rows scroll. **Its rect is in `PointerOverUI`**; the toggle is deferred

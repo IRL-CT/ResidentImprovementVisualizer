@@ -1,19 +1,19 @@
 ---
 paths:
-  - "Assets/Scripts/HomeViz/Tools/**"
-  - "Assets/Scripts/HomeViz/HomeWorkflow.cs"
-  - "Assets/Scripts/HomeViz/HomeEditController.cs"
-  - "Assets/Scripts/HomeViz/HomeToolContext.cs"
+  - "Assets/Scripts/ResidenceViz/Tools/**"
+  - "Assets/Scripts/ResidenceViz/ResidenceWorkflow.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceEditController.cs"
+  - "Assets/Scripts/ResidenceViz/ResidenceToolContext.cs"
 ---
 
 # Workflow stages and tools
 
 > Loaded when a file under the paths above is read. Rules only: the reasoning is in the design note linked at the end. Edit this file when a rule changes; update CLAUDE.md only if something every session needs moves.
 
-## Workflow stages: `Assets/Scripts/HomeViz/HomeWorkflow.cs`
+## Workflow stages: `Assets/Scripts/ResidenceViz/ResidenceWorkflow.cs`
 
 The command bar selects a **stage**; the right rail shows that stage's tools. The stage is a field on
-`HomeEditController`; `HomeWorkflow` is just the table. `HomeWorkflow.Label` is the enum member split
+`ResidenceEditController`; `ResidenceWorkflow` is just the table. `ResidenceWorkflow.Label` is the enum member split
 at each capital: **the enum member IS the tab label**, there is no second table of names.
 
 | Stage | Tools | |
@@ -25,12 +25,12 @@ at each capital: **the enum member IS the tab label**, there is no second table 
 | **Smart living** | Equipment, Monitor | Sensing devices, everyday aids, and the grab bars that go with them. After Furnish because a device hosts on an element. |
 | **People** | People | Who lives here and what their day is. Expands the timeline bar; leaving collapses it. |
 | **Review** | Compare, Measure | Opens on **Compare**. |
-| **Outdoors** | Outdoors | **Absent unless `HomeDoc.exteriorEnabled`.** |
+| **Outdoors** | Outdoors | **Absent unless `ResidenceDoc.exteriorEnabled`.** |
 
 - **Select is a tab, not a chip.** `PrimaryToolId` is `ToolIdsFor(stage)[0]`; the rail's tool picker
-  is a `UITheme.Segmented` control (deferred via `RequestTool`), and stages with one tool draw none. `HomeEditController.TryAutoSelect` carries a click on furniture, a wall mount or a
+  is a `UITheme.Segmented` control (deferred via `RequestTool`), and stages with one tool draw none. `ResidenceEditController.TryAutoSelect` carries a click on furniture, a wall mount or a
   resident to the Select tab from any other tab; it runs before the active tool and sets
-  `HomeToolContext.ClickConsumed`, which `HomeToolBase.LeftClicked` reads. `IHomeTool.ClaimsClicks` opts
+  `ResidenceToolContext.ClickConsumed`, which `ResidenceToolBase.LeftClicked` reads. `IResidenceTool.ClaimsClicks` opts
   a tool out (always for Opening/Furniture/People/Outdoor, mid-run for Wall/Room, mid-wizard for
   Underlay). **The whitelist is load-bearing**: admitting `Floor`/`Room`/`Ceiling` would make every
   click inside a room select the floor instead of placing a wall corner; walls and openings are
@@ -44,11 +44,11 @@ at each capital: **the enum member IS the tab label**, there is no second table 
 
 → [`docs/design/ui.md`](../../docs/design/ui.md)
 
-## Tools: `Assets/Scripts/HomeViz/Tools/`
+## Tools: `Assets/Scripts/ResidenceViz/Tools/`
 
-Each tool is one file implementing `IHomeTool`, registered in `HomeEditController.Awake` and placed in
-a stage by `HomeWorkflow`. Each carries a **`Hint`**: the how-to sentence, surfaced as the tooltip of
-its tab (`HomeEditController.StageTips`) and its chip.
+Each tool is one file implementing `IResidenceTool`, registered in `ResidenceEditController.Awake` and placed in
+a stage by `ResidenceWorkflow`. Each carries a **`Hint`**: the how-to sentence, surfaced as the tooltip of
+its tab (`ResidenceEditController.StageTips`) and its chip.
 
 | Tool | What it does |
 |---|---|

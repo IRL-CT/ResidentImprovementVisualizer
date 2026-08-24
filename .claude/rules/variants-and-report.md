@@ -2,8 +2,8 @@
 paths:
   - "Assets/Scripts/Authoring/Interior/VariantDiff.cs"
   - "Assets/Scripts/Authoring/Interior/VariantRevert.cs"
-  - "Assets/Scripts/HomeViz/Report/**"
-  - "Assets/Scripts/HomeViz/Tools/CompareTool.cs"
+  - "Assets/Scripts/ResidenceViz/Report/**"
+  - "Assets/Scripts/ResidenceViz/Tools/CompareTool.cs"
   - "Assets/Tests/EditMode/VariantDiffTests.cs"
 ---
 
@@ -25,16 +25,16 @@ paths:
   `SelectTool.DeleteSelected`.
 - **`CompareTool`** rows are grouped by room; click selects + focuses with `reveal: false`; ✕ reverts
   undoably; `VariantDef.description` is edited here and heads the report.
-- **The ghost** (`HomeRenderer._ghostVariantId`/`_ghostOn`) is re-applied last in every `Rebuild`
+- **The ghost** (`ResidenceRenderer._ghostVariantId`/`_ghostOn`) is re-applied last in every `Rebuild`
   and after the targeted rebuilds. Red from the *other* variant where things **were**, green from
   this one where they **are**; `Modified` feeds both halves, gated by `GeometryDiffers`. **Two**
   translucent materials (`_Surface`, blend pair, **ZWrite off**), ghost meshes in `_ghostMeshes`,
   **no colliders**. The diff is against the variant being **rendered** (Compare switches the view to
   its After when the chip goes on). **On by default in Review**: `CompareTool.Enter` brings the view
-  to After and turns it on; `HomeEditController.SetStage` turns it off on leaving the Review stage
+  to After and turns it on; `ResidenceEditController.SetStage` turns it off on leaving the Review stage
   (Compare ↔ Measure keeps it); the toggle in the rail still overrides either way. Openings are
   deliberately absent from the ghost.
-- **The report** (`Assets/Scripts/HomeViz/Report/`): self-contained HTML with a print stylesheet
+- **The report** (`Assets/Scripts/ResidenceViz/Report/`): self-contained HTML with a print stylesheet
   (`@page` is the PDF half); `ReportDoc` is the model. `ReportCapture`: a **hidden camera, never
   `ScreenCapture`**; **never from `OnGUI`**; **one rebuild per (variant, storey)**, every framing taken
   from it; **framed over the union of both variants' bounds**; occupants, ghost, selection and sensor

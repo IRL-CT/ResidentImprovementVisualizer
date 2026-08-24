@@ -50,7 +50,7 @@ three shades of one near-white and the model had no silhouette. This is a second
 from the clipping one: the headroom argument above is satisfied at 0.96, and 0.96 was still wrong.
 
 That pass took them to 0.72 and 0.76, and a **third** constraint took them the rest of the way down to
-**0.50 and 0.55**: *the text drawn over a wall has to be readable on it*. `HomeRenderer.AddLabel` names
+**0.50 and 0.55**: *the text drawn over a wall has to be readable on it*. `ResidenceRenderer.AddLabel` names
 every item, device and resident in near-white (0.98) with `LabelOutline`'s dark stroke, and the most
 common thing behind a label is the wall directly behind the furniture it names, which is the whole
 reason that label is light rather than ink in the first place. At L\* 66 the paint was near enough to
@@ -64,7 +64,7 @@ visible surface of a wall, so it is the tone every floor is measured against, an
 stated against it. Lowering the faces to 0.50 leaves ~11 points of L\* between face and cap, which is
 still a clear step, and squeezing the cap down after them would run it into the 0.20 ground pad.
 
-Every material in that table is HomeViz's alone: `Ground_Pad` is used only by the scene's `GroundPad`,
+Every material in that table is ResidenceViz's alone: `Ground_Pad` is used only by the scene's `GroundPad`,
 and `Wall_Edge`, `Paint_White`, `Paint_Warm`, `Tile_Bath` and `Ceiling_White` are referenced by nothing
 but `InteriorMaterialPalette.asset`, so the legacy Site scenes are untouched by construction, the same
 split `MeasureUI` keeps for units.
@@ -96,16 +96,16 @@ second set of camera rules (`UpdatePlan`, `_orthoSize`, `FOCUS_ORTHO`, the ortho
 `FrameContent` and `FocusOn`) to keep in step with the orbit path forever; and: the one that decided it
 a **default state in which the camera cannot be turned at all**, which is the first thing anybody
 tries. Someone who wants the true orthographic reading of a plan has one that is better than a live
-camera: the report's plan shot, which is orthographic, framed on the whole home, and printable.
+camera: the report's plan shot, which is orthographic, framed on the whole residence, and printable.
 
 So `Mode.Plan` is **deleted rather than deprecated**, on the `WallDef.structural` precedent, and
 `Mode.Overview` leads the enum, which is what makes it the default: `Start` calls `SetMode(Mode.Overview)`,
-and `HomeViz.unity`'s camera is serialized perspective so the first frame is not orthographic either.
+and `ResidenceViz.unity`'s camera is serialized perspective so the first frame is not orthographic either.
 `ViewController` no longer sets `cam.orthographic` to true anywhere.
 
 **`ReportCapture` still takes an orthographic plan shot, and must.** It owns its own hidden camera
 (`ReportCapture.Plan`), which was never `ViewController`'s mode: the report leads on a top-down image of
-the whole home, and that is a framing decision about a document rather than a way of looking around one.
+the whole residence, and that is a framing decision about a document rather than a way of looking around one.
 
 `_pivot` therefore carries a live Y, and every path now reads it.
 
@@ -158,12 +158,12 @@ the centre, and that warp arrives as one large delta that would snap the view a 
 `ViewController` used to poll `isPressed`, so a press landing on a rail also drove the camera, and
 scrolling a list zoomed. It now takes `EditController`'s rule: a drag only **begins** in the 3D view,
 and once begun keeps going wherever the cursor travels. That distinction is load-bearing,
-`HomeEditController`'s gizmo tick is deliberately *not* gated outright, because the handles must keep
-up with a look already in flight. Reading `PointerOverUI` needs a `HomeEditController` reference,
-found in `Awake` the way `homeRenderer` is, so no scene wiring changed.
+`ResidenceEditController`'s gizmo tick is deliberately *not* gated outright, because the handles must keep
+up with a look already in flight. Reading `PointerOverUI` needs a `ResidenceEditController` reference,
+found in `Awake` the way `residenceRenderer` is, so no scene wiring changed.
 
 `TypingInUI` (`GUIUtility.keyboardControl != 0`, `EditController`'s idiom) now guards `KeyPan`,
-`KeyLift` and the walkthrough's keys. HomeViz had no equivalent, so typing `wardrobe` into any field
+`KeyLift` and the walkthrough's keys. ResidenceViz had no equivalent, so typing `wardrobe` into any field
 flew the camera, which stopped being a curiosity the moment WASD flew rather than nudged.
 
 ### The descent limit is on the camera, not the pivot
@@ -186,7 +186,7 @@ plain eye cap in both directions is the obvious simplification and it is wrong: 
 
 **Focus.** `FocusOn(point, closeUp)` centres the overview camera and, with `closeUp`, pulls in to
 5 m. It only ever *tightens*: someone already studying a bathroom must not be yanked backwards by
-asking where a resident is. `HomeEditController.FocusElement` is the single entry point: the People
+asking where a resident is. `ResidenceEditController.FocusElement` is the single entry point: the People
 view's roster row, the People tool's rail roster, and **F** (frame the current selection) all go
 through it, and it reports why nothing happened: a resident who is out has no marker to point at,
 and the walkthrough camera is a body standing in a room, not a viewpoint that may be teleported.
@@ -195,15 +195,15 @@ them, and closing in would throw away the framing you clicked from.
 
 ### Only the shell is solid
 
-The walkthrough was unusable and it was not a tuning problem. **Most colliders in a HomeViz scene are
+The walkthrough was unusable and it was not a tuning problem. **Most colliders in a ResidenceViz scene are
 not physics at all**: an opening has no geometry, furniture renders as a labeled massing box, an
-occupant is a tinted capsule; each carries a collider purely so `HomeToolContext.PickElement`'s
+occupant is a tinted capsule; each carries a collider purely so `ResidenceToolContext.PickElement`'s
 raycast can find it. The opening handle fills its void *exactly*, so left solid it makes **every
 doorway a wall** and you cannot leave the room you spawn in.
 
-`HomeRenderer.PickOnly` marks those subtrees `isTrigger`. A `CharacterController` ignores triggers,
+`ResidenceRenderer.PickOnly` marks those subtrees `isTrigger`. A `CharacterController` ignores triggers,
 and `Physics.RaycastAll` still hits them (`m_QueriesHitTriggers: 1`, and `PickElement` is the only
-physics query in HomeViz), so everything stays clickable. What stays solid is walls, floors and
+physics query in ResidenceViz), so everything stays clickable. What stays solid is walls, floors and
 ceilings: the shell, and the only thing that should ever stop you.
 
 Three further things, all in `EnterWalkthrough`: `skinWidth` is set to a tenth of the body radius
@@ -214,7 +214,7 @@ room's largest inscribed circle, which is by construction the point furthest fro
 `LargestInscribedCircle` ignoring furniture is exactly right now that furniture does not block.
 
 
-## People, who the home is for
+## People, who the residence is for
 
 A plan with nobody in it cannot make the argument the tool exists to make. Every accessibility claim
 here: two wheelchairs passing in a corridor, one roll-in shower serving five residents at half past
@@ -227,7 +227,7 @@ people moving through the plan over a day.
 - **`ActivityDef` carries both a kind and a `roomId`.** The kind colours the timeline block and
   suggests a room when a block is created; the `roomId` is what actually places the person. A
   five-bathroom care home has no single right answer to "which bathroom", so the guess never wins.
-  `roomId` null means away from home and the marker hides.
+  `roomId` null means away from residence and the marker hides.
 - **Times are minutes from midnight, 0-1439.** `end` before `start` wraps past midnight, which is how
   sleep is expressed; equal ends mean an all-day block. `Clock` is the only place a time becomes text
   (the `Units` rule, applied to time), and it follows `Units.Display` for 12- vs 24-hour.
@@ -239,8 +239,8 @@ people moving through the plan over a day.
 ### Placement is furniture-aware, and that is the whole point
 
 The first version tested one thing (`PointInPolygon(spot, roomPolygon)`) and it was not enough. An
-unanchored activity fell back to `HomeMetrics.LargestInscribedCircle(room).center`, which is computed on
-the **bare** room (it says so at `HomeMetrics.cs:146`), so it happily stood Maya inside the studio's
+unanchored activity fell back to `ResidenceMetrics.LargestInscribedCircle(room).center`, which is computed on
+the **bare** room (it says so at `ResidenceMetrics.cs:146`), so it happily stood Maya inside the studio's
 armchair for four hours of her day. Three rules now, all in `OccupancyModel`:
 
 - **Posture comes from the ITEM, not the activity kind.** `PostureFor(prefabType)` sorts catalog ids
@@ -264,24 +264,24 @@ out to the room centre. And co-anchored people now spread along the item's width
 two markers on the bed rather than one capsule inside the other: the fan-out used to sit *after* the
 anchored early return and never ran for them.
 
-The grid search is **memoised** (`InvalidateCache`, called from `HomeRenderer` on rebuild, and scoped to
-the `LevelDef` because room ids repeat across homes). Not an optimisation: `PoseAll` runs every simulated
+The grid search is **memoised** (`InvalidateCache`, called from `ResidenceRenderer` on rebuild, and scoped to
+the `LevelDef` because room ids repeat across residences). Not an optimisation: `PoseAll` runs every simulated
 minute *and* from `CurrentPoses()` on the `OnGUI` path, several times a frame.
 
-### The clock is on `HomeRenderer`, and that is not an accident
+### The clock is on `ResidenceRenderer`, and that is not an accident
 
-`OccupancyClock` is a **plain class**, not a MonoBehaviour, held by `HomeRenderer` and ticked from its
+`OccupancyClock` is a **plain class**, not a MonoBehaviour, held by `ResidenceRenderer` and ticked from its
 `Update`. Two places it looks like it should live and cannot:
 
-- **Not in a tool.** `HomeEditController` gates `IHomeTool.HandleInput` on `!PointerOverUI`, so a clock
+- **Not in a tool.** `ResidenceEditController` gates `IResidenceTool.HandleInput` on `!PointerOverUI`, so a clock
   ticking there stops dead whenever the cursor rests on a rail, which is where the cursor is while
   someone watches the timeline.
-- **Not in the document.** Undo snapshots the whole `HomeDoc`, so a clock stored there would make every
+- **Not in the document.** Undo snapshots the whole `ResidenceDoc`, so a clock stored there would make every
   tick an undo entry and every playback an unsaved change. Scrubbing must never dirty the file.
 
 `Advance` returns true only when the whole minute changes, and `UpdateOccupantPoses` writes transforms
 on cached markers: no teardown. A full `Rebuild()` per frame is what this exists to avoid. Being a
-plain class also means **the whole feature needed no scene edit**: `HomeRenderer` was already wired.
+plain class also means **the whole feature needed no scene edit**: `ResidenceRenderer` was already wired.
 
 Markers are deliberately low fidelity, matching the labeled-box convention: a tinted capsule of the
 right height with the person's name and current activity floating over it. `usesWheelchair` gives a
@@ -297,7 +297,7 @@ see the plan it was describing, which is backwards. The whole argument the timel
 the plan: five residents wanting one bathroom at half past seven is a claim you have to be looking at
 the bathroom to feel. So it is a permanent strip along the bottom, and the plan is never covered.
 
-Still a plain class like `UITheme`, drawn from `HomeEditController.OnGUI`, everything derived and
+Still a plain class like `UITheme`, drawn from `ResidenceEditController.OnGUI`, everything derived and
 nothing stored. **Its rect must stay in the `PointerOverUI` test**. Without that, scrubbing the clock
 also starts a camera drag and every click falls through to the scene.
 
