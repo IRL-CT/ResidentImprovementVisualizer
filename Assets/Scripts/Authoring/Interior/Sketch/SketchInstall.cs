@@ -17,9 +17,15 @@ using System.Collections.Generic;
 public static class SketchInstall
 {
     /// <summary>Nothing has been drawn on this floor yet, so generating onto it costs nothing.</summary>
+    /// <remarks>
+    /// The room a new residence opens on counts as nothing. It is a starting point rather than work,
+    /// so Read this plan stays the plain PrimaryButton that says it replaces nothing. The instant
+    /// anything is done to that room StarterRoom.IsUntouched goes false and the price is told again.
+    /// </remarks>
     public static bool IsEmpty(LevelDef level)
     {
         if (level == null) return true;
+        if (StarterRoom.IsUntouched(level)) return true;
         return Count(level.walls) == 0
             && Count(level.rooms) == 0
             && Count(level.furniture) == 0

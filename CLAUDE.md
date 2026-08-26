@@ -65,8 +65,9 @@ scene; the Site stack is absent from it.
 ## Concepts
 
 - **Residence** (`ResidenceDoc`): one dwelling. The unit of save/load, of the library list, and of export.
-- **Variant** (`VariantDef`): one design option. Every residence has a **baseline** ("Existing", locked by
-  default) plus any number of named proposals. Switching is a re-render. Comparing two variants gives
+- **Variant** (`VariantDef`): one design option. Every residence has a **baseline** ("Existing", locked
+  everywhere but on a residence created from scratch) plus any number of named proposals. Switching is
+  a re-render. Comparing two variants gives
   a plain-English change list, any line of which can be reverted on its own. See `ModeBand`.
 - **Level** (`LevelDef`): one storey. **One is edited and rendered at a time**, chosen by the floor
   chip in the top bar (drawn only when the residence has more than one).
@@ -80,6 +81,7 @@ scene; the Site stack is absent from it.
 ```
 ResidenceDoc
  ├ underlays: [ UnderlayDef ]       one traced sketch PER STOREY, keyed by levelId
+ ├ customItems: [ CustomItemDef ]   furniture this household owns; shared by every variant
  └ variants: [ VariantDef ]
       ├ levels: [ LevelDef ]
       │    ├ walls:       [ WallDef ]        centerline a→b + thickness + height
@@ -114,6 +116,13 @@ Each of these was argued out; the reasoning is in the linked notes.
 - **No PDF writer** for the report. Self-contained HTML that prints to PDF. (The PDF *reader* is the
   opposite call: rasterizing is a different problem.) → variants-and-report, import-and-sketch
 - **The API key is plaintext** on disk; DPAPI is a stated not-yet. → import-and-sketch
+- **A residence created from scratch opens on `StarterRoom`**: 3 x 3 m on centerlines, "Living room",
+  no opening, and its baseline **unlocked**, alone in the project (it has no record to protect yet).
+  `SketchInstall.IsEmpty` counts an untouched one as empty; `NewResidence` lands on Structure.
+  → samples-and-planbuilder
+- **A custom item ("Make your own") is created and deleted, never edited**, and its id is `custom:` plus
+  a slug of its name, because `VariantDiff` and the placeholder box both recover the label from the key
+  alone. Deleting drops the definition and **leaves every placement standing**. → furniture
 - **The ghost draws no openings.** → variants-and-report
 - **`SensorPackages.Recommend` is not extended** to everyday aids; **package tiers are gone**. → smart-living
 - **`Assets/Resources/PrefabRegistry.asset` is never touched**; ResidenceViz uses
@@ -183,11 +192,11 @@ assembly: that is why `SampleRefresh`, `Stories`, `ScrubMath`, `RoomFinish`, `Ro
 `Sketch/` compiler live there. **`Assembly-CSharp`** (`ResidenceStore`, the tools, `ResidenceRenderer`,
 `PdfRaster`) cannot be referenced by an asmdef and is verified by running the Editor.
 
-Fixtures: `BrushGeometryTests`, `DecorAlignmentTests`, `DecorPlacementTests`, `FenceBuilderTests`,
+Fixtures: `BrushGeometryTests`, `CustomItemsTests`, `DecorAlignmentTests`, `DecorPlacementTests`, `FenceBuilderTests`,
 `FenceLinkerTests`, `ResidenceMetricsTests`, `LayoutConverterTests`, `OpeningFitTests`, `PathGeometryTests`,
 `PathMeshTests`, `PlanBuilderTests`, `PolygonTriangulatorTests`, `RoomMeshBuilderTests`,
-`SampleResidencesTests`, `TileDeformTests`, `UnitsTests`, `VariantDiffTests`, `WallLayoutTests`,
-`WallMeshBuilderTests`, `WallSnappingTests`. `SampleResidencesTests` runs every structural, placement and
+`SampleResidencesTests`, `StarterRoomTests`, `TileDeformTests`, `UnitsTests`, `VariantDiffTests`,
+`WallLayoutTests`, `WallMeshBuilderTests`, `WallSnappingTests`. `SampleResidencesTests` runs every structural, placement and
 occupancy check over all six samples, because the samples are data and data has no compiler.
 
 ## Repository layout

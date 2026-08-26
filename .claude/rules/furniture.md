@@ -7,6 +7,7 @@ paths:
   - "Assets/Scripts/ResidenceViz/ResidenceRenderer.cs"
   - "Assets/Scripts/ResidenceViz/Tools/FurnitureTool.cs"
   - "Assets/Scripts/Authoring/Interior/FurnitureFit.cs"
+  - "Assets/Scripts/Authoring/Interior/CustomItems.cs"
   - "Assets/Scripts/TransformGizmo.cs"
   - "Assets/Prefabs/ResidenceViz/Catalog/**"
   - "Assets/Resources/FurnitureCatalog.asset"
@@ -33,6 +34,14 @@ Paint palettes render): a prefab if one exists, otherwise a correctly sized labe
   escape). The fit stretches each axis independently to the catalog size; `squash` (1.00 =
   undistorted) picks donors; `GasStove` is a cooktop so `range` is a `KitchenOven`; `wall_cabinet`
   uses `PivotZ.Back` because `MountPose` puts the origin on the wall face.
+- **Make your own** (`CustomItems.cs`, `CXRAuthoring`): a name plus width/depth/height, stored as
+  `CustomItemDef` on **`ResidenceDoc.customItems`**, so every variant offers the same list and the
+  `.riv` carries it. Floor-standing only. **The id is `custom:` + a slug of the name**
+  (`custom:reading_chair`), because `VariantDiff` and the placeholder box both recover the label from
+  the key alone; the prefix keeps it out of the catalog and registry key space. **Create and delete,
+  never edit**: deleting drops the definition and leaves every placement standing. A custom item
+  reaches the rest of the app as a synthesized `FurnitureCatalog.Entry`, so **`ResidenceRenderer.EntryFor`
+  is the one furniture lookup**: `Catalog.Get` alone reports a custom item as unknown.
 - **Real art has the placeholder's shape**: `Item` root, stretch on the `Art` child, a `Label` on every
   item. `FitCollider` runs on every re-pose. `PoseGO` has three branches (`Box`, `CatalogArtFit`, raw
   root-scale); `PoseMount` applies the fit too.

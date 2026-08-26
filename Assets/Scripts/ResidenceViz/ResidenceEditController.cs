@@ -702,7 +702,7 @@ public class ResidenceEditController : MonoBehaviour, EditHistory.IHost
         item.position[0] = fit.position.x;
         item.position[2] = fit.position.y;
 
-        var entry = residenceRenderer?.Catalog?.Get(item.prefabType);
+        var entry = residenceRenderer?.EntryFor(item.prefabType);
         string label = entry != null ? entry.Label : "Item";
 
         if (!fit.ok) Status($"{label} does not fit cleanly: {fit.reason}");
@@ -715,7 +715,7 @@ public class ResidenceEditController : MonoBehaviour, EditHistory.IHost
         if (item?.boxSizeMeters != null && item.boxSizeMeters.Length >= 3)
             return new Vector3(item.boxSizeMeters[0], item.boxSizeMeters[1], item.boxSizeMeters[2]);
 
-        var entry = residenceRenderer?.Catalog?.Get(item?.prefabType);
+        var entry = residenceRenderer?.EntryFor(item?.prefabType);
         return entry != null ? entry.SizeMeters : new Vector3(0.6f, 0.8f, 0.6f);
     }
 
@@ -733,6 +733,15 @@ public class ResidenceEditController : MonoBehaviour, EditHistory.IHost
 
     public const float MIN_ITEM_SIZE = 0.05f;
 
+    /// <summary>The far end of the same range, for a field that types a size in from nothing.</summary>
+    /// <remarks>
+    /// A resize drag needs no ceiling because it starts from a real item and moves by proportion.
+    /// Typing does: 4 m is longer than anything a dwelling holds loose (the longest catalog item is a
+    /// 2.13 m hospital bed) and short enough that a slipped decimal point is caught at the field
+    /// rather than discovered as an object covering the floor plan.
+    /// </remarks>
+    public const float MAX_ITEM_SIZE = 4f;
+
     // ---------------------------------------------------------------------------------------
     // Document lifecycle
     // ---------------------------------------------------------------------------------------
@@ -743,6 +752,9 @@ public class ResidenceEditController : MonoBehaviour, EditHistory.IHost
     {
         Doc = ResidenceStore.Create("Untitled residence");
         AfterOpen();
+        // The starter room is already there, so the next move is the wall, opening and room tools.
+        // The empty-library button asks for Import after this and wins by running second.
+        RequestStage(ResidenceStage.Structure);
         Status("Created " + Doc.name);
     }
 
@@ -1201,7 +1213,8 @@ public class ResidenceEditController : MonoBehaviour, EditHistory.IHost
 
         GUILayout.BeginHorizontal();
         if (UITheme.PrimaryButton("New residence")) NewResidence();
-        UITheme.Tip("Start an empty dwelling. Import a floor plan next and set its scale.");
+        UITheme.Tip("Start a dwelling with one plain room to build from. Import a floor plan next if "
+                    + "you have one.");
         // Same height as the primary beside it: a 44 px button next to a 30 px one reads as a mistake.
         if (UITheme.SecondaryButton("Import", GUILayout.Height(UITheme.PrimaryH))) ImportResidence();
         UITheme.Tip("Open a .riv archive someone sent you");

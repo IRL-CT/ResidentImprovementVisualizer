@@ -40,8 +40,26 @@ public class FurnitureTool : ResidenceToolBase
     private float _hoverOffset;
     private int _hoverSide;
 
+    // The Make your own form. Sized like a small side table, so the fields open on plausible numbers
+    // and someone measuring a real object edits three values rather than typing three from zero.
+    private string _newName = "";
+    private float _newWidth = 0.6f;
+    private float _newDepth = 0.6f;
+    private float _newHeight = 0.8f;
+
+    // Deferred to Tick, all three, because each changes the rail's control count and IMGUI throws
+    // "Mismatched LayoutGroup" when that happens between the layout pass and the repaint. The chip
+    // switch is in here too: picking Make your own adds the whole form to the panel.
+    private string _pendingCategory;
+    private bool _pendingCategorySet;
+    private bool _pendingAdd;
+    private string _pendingDelete;
+
     private FurnitureCatalog Catalog => Ctx?.Renderer?.Catalog;
-    private FurnitureCatalog.Entry Selected => Catalog?.Get(_selectedId);
+
+    // Through the renderer, never Catalog.Get: that finds the 35 shipped items and reports this
+    // residence's own as unknown.
+    private FurnitureCatalog.Entry Selected => Ctx?.Renderer?.EntryFor(_selectedId);
 
     public override void HandleInput()
     {
@@ -153,16 +171,24 @@ public class FurnitureTool : ResidenceToolBase
         var chips = UITheme.ChipRow();
         // "All" first, and it is the default. Searching is only useful across the whole catalog, so a
         // non-empty search ignores the category entirely rather than hiding matches behind a chip.
-        if (chips.Chip("All", _category == null)) _category = null;
+        if (chips.Chip("All", _category == null)) RequestCategory(null);
         UITheme.Tip("Every item in the catalog");
         for (int i = 0; i < categories.Count; i++)
         {
-            if (chips.Chip(Pretty(categories[i]), _category == categories[i])) _category = categories[i];
+            if (chips.Chip(Pretty(categories[i]), _category == categories[i])) RequestCategory(categories[i]);
             UITheme.Tip($"Only {Pretty(categories[i]).ToLowerInvariant()} items");
         }
+        // Last, and hand-written: the catalog asset has no such row, and it is a place to make
+        // something rather than a shelf of the catalog. The same synthetic-chip shape SensorTool's
+        // Fixtures chip uses.
+        if (chips.Chip(CUSTOM_LABEL, _category == CUSTOM)) RequestCategory(CUSTOM);
+        UITheme.Tip("Items you made yourself, saved with this residence");
         chips.End();
 
-        UITheme.Gap();
+        // Above the grid, so the form reads as the thing that fills the shelf under it. Its own
+        // Header carries the space above it, so the plain gap belongs to the other case.
+        if (_category == CUSTOM) DrawNewItemForm();
+        else UITheme.Gap();
 
         // Its own scroll view rather than relying on the rail's: with All selected this is 35 tiles,
         // which would otherwise push the Selected block and everything under it off the bottom.
@@ -174,7 +200,7 @@ public class FurnitureTool : ResidenceToolBase
         int cols = Mathf.Max(1, Mathf.FloorToInt(UITheme.ContentWidth / (THUMB_SIZE + TILE_GAP)));
         int col = 0;
         GUILayout.BeginHorizontal();
-        foreach (var e in cat.InCategory(Searching ? null : _category))
+        foreach (var e in Entries(cat))
         {
             if (!Matches(e, _search)) continue;
 
@@ -207,6 +233,131 @@ public class FurnitureTool : ResidenceToolBase
                 + "side it mounts to.");
         else
             _rotation = MeasureUI.Angle("Facing", "Which way it faces when placed", _rotation);
+
+        // Delete lives here rather than on the tile: a 76 px thumbnail has no room for a ✕ that is
+        // not also a misclick away from the thing it sits on, and this block is already the one
+        // place in the rail that describes exactly one item.
+        if (!CustomItems.IsCustom(sel.id)) return;
+
+        UITheme.Gap();
+        if (UITheme.DangerButton("Delete item")) _pendingDelete = sel.id;
+        UITheme.Tip("Takes this out of the grid. Anything already placed stays where it is, at the "
+                    + "size it was placed.");
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Make your own
+    // ---------------------------------------------------------------------------------------
+
+    /// <summary>The synthetic category token. The catalog asset has no row with this value.</summary>
+    private const string CUSTOM = FurnitureCatalog.CustomCategory;
+
+    private const string CUSTOM_LABEL = "Make your own";
+
+    // About a fortieth of the range, which lands a metric drag on 25 mm and an imperial one on an
+    // inch once MeasureUI.DisplayStep has rounded it to the unit on screen.
+    private const float SIZE_STEP = 0.025f;
+
+    private void DrawNewItemForm()
+    {
+        UITheme.Header("New item");
+
+        _newName = UITheme.TextRow("Name", _newName, "What this is called, in the plan and the report");
+
+        _newWidth = MeasureUI.Length("Width", "Across the item's front", _newWidth, SIZE_STEP,
+                                     ResidenceEditController.MIN_ITEM_SIZE, ResidenceEditController.MAX_ITEM_SIZE);
+        _newDepth = MeasureUI.Length("Depth", "Front to back", _newDepth, SIZE_STEP,
+                                     ResidenceEditController.MIN_ITEM_SIZE, ResidenceEditController.MAX_ITEM_SIZE);
+        _newHeight = MeasureUI.Length("Height", "What a sill or counter is compared against", _newHeight, SIZE_STEP,
+                                      ResidenceEditController.MIN_ITEM_SIZE, ResidenceEditController.MAX_ITEM_SIZE);
+
+        UITheme.Gap();
+
+        // The name is the id and the label, so there is nothing to add without one. Greyed rather
+        // than hidden: a button that vanishes leaves nothing saying what the field is for.
+        bool named = !string.IsNullOrWhiteSpace(_newName);
+        GUI.enabled = named;
+        if (UITheme.PrimaryButton("Add item")) _pendingAdd = true;
+        GUI.enabled = true;
+        UITheme.Tip(named ? "Adds this to the grid below, saved with this residence"
+                          : "Name the item to add it");
+
+        UITheme.Gap();
+    }
+
+    private void AddNewItem()
+    {
+        if (Ctx?.Doc == null || string.IsNullOrWhiteSpace(_newName)) return;
+
+        Ctx.Doc.customItems ??= new List<CustomItemDef>();
+
+        var def = new CustomItemDef
+        {
+            id = CustomItems.NewId(_newName, Ctx.Doc.customItems),
+            name = _newName.Trim(),
+            widthM = _newWidth,
+            depthM = _newDepth,
+            heightM = _newHeight,
+        };
+
+        // The whole ResidenceDoc is the undo unit, so one snapshot covers a list that lives outside
+        // any variant. See ResidenceEditController's EditHistory.IHost implementation.
+        Ctx.RecordEdit("Add " + def.name);
+        Ctx.Doc.customItems.Add(def);
+
+        // Selected, so the next click places it: making something and then hunting for it in the
+        // grid is a step nobody wants twice.
+        _selectedId = def.id;
+        _newName = "";
+
+        Ctx.Controller.Status($"Added {def.name}. Click in the plan to place it.");
+        // Nothing in the scene changed, so no rebuild: this only has to reach the file.
+        Ctx.Changed(rebuildAll: false);
+    }
+
+    private void DeleteItem(string id)
+    {
+        var def = CustomItems.Find(Ctx?.Doc, id);
+        if (def == null) return;
+
+        // Placements are left exactly as they stand. Each carries its own boxSizeMeters and its own
+        // name inside its key, so nothing moves, resizes or goes nameless; the item simply stops
+        // being one you can place again.
+        Ctx.RecordEdit("Delete " + def.name);
+        Ctx.Doc.customItems.Remove(def);
+
+        if (_selectedId == id) _selectedId = null;
+
+        Ctx.Controller.Status($"Deleted {def.name}. Anything already placed stays.");
+        Ctx.Changed(rebuildAll: false);
+    }
+
+    private void RequestCategory(string category)
+    {
+        _pendingCategory = category;
+        _pendingCategorySet = true;
+    }
+
+    public override void Tick()
+    {
+        if (_pendingCategorySet)
+        {
+            _pendingCategorySet = false;
+            _category = _pendingCategory;
+        }
+
+        if (_pendingAdd)
+        {
+            _pendingAdd = false;
+            AddNewItem();
+        }
+
+        if (_pendingDelete != null)
+        {
+            string id = _pendingDelete;
+            _pendingDelete = null;
+            DeleteItem(id);
+        }
     }
 
     public override void DrawOverlay()
@@ -266,6 +417,36 @@ public class FurnitureTool : ResidenceToolBase
 
     private bool Searching => !string.IsNullOrWhiteSpace(_search);
 
+    /// <summary>What the grid draws: the shipped catalog, this residence's own items, or both.</summary>
+    /// <remarks>
+    /// A custom item reaches the grid as a synthesized FurnitureCatalog.Entry, so from the tile
+    /// painter down every line below this one treats it as a catalog item and none of them has to
+    /// know it is not. Search spans both lists for the same reason it ignores the category chips:
+    /// looking for something by name is the one case where where it lives is not the question.
+    /// </remarks>
+    private List<FurnitureCatalog.Entry> Entries(FurnitureCatalog cat)
+    {
+        if (_category == CUSTOM && !Searching) return CustomEntries();
+
+        var list = cat.InCategory(Searching ? null : _category);
+        if (Searching) list.AddRange(CustomEntries());
+        return list;
+    }
+
+    private List<FurnitureCatalog.Entry> CustomEntries()
+    {
+        var list = new List<FurnitureCatalog.Entry>();
+        var defs = Ctx?.Doc?.customItems;
+        if (defs == null) return list;
+
+        foreach (var def in defs)
+        {
+            var entry = FurnitureCatalog.EntryFor(def);
+            if (entry != null && !string.IsNullOrEmpty(entry.id)) list.Add(entry);
+        }
+        return list;
+    }
+
     // Matches the display name OR the catalog id, because the id is the key someone adding art works
     // in ("grab_bar") while the name is what the row shows ("Grab bar").
     private static bool Matches(FurnitureCatalog.Entry e, string filter)
@@ -318,7 +499,11 @@ public class FurnitureTool : ResidenceToolBase
 
     private static Texture2D Plan(FurnitureCatalog.Entry e)
     {
-        if (_plans.TryGetValue(e.id, out var cached) && cached != null) return cached;
+        // Keyed on the SIZE as well as the id. A catalog id names one fixed footprint forever, but a
+        // custom item can be deleted and a new one made under the same slug at a different size, and
+        // an id-only key would hand that one the old item's picture.
+        string key = $"{e.id}|{e.widthM:0.###}x{e.depthM:0.###}";
+        if (_plans.TryGetValue(key, out var cached) && cached != null) return cached;
 
         var tex = new Texture2D(TILE_PX, TILE_PX) { hideFlags = HideFlags.HideAndDontSave };
 
@@ -340,7 +525,7 @@ public class FurnitureTool : ResidenceToolBase
         tex.filterMode = FilterMode.Point;   // a footprint is a measurement, not a gradient
         tex.Apply();
 
-        _plans[e.id] = tex;
+        _plans[key] = tex;
         return tex;
     }
 

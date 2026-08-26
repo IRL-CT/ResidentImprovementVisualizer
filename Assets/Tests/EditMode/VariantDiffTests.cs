@@ -138,6 +138,26 @@ public class VariantDiffTests
     }
 
     [Test]
+    public void AddedCustomItem_IsLabelledByItsName()
+    {
+        // Compare holds two VariantDefs and no document, so it can never look a custom item's
+        // definition up: the name has to come back out of the key. This is why the id is a slug of
+        // the name and not a guid, and it is the row a family reads in the change list.
+        var from = Baseline();
+
+        var to = Baseline();
+        to.levels[0].furniture.Add(
+            Furniture("f1", CustomItems.NewId("Reading chair", null), 1f, 1f));
+
+        var change = Single(VariantDiff.Compare(from, to), VariantDiff.ElementKind.Furniture);
+
+        Assert.AreEqual(VariantDiff.ChangeType.Added, change.type);
+        Assert.AreEqual("Reading chair", change.label);
+        StringAssert.DoesNotContain("custom", change.label,
+                                    "The prefix is plumbing, and it must never reach a report.");
+    }
+
+    [Test]
     public void MovedFurniture_IsReported()
     {
         var from = Baseline();

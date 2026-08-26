@@ -245,9 +245,9 @@ public static class ResidenceStore
     // ---------------------------------------------------------------------------------------
 
     /// <summary>
-    /// A brand new residence: one locked "Existing" baseline variant holding one empty ground floor. It is
-    /// created ready to edit: an empty document with no variant and no level would make every tool
-    /// null-check its way through the first click.
+    /// A brand new residence: one "Existing" baseline variant holding a ground floor with the starter
+    /// room already on it. It is created ready to edit: an empty document with no variant and no level
+    /// would make every tool null-check its way through the first click.
     /// </summary>
     public static ResidenceDoc Create(string name)
     {
@@ -255,16 +255,24 @@ public static class ResidenceStore
 
         string id = Guid.NewGuid().ToString();
         var level = NewLevel("Ground floor");
+
+        // One plain room to build from rather than an empty grid, so drawing is a live alternative to
+        // importing a plan, which is the harder half of the workflow. Adopt keeps the storey's own id,
+        // name and elevation; StarterRoom.Build has already stemmed its ids, so no prefix is passed.
+        SketchInstall.Adopt(level, StarterRoom.Build(), null);
+
         var baseline = new VariantDef
         {
             id = Guid.NewGuid().ToString(),
             name = "Existing",
             description = "The residence as it is today.",
             isBaseline = true,
-            // Locked by default: the baseline is the RECORD of how the residence actually is, and
-            // accidentally redesigning it would quietly destroy the thing every proposal is compared
-            // against. Unlocking is one deliberate click.
-            locked = true,
+            // UNLOCKED, where a sample's baseline is locked. Locking protects the RECORD of how a
+            // residence actually is, and a residence started from scratch has no record yet: it has a
+            // starter room somebody is about to move. The mode band opens amber on EDITING BASE
+            // ENVIRONMENT with Done beside it, a state that already has a design. Every other baseline
+            // (SampleResidences.Build) still ships locked.
+            locked = false,
             levels = new List<LevelDef> { level },
             occupants = new List<OccupantDef>(),
         };
@@ -823,6 +831,7 @@ public static class ResidenceStore
         if (doc == null) return;
 
         doc.tags ??= new List<string>();
+        doc.customItems ??= new List<CustomItemDef>();
         doc.variants ??= new List<VariantDef>();
 
         if (doc.variants.Count == 0)

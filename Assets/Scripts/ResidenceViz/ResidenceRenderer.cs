@@ -41,6 +41,24 @@ public class ResidenceRenderer : MonoBehaviour
 
     public InteriorMaterialPalette MaterialPalette => materialPalette;
     public FurnitureCatalog Catalog => furnitureCatalog;
+
+    /// <summary>
+    /// THE one way to turn an `ObjectInstance.prefabType` into an entry. The shipped catalog first,
+    /// then this residence's own items, then null.
+    /// </summary>
+    /// <remarks>
+    /// Every furniture lookup in the app goes through here, in the renderer and out of it, so that
+    /// "what is this thing" has a single answer. Reaching for `Catalog.Get` directly is the bug: it
+    /// finds the 35 shipped items and silently reports a custom one as unknown, which downstream
+    /// reads as a nameless box with no size and no Reset button.
+    ///
+    /// Null is a legitimate answer, and callers already handle it: it is what a custom item whose
+    /// definition has been deleted returns. The placement keeps its own stored `boxSizeMeters`, so
+    /// nothing about it moves or resizes; it just loses the controls that need a definition.
+    /// </remarks>
+    public FurnitureCatalog.Entry EntryFor(string id)
+        => (furnitureCatalog != null ? furnitureCatalog.Get(id) : null)
+           ?? FurnitureCatalog.EntryFor(CustomItems.Find(_doc, id));
     public SensorCatalog Sensors => sensorCatalog;
     public PrefabRegistry Prefabs => prefabRegistry;
 
@@ -454,7 +472,7 @@ public class ResidenceRenderer : MonoBehaviour
         // as the prefab was authored (ratio 1) and a resized one grows by the same factor the numbers
         // did. Normalizing against the prefab's own bounds instead would silently re-size every model
         // on the first render, which is not this method's business.
-        var entry = furnitureCatalog != null ? furnitureCatalog.Get(item.prefabType) : null;
+        var entry = EntryFor(item.prefabType);
         if (entry == null) return;
 
         Vector3 nominal = entry.SizeMeters;
@@ -485,7 +503,7 @@ public class ResidenceRenderer : MonoBehaviour
             WallDef host = FindWall(mount.wallId);
             if (host == null) continue;
 
-            var entry = furnitureCatalog != null ? furnitureCatalog.Get(mount.prefabType) : null;
+            var entry = EntryFor(mount.prefabType);
             Vector3 size = entry != null ? entry.SizeMeters : new Vector3(0.4f, 0.05f, 0.05f);
 
             var go = SpawnCatalogItem(mount.prefabType, size, _mountRoot);
@@ -516,7 +534,7 @@ public class ResidenceRenderer : MonoBehaviour
         var go = GetGO(mount.instanceId);
         if (go == null) return;
 
-        var entry = furnitureCatalog != null ? furnitureCatalog.Get(mount.prefabType) : null;
+        var entry = EntryFor(mount.prefabType);
         PoseMount(go, mount, entry != null ? entry.SizeMeters : new Vector3(0.4f, 0.05f, 0.05f));
     }
 
@@ -903,8 +921,8 @@ public class ResidenceRenderer : MonoBehaviour
             fit.Apply(sizeMeters);
             FitCollider(go, sizeMeters);
 
-            var entry = furnitureCatalog != null ? furnitureCatalog.Get(key) : null;
-            AddLabel(go.transform, entry != null ? entry.Label : key, sizeMeters.y);
+            var entry = EntryFor(key);
+            AddLabel(go.transform, LabelFor(entry, key), sizeMeters.y);
             return go;
         }
 
@@ -947,7 +965,7 @@ public class ResidenceRenderer : MonoBehaviour
 
     private GameObject BuildPlaceholderBox(string key, Vector3 size, Transform parent)
     {
-        var entry = furnitureCatalog != null ? furnitureCatalog.Get(key) : null;
+        var entry = EntryFor(key);
 
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name = BOX_CHILD;
@@ -971,8 +989,27 @@ public class ResidenceRenderer : MonoBehaviour
             mr.sharedMaterial = mat;
         }
 
-        AddLabel(pivot.transform, entry != null ? entry.Label : key, size.y);
+        AddLabel(pivot.transform, LabelFor(entry, key), size.y);
         return pivot;
+    }
+
+    /// <summary>What a box calls itself when there is no entry to ask.</summary>
+    /// <remarks>
+    /// Deleting a custom item leaves everything already placed exactly where it stands, so this is
+    /// the case that decides what those objects are called from then on. `CustomItems.NameFromId`
+    /// recovers "Reading chair" from "custom:reading_chair", which is the entire reason the id
+    /// carries the name rather than a guid. Anything else falls back to the raw key, which for a
+    /// catalog item is already a readable word.
+    /// </remarks>
+    private static string LabelFor(FurnitureCatalog.Entry entry, string key)
+    {
+        if (entry != null) return entry.Label;
+        if (CustomItems.IsCustom(key))
+        {
+            string name = CustomItems.NameFromId(key);
+            if (!string.IsNullOrEmpty(name)) return name;
+        }
+        return key;
     }
 
     // A floating name over each placeholder. Without it a room of grey boxes is unreadable: the label
@@ -1251,7 +1288,7 @@ public class ResidenceRenderer : MonoBehaviour
             var host = FindWall(mount.wallId, level);
             if (host == null) continue;
 
-            var entry = furnitureCatalog != null ? furnitureCatalog.Get(mount.prefabType) : null;
+            var entry = EntryFor(mount.prefabType);
             Vector3 size = entry != null ? entry.SizeMeters : new Vector3(0.4f, 0.05f, 0.05f);
             MountPose(mount, size, host, level, out Vector3 pos, out Quaternion rot);
             GhostBox($"Ghost_{mount.instanceId}", size, pos + Vector3.up * (0.5f * size.y), rot, added);
@@ -1494,7 +1531,7 @@ public class ResidenceRenderer : MonoBehaviour
         if (item?.boxSizeMeters != null && item.boxSizeMeters.Length >= 3)
             return new Vector3(item.boxSizeMeters[0], item.boxSizeMeters[1], item.boxSizeMeters[2]);
 
-        var entry = furnitureCatalog != null ? furnitureCatalog.Get(item?.prefabType) : null;
+        var entry = EntryFor(item?.prefabType);
         if (entry != null) return entry.SizeMeters;
 
         return new Vector3(0.6f, 0.8f, 0.6f);

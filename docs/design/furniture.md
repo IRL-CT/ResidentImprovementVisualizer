@@ -186,3 +186,77 @@ what makes regeneration a safe wholesale rewrite.
 Adding art for one of the remaining 14 is a row in `Rows` plus a regenerate. Nothing about the schema
 or the data changes, because instances only ever store the key.
 
+
+## Make your own: items the catalog does not ship
+
+The catalog is a fixed 35. Every real residence has something outside it, and the only recourse was to
+place the nearest item and resize it, which leaves the plan asserting that a chest freezer is a
+wardrobe. The tool's whole argument rests on dimensional honesty, so an item that is the right size
+under the wrong name undermines exactly the thing it is there to support.
+
+A name and three dimensions is the entire schema. That is enough for the question being asked, which is
+whether the wheelchair gets past it, and it is deliberately less than `FurnitureCatalog.Entry` carries:
+no color, no clearances, no wall mounting. A wall mount needs a second set of decor rules that a name
+and three numbers cannot describe, so custom items are floor-standing and the picker never offers
+otherwise.
+
+**The definition lives on `ResidenceDoc`**, beside `underlays` and for the same reason: what the
+household owns is a record of the dwelling, not a design option, so every variant offers the same list
+and one item can stand in both Existing and a proposal for the comparison to be about the room rather
+than the furniture. It rides inside the `.riv` because the export is the whole document. `Migrate`
+backfills the empty list; nothing else was needed, because the whole `ResidenceDoc` is already the undo
+unit, so one `RecordEdit` covers a list that sits outside every variant.
+
+### Why the id is a slug of the name
+
+`ObjectInstance.prefabType` is the only durable link from something standing in a room back to what it
+is, and **two readers of it cannot reach the definition list**. `VariantDiff` holds two `VariantDef`s
+and no document, by design, so it can never look one up; and the renderer has nothing to look up at all
+once a definition has been deleted. Both label furniture from the key alone.
+
+So the key is `custom:` plus a slug of the name. `custom:reading_chair` reads back as "Reading chair"
+in a Compare row, in the HTML report, and on the floating label over a box whose definition is gone. A
+guid would have been the obvious choice and would have put a hex string in a document a family reads.
+Names are never editable, which is what keeps the slug from going stale, and that is the actual reason
+editing was left out rather than a scoping decision: an editable name means either a key that lies or a
+migration over every placement that stores it.
+
+The prefix is the other half. No catalog id and no `PrefabRegistry` key contains a colon, so
+`FindPrefab` misses and `BuildPlaceholderBox` takes over, which is precisely the intended path: a custom
+item is a labeled box at its true size, the same treatment the 14 deliberate placeholders get.
+`CustomItemsTests.NoCatalogIdLooksCustom` pins the separation, because a catalog id that started with
+the prefix would resolve as a custom item and quietly lose its art.
+
+### One lookup, and what deleting means
+
+A custom item reaches the app as a **synthesized `FurnitureCatalog.Entry`**. `Entry` is the currency of
+the whole furnish path (`NewInstance`, `FurnitureFit`, the ghost, the tile painter, the Select rail), so
+synthesizing one meant `FurnitureTool.Place`, `FitFloor`, `DrawOverlay` and `Report` needed no changes
+at all: there is no second placement stack to keep in step with the first.
+
+The cost is that `Catalog.Get` is no longer the right question. It finds the 35 shipped items and
+reports a custom one as unknown, which reads downstream as a nameless box with no size and no
+**Reset to catalog size**. `ResidenceRenderer.EntryFor` is now the single answer to "what is this
+thing", and every call site in the renderer, the controller and `SelectTool` goes through it.
+
+**Deleting drops the definition and leaves every placement standing.** Each instance carries its own
+`boxSizeMeters` and its own name inside its key, so nothing moves, resizes or goes nameless; the item
+simply stops being one you can place again. That made null a legitimate return from `EntryFor` rather
+than an error, and the call sites already handled it: `SelectTool` hides **Reset to catalog size** when
+the entry is null, which is exactly the right behavior with no code written for it. The alternative,
+refusing to delete anything in use, would have made the list unclearable in the one case where you most
+want to clear it, which is after a mistake.
+
+### The rail
+
+The chip is synthetic, drawn by hand after the loop over `Categories()`, the same shape `SensorTool`'s
+Fixtures chip uses: the catalog asset has no such row and should not gain one. The form sits above the
+grid so it reads as the thing that fills the shelf under it, and delete lives in the Selected block
+rather than on a 76 px tile, where a ✕ is never more than a misclick from the thing it sits on.
+
+Category switching is deferred through `Tick` alongside the add and the delete, because picking the chip
+adds the whole form to the panel, and a control count that changes between the layout and repaint passes
+is the `Mismatched LayoutGroup` the `_pending*` flags exist to prevent. The footprint tile cache gained
+the item's dimensions in its key: a catalog id names one footprint forever, but a custom item can be
+deleted and remade under the same slug at a different size, and an id-only key hands that one the old
+item's picture.

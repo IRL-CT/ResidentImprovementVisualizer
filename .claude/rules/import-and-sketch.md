@@ -68,6 +68,9 @@ sketch → Claude →│ regularize → validate ─┐                     │�
   room; unreachable wing), and when nothing opens outside only demands one connected group. The
   validator does not re-check what `PlanBuilder` already checks.
 - **`SketchInstall.Adopt` replaces, never merges**. Keeps the storey's `id`, `name`, `elevation`.
+  `ResidenceStore.Create` installs the starter room through it too. **`IsEmpty` counts an untouched
+  `StarterRoom` as empty**, so Read this plan stays the plain PrimaryButton on a new residence; the
+  instant anything is done to that room the ⚠ names the price again. `ContentSummary` is unaffected.
   **Neither `Relink` nor `Sync` runs afterwards.** Every id is re-stemmed (`SketchPlanCompiler.Reid`,
   `g<4 hex>_`) because `ResidenceRenderer.Mark` keeps one flat dictionary. Read this plan keeps a short
   label; the `⚠` glyph beside it names what it replaces; one undo takes it all back (`RecordEdit`

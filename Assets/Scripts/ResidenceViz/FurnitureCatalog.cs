@@ -115,6 +115,45 @@ public class FurnitureCatalog : ScriptableObject
             brushPainted = false,
         };
 
+    /// <summary>The one colour every custom item's placeholder box wears.</summary>
+    /// <remarks>
+    /// Warm ochre, which none of the six shipped categories uses, so something you made yourself is
+    /// distinguishable at a glance from something the catalog supplied, both in the plan and in the
+    /// picker tile that paints its footprint in this colour.
+    /// </remarks>
+    public static readonly Color CustomSwatch = new Color(0.80f, 0.62f, 0.31f);
+
+    /// <summary>
+    /// An <see cref="Entry"/> for one of the residence's own items, so a custom item travels the
+    /// entire furnish path as a catalog entry.
+    /// </summary>
+    /// <remarks>
+    /// This is what keeps custom items from needing a placement stack of their own. Entry is the
+    /// currency of everything downstream: NewInstance, FurnitureFit, the ghost overlay, the picker
+    /// tile and the Select rail all take one, and none of them has to learn what a custom item is.
+    ///
+    /// Always MountType.Floor. A wall mount carries a whole second set of decor rules, and the fields
+    /// a custom item collects (a name and three dimensions) cannot describe one.
+    /// </remarks>
+    public static Entry EntryFor(CustomItemDef def)
+        => def == null ? null : new Entry
+        {
+            id = def.id,
+            displayName = def.name,
+            category = CustomCategory,
+            widthM = def.widthM,
+            depthM = def.depthM,
+            heightM = def.heightM,
+            mount = MountType.Floor,
+            swatch = CustomSwatch,
+        };
+
+    /// <summary>
+    /// The category token on a synthesized entry. SYNTHETIC: the catalog asset has no such row, and
+    /// FurnitureTool draws its chip by hand rather than from <see cref="Categories"/>.
+    /// </summary>
+    public const string CustomCategory = "custom";
+
     /// <summary>Builds a WallMountDef, carrying the entry's decor rules across so the pose can be
     /// re-derived whenever the host wall moves.</summary>
     public static WallMountDef NewWallMount(Entry entry, string wallId, float offset, int side)

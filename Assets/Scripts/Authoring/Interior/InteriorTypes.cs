@@ -393,6 +393,13 @@ public class ResidenceDoc
     // multi-page PDF import produces.
     public List<UnderlayDef> underlays;
 
+    // Furniture this household owns that the catalog does not ship, on the document for the same
+    // reason as the underlays: what is in the dwelling is a record of it, not a design option, so
+    // every variant offers the same list and one item can stand in both Existing and a proposal.
+    // Null on every residence saved before this existed. Everything that reads it must tolerate that;
+    // ResidenceStore.Migrate backfills the empty list on load. See CustomItems.cs for the id rules.
+    public List<CustomItemDef> customItems;
+
     // LEGACY, and read-only: the single sketch every residence carried before stories. ResidenceStore.Migrate
     // folds it into `underlays` and clears it, so nothing else in the app may read this field. It
     // stays declared purely so Newtonsoft can still deserialize a residence written before the change,

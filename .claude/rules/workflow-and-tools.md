@@ -37,6 +37,9 @@ at each capital: **the enum member IS the tab label**, there is no second table 
   excluded because clicking a wall is what the openings tool is for.
 - **Esc is a two-rung ladder**: first press deselects; with nothing selected a second press returns to
   `_stageBefore`.
+- **`NewResidence` lands on Structure**: it arrives with the `StarterRoom` already on the floor, so the
+  next move is Walls / Openings / Rooms. The library's empty-state **Start from a floor plan** still
+  asks for Import, and wins by requesting after `NewResidence` returns.
 - **Digits 1-N pick a tool within the stage; Ctrl+1-8 switch stage.** The count is however many
   stages `VisibleStages` returns (eight with the exterior on). A ladder one rung short leaves the last
   stage unreachable.

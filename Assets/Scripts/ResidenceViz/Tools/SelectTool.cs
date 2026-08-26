@@ -586,7 +586,7 @@ public class SelectTool : ResidenceToolBase
         if (f == null || f.position == null || f.position.Length < 3) return default;
 
         var ctrl = Ctx.Controller;
-        var entry = Ctx.Renderer?.Catalog?.Get(f.prefabType);
+        var entry = Ctx.Renderer?.EntryFor(f.prefabType);
         UITheme.Header(entry != null ? entry.Label : Pretty(f.prefabType));
 
         Vector3 size = ctrl.FurnitureSize(f);
@@ -738,7 +738,7 @@ public class SelectTool : ResidenceToolBase
         var m = FindWallMount(id);
         if (m == null) return default;
 
-        var entry = Ctx.Renderer?.Catalog?.Get(m.prefabType);
+        var entry = Ctx.Renderer?.EntryFor(m.prefabType);
         UITheme.Header(entry != null ? entry.Label : Pretty(m.prefabType));
 
         var host = FindWall(m.wallId);
@@ -904,7 +904,7 @@ public class SelectTool : ResidenceToolBase
         var wall = FindWall(m.wallId);
         if (wall == null) { m.offset = offset; return; }
 
-        var entry = Ctx.Renderer?.Catalog?.Get(m.prefabType);
+        var entry = Ctx.Renderer?.EntryFor(m.prefabType);
         float width = entry != null ? entry.widthM : 0.4f;
         float height = entry != null ? entry.heightM : 0.05f;
 

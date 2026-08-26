@@ -4,9 +4,11 @@ paths:
   - "Assets/Scripts/Authoring/Interior/SampleFurniture.cs"
   - "Assets/Scripts/Authoring/Interior/SampleRefresh.cs"
   - "Assets/Scripts/Authoring/Interior/PlanBuilder.cs"
+  - "Assets/Scripts/Authoring/Interior/StarterRoom.cs"
   - "Assets/Scripts/ResidenceViz/SampleResidenceInstaller.cs"
   - "Assets/Tests/EditMode/SampleResidencesTests.cs"
   - "Assets/Tests/EditMode/PlanBuilderTests.cs"
+  - "Assets/Tests/EditMode/StarterRoomTests.cs"
   - "Assets/Resources/FurnitureCatalog.asset"
 ---
 
@@ -54,5 +56,25 @@ baseline; the two five-bedroom ones also ship a locked **"Smart home package"** 
 - **`SampleFurniture` mirrors the 35 `FurnitureCatalog` ids** (the ScriptableObject is in
   `Assembly-CSharp`, unreachable from `CXRAuthoring`); `SampleResidenceInstaller.VerifyAgainstCatalog` and
   `VerifyFloorFinishes` warn on drift at seed.
+
+## The starter room
+
+`StarterRoom` is the one plain room a residence created from scratch opens on: **3 x 3 m on wall
+centerlines** (9.00 m² in the Select tool), named **"Living room"**, `RoomType.Living`, centered on
+the origin, **four walls and no opening**. `ResidenceStore.Create` installs it with
+`SketchInstall.Adopt(level, StarterRoom.Build(), null)`, so the storey keeps its own id, name and
+elevation.
+
+- **`PlanBuilder` authors it**, exactly like a sample: one `Room` call, walls derived. No hand-written
+  `WallDef`, and no `RoomRegions.Sync`.
+- **`Build` must stay deterministic.** `IsUntouched` recognises a starter room by comparing against a
+  cached `Build()`, so ids are stemmed with the **fixed** `StarterRoom.IdPrefix` (`s_`), never
+  `SketchPlanCompiler.NewPrefix`. Change `Build` and `IsUntouched` follows for free; break the
+  determinism and it silently never matches again.
+- `IsUntouched` compares **geometry and identity only**: wall `thickness`/`height` are stored as 0
+  (inherited), so editing the storey's thickness or ceiling keeps it true. Everything else, a rename,
+  a retype, a moved wall, an opening, an item, a device, makes it false.
+- **A residence created from scratch ships its baseline `locked = false`**; every sample baseline
+  stays locked. `SampleResidences.Build` is untouched by this and `Generation` is not bumped.
 
 → [`docs/design/samples-and-planbuilder.md`](../../docs/design/samples-and-planbuilder.md)

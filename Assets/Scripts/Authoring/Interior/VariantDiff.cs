@@ -651,9 +651,19 @@ public static class VariantDiff
     private static bool Approximately(float a, float b, float eps = 0.002f) => Mathf.Abs(a - b) <= eps;
 
     // "pass_through" -> "Pass through"; also tidies catalog keys like "grab_bar_36".
+    //
+    // A custom item's key is stripped of its prefix first, so a change list says "Reading chair"
+    // rather than "Custom:reading chair". Compare holds two VariantDefs and no document, so it can
+    // never look a definition up: the name has to come out of the key, which is exactly what
+    // CustomItems.NameFromId is for and why the id carries a slug rather than a guid.
     private static string Pretty(string token)
     {
         if (string.IsNullOrEmpty(token)) return "item";
+        if (CustomItems.IsCustom(token))
+        {
+            string name = CustomItems.NameFromId(token);
+            if (!string.IsNullOrEmpty(name)) return name;
+        }
         string s = token.Replace('_', ' ').Trim();
         return s.Length == 0 ? "item" : char.ToUpperInvariant(s[0]) + s.Substring(1);
     }

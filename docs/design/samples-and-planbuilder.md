@@ -176,7 +176,62 @@ This is also why **openings must be declared before furniture** in every plan: `
 `_openings`, and a recipe that runs first would see an empty list.
 
 
+## The starter room
+
+The samples answered half of the empty-library problem. They are somewhere to **look around**, and
+they were never somewhere to **start something of your own**: a residence you created yourself was an
+empty ground floor, an empty grid, a locked baseline and a rail full of `Read-only` badges, with the
+Import stage as the only way forward. That is the same complaint, one step further along, and
+`StarterRoom` answers it with one room to stand in. Drawing becomes a live alternative to importing a
+plan rather than the thing you find after importing one.
+
+**3 x 3 m, on wall centerlines.** Centerlines because that is what `PlanBuilder.Room` and `RoomTool`
+mean by a room rectangle, and because it is the number the Select tool reports back: 9.00 m² rather
+than a 9.61 m² that nobody typed. Clear floor lands at ~2.90 x 2.90 with the default 0.114 m wall,
+which is the honest consequence of the convention, and the alternative was a rounder walkable
+dimension paired with an area that reads like a mistake. Small enough to be obviously a starting
+point, big enough to hold a wheelchair turning circle.
+
+**No door.** A sealed box is a strange object, and it was tempting to put a 36" step-free door in the
+south wall. It was left out because a door has a wall and a position, and both would be decisions
+nobody asked for, sitting in the one part of the residence the user is guaranteed to rebuild. The
+Openings tool exists and is one stage away.
+
+**Named "Living room", typed `Living`.** `Untyped` was the other candidate, and it is the more honest
+"nobody has said yet": it draws dashed and nudges toward the Rooms tool. `Living` won because the
+starter room's job is to look like a room, on an oak floor, rather than like an unfinished one; a
+plain grey dashed rectangle is close enough to the empty grid it replaces to lose the point.
+
+**Its baseline ships unlocked**, alone in the project. "Locked by default" protects the **record** of
+how a residence actually is, and a residence started from scratch has no record yet: it has a starter
+room somebody is about to move. Locking it would put a `Read-only` badge between the user and the
+only object on screen, on the very screen the room exists to unblock. The mode band already has a
+design for this state, amber, `EDITING BASE ENVIRONMENT`, `Done` beside it, so nothing new was drawn.
+Every sample baseline stays locked, and `SampleRefresh.Evaluate` gates on `fromSample`, which is false
+here, so sample refresh is untouched.
+
+**`SketchInstall.IsEmpty` counts it as empty.** Otherwise the first thing a new residence tells you is
+that reading your plan would destroy 4 walls and a room, which is technically true and useless: the
+room is a starting point, not work. `IsUntouched` recognises it by rebuilding one and comparing, which
+is why `Build` is deterministic and stems its ids with a fixed `s_` prefix rather than
+`SketchPlanCompiler.NewPrefix`. The cost, stated plainly: someone who draws a 3 x 3 living room named
+exactly "Living room" at exactly the origin would be told Read this plan replaces nothing. The ids
+make that unreachable in practice, and one undo takes the plan back either way. The reference level is
+cached because `IsEmpty` is read every frame the Import rail is open.
+
+`NewResidence` lands on **Structure** for the same reason the room exists: the next move is the wall,
+opening and room tools. The library's empty-state *Start from a floor plan* still asks for Import and
+still wins, because it requests its stage after `NewResidence` returns.
+
+
 ## What the tests pin
+
+`StarterRoomTests` pins both halves: the geometry (four welded walls, one room, 9.00 m², and the wall
+graph agreeing with the stored room so **Detect rooms** never offers itself on a new residence) and
+the recognition (`Build` deterministic, `IsUntouched` true for a fresh one and false after each of a
+rename, a retype, a moved wall, a resize, an opening, an item, a mount and a device). They live in
+`CXRAuthoring` because `ResidenceStore.Create` does not, and everything worth pinning was put where a
+test can reach it for exactly that reason.
 
 `PlanBuilderTests` pins the three wall derivations (shared edges collapse, partial overlaps resolve,
 T-junctions split). `SampleResidencesTests` runs every check over all six samples, because the samples are
