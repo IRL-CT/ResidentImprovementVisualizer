@@ -158,8 +158,11 @@ are claims about rendering precision, and what is needed is a claim about **buil
 
 `SketchRegularizer.Snap` clusters all the x coordinates, then all the z, in **metres after the
 transform**, and rewrites each room's edges to its cluster's **mean**. The mean is what makes the
-pass idempotent and order-independent, and idempotence is provable rather than hoped for, because
-adjacent clusters are separated by a gap wider than the tolerance, so their representatives are too.
+pass idempotent and order-independent, because adjacent clusters formed by gap alone are separated by
+more than the tolerance, so their representatives are too. That proof has one hole, found when the
+tests below were written: a cluster split by the **width cap** rather than by a gap can leave two
+bands closer than the tolerance, and a second run merges them. Idempotence therefore holds for the
+no-op case and for jitter well inside the tolerance, and `SketchRegularizerTests` pins it there.
 
 Two numbers, and both are **measured**:
 
@@ -176,15 +179,22 @@ prove nothing):
 
 | jitter | result | | jitter | result |
 |---|---|---|---|---|
-| ±0.03 m | rebuilds identically | | ±0.15 m | rebuilds identically |
+| ±0.03 m | rebuilds identically | | ±0.15 m | rebuilt identically in the sampled runs |
 | ±0.06 m | rebuilds identically | | ±0.20 m | walls start to double |
 
 *Identically* is the strong form: the same wall **count** as the authored plan (13, 22, 39, 25, 34,
-46), no unwelded T-junction, no overlapping pair, empty `PlanBuilder.Warnings`. So the model has about
-**15 cm of room per coordinate**, roughly 12 units of the 0-1000 range on a 12 m plan.
+46), no unwelded T-junction, no overlapping pair, empty `PlanBuilder.Warnings`.
 
-`Snap_MovesNothingInAnySamplePlan` is the analogue of *"`Relink` is a no-op on all six samples"*: raise
-the tolerance past 0.40 and it fails immediately, naming the plan and the room.
+The ±0.15 row is the sampled figure, and writing `SketchRegularizerTests` showed it is not the
+guaranteed one: uniform ±0.15 jitter lets two authored lines 0.40 m apart approach to 0.16 m, inside
+the tolerance, where they can merge or land overlapped when the width cap splits the cluster, and
+fixed seeds found exactly that in two samples. **±0.10 m is the envelope a reader may rely on**:
+every adjacent-edge pair stays within one tolerance of itself and clear of every genuine separation.
+That is still about 8 units of the 0-1000 range on a 12 m plan, and it is what the tests pin.
+
+`SketchRegularizerTests.Snap_MovesNothingOnAnySamplePlan` is the analogue of *"`Relink` is a no-op on
+all six samples"*: raise the tolerance past 0.40 and it fails immediately, naming the plan and the
+room.
 
 That 0.400 m is now published as **`SketchRegularizer.MinGenuineSeparation`**, because two files need
 it for opposite reasons and stating it twice is how they drift. Here it is a **ceiling**: the cluster
@@ -353,6 +363,152 @@ deliberately the opposite conclusion to `HtmlReportWriter`'s, and for a reason a
 rather than the format: that file is choosing between sixteen photographs of shaded geometry, where
 PNG makes a report nobody can email, while this is line art, where JPEG ringing around a 1 px line is
 precisely the detail the model has to read.
+
+## …and it can be read on this device: `SketchPlanDetector`
+
+*Read on device* is the offline sibling of *Read the plan*: a deterministic computer-vision pass in
+`Assets/Scripts/Authoring/Interior/Sketch/SketchPlanDetector.cs` (its stages beside it in
+`SketchMaskCleanup`, `SketchWallSegments`, `SketchWallGraph`, `SketchCellMap` and
+`SketchOpeningReader`) that turns the underlay's pixels
+into a `SketchPlanSpec` with no key and no network. Everything downstream is the API path, reused
+byte for byte: `SketchFrame` → `SketchPlanCompiler.Compile` (regularizer, validator, `PlanBuilder`)
+→ `SketchInstall.Adopt`. The detector lives in `CXRAuthoring` for the same reason the compiler does:
+`SketchPlanDetectorTests` drives it with plans drawn in code (`SketchTestImages`), so every stage has
+a fixture nothing has to scan in.
+
+**Graph first, cells second.** The first build of this detector worked at pixel granularity the
+whole way down: flood-fill the binarised mask into regions, carve each region into rectangles
+greedily, push the faces out to measured centerlines, then rescan the pixels between rectangle
+pairs for openings. Its two worst failure modes on photographed hand sketches both came from
+staying at pixel granularity too long. Its bridge stage demanded that a doorway gap and both flanks
+share one exact pixel row or column, which photographed jambs never do, so offset jambs and corner
+pen lifts leaked rooms into each other or into the outside, silently. And the greedy carve plus
+per-face push manufactured overlapping boxes and slivers exactly where an L-shape's seam met a
+ragged mask. The rework lifts to snapped wall centerlines *before* rooms exist. The pixels are read
+once, into measured segments: each scanline perpendicular to a wall crosses it as one short dark
+group (a solid stroke, or two thin lines around a light channel, which is how the double-line
+window convention becomes a by-product of extraction rather than a second reader), and chaining
+crossings across scanlines follows a wobbly stroke wherever it wanders, where any per-pixel run
+threshold fails at the crest of the wobble. The lower-median centerline of a chain is immune to
+local damage. Long segments establish wall lines by single-linkage clustering with a width cap
+(`SketchRegularizer.Cluster`'s shape, for its reason: pure single linkage chains); short ones may
+only join a line the long ones established, which keeps the short jamb beside a corner door without
+letting a text dash mint a wall. Hough stays refused: its accumulator binning is a determinism
+hazard, and nothing here needs it.
+
+The chain drift cap used to reject a too-drifty chain whole, on the assumption that a chain either
+wanders a little (wall) or drifts by its whole length (diagonal). A bifold zigzag drawn touching
+its jamb broke that dichotomy: the crossings chain follows the connected ink from the wall into the
+panel legs and out the other side, the combined drift blows the cap, and the rejection took both
+real jamb pieces with it, erasing the closet's mouth wall entirely. So a chain past the cap is now
+split at its largest single center step (first occurrence on a tie, so the split is deterministic)
+and each side judged again, recursively. The straight wall pieces come out whole; the panel legs
+keep failing the cap or fall under the minor minimum and vanish, and a uniform diagonal still emits
+nothing because every fragment it peels stays diagonal.
+
+**Repairing the graph IS the doorway detector.** A doorway is a gap between two collinear wall
+segments; a corner pen lift is an endpoint that missed a perpendicular line; a door drawn hard
+against a corner is an endpoint a door's width short of one. All three are repairs of the same
+graph, so one pass owns them, and each records what it repaired: the doorway candidates come out of
+this stage first-class, with widths and centers taken from the raw jamb endpoints rather than the
+snapped grid, which is what keeps the scale anchor honest. The repair runs a tolerance ladder (one,
+two, three strokes, each attempt from the pristine snapped input) and after each attempt the cells
+are built and checked for leak signals: no bounded cell at all, a wall whose covered edges all
+separate a room from itself (a partition that divided nothing means an unclosed corner elsewhere),
+or a long real wall covering no cell edge it nearly reaches (the nearly matters: a dimension line
+below the plan covers nothing and must not escalate the ladder). A clean rung is accepted; if none
+is, the last one stands with a warning, so a bad corner degrades to a sentence instead of a merged
+room. A candidate is still not an opening until the mask agrees: the slab across the gap must read
+open and each jamb must carry real ink, because a phantom door costs a wall AND corrupts the scale
+estimate. The cell map then names the two sides of every surviving gap, which retired the old
+seven-probe majority test for "is this edge exterior".
+
+**Door symbols are tolerated, not read** (`GapReadsOpen`, which replaced the flat one-tenth slab
+test). Real plans draw swing arcs, bifold zigzags, and sometimes a route line straight through a
+doorway, and all of that ink used to veto the gap while the graph's merged cover run stood, so a
+closet came out as solid wall. The structural argument that makes tolerance safe: by the time a
+candidate reaches the reader, any axis-aligned wall-like run of two strokes or more on the line
+would already have become a segment, joined the line, and closed the gap in the collinear pass. So
+the ink left in the slab is either a symbol crossing the band, which blocks only short bursts of
+positions along the wall (an arc meets the wall perpendicularly; a zigzag leg is diagonal), or a
+shattered wall or a label lying along the line, which blocks long stretches. The verifier accepts a
+slab whose longest blocked stretch stays within three strokes and whose ink stays under 30 percent;
+the clean one-tenth path is unchanged, byte for byte. The considered and refused alternative was
+reading interior double-line (`dbl`) runs of doorway width as sliding or bifold doors drawn in the
+wall plane: printed plans draw every wall double-line, so exactly the scanned inputs this change
+targets would mint phantom doors along every interior wall. Interior double-lines stay a not-yet.
+
+**A closet survives by its door.** The old rule dropped every room under 1.0 m2 as "a closet symbol
+or noise", and with the room gone its verified door died too (`RoomKey` returns null), while the
+walls around it stood: the worst of both. The rescue is gated on the one honest signal, a verified
+opening: a room whose total area stays under `closetMaxAreaMeters` (1.5 m2, a reach-in closet up to
+about 0.75 x 2.0 m) and whose door the mask verified is kept, typed `storage` (a closet is storage;
+`floor_storage` already exists, so the floor palette's pair table is untouched) and named Closet by
+its own counter in reading order. Doorless small cells stay dropped, so stair treads and furniture
+outlines mint nothing. The per-side floor (0.60 m) is not relaxed because `SketchRegularizer.Snap`
+drops thinner rooms downstream anyway. Short jambs (two to four strokes) used to be dropped as
+annotation, but they are also the wall stub beside a closet door near a corner, so they are now
+deferred instead: accepted only when the smaller adjacent rect is at most four door widths squared,
+a scale-free test (a closet is at most about twice its door in each direction) that also marks the
+gap `closet` for the scale anchor. And where a window run overlaps a verified doorway on one line
+(`Dedup`), the doorway is emitted and the window dropped: the doorway passed the mask and named its
+sides, the window is a line-pattern reading of the same ink, and emitting both stacks two openings
+into one span for `OpeningFit` to collide.
+
+**Cells make the centerline stage free.** Rooms are the bounded faces of the closed line
+arrangement: a coarse grid whose cells are the intervals between consecutive wall lines, flooded
+from outside, rooms labelled in first-cell scan order (which is what keeps "Room 1" the top-left
+room). Cells sit on centerlines by construction, so adjacent rooms share their wall's line exactly
+and the old face-pushing stage, whose majority-rule samples were the source of the sliver and
+overlap failures, does not exist. A room's cells are cut into rectangles by a row-major sweep:
+exact on any rectilinear shape, two rectangles for an L, three for a U, deterministic because the
+sweep order is the scan order. The minimal-partition matching algorithm was considered and skipped:
+`partOf` tolerates a non-minimal partition, and the matching's tie-breaking would be its own
+determinism project. Thin bounded strips (a double-line wall's channel, a hatch band) fold back
+into wall before naming, replacing the old thin-rectangle filter.
+
+**Photographs are handled at the front.** The skew search runs coarse-to-fine (one-degree steps
+across four degrees, then quarter-degree steps around the winner) and the correction rotates the
+GRAY image once and thresholds again, because rotating the binary mask punches nearest-neighbour
+holes into one-pixel strokes that read as pen lifts downstream. After a rotation the border ring is
+blanked: the seam between the sheet and the rotation's paper fill binarises into long thin bands
+that read as walls. Text, arrows, arcs and small symbols are removed by a component filter (no long
+straight run and a small bounding box, which errs toward keeping anything that touches real wall),
+and the stroke width is re-measured after that cleanup: grain votes the first estimate down, every
+later threshold scales with the stroke, and one wrong number there once turned a six-pixel pen into
+a two-pixel one and every door floor and weld cap with it.
+
+**The doorway is the scale anchor.** The Claude button is gated on calibration; this one estimates
+instead when the plan has none, because a standard door leaf (0.813 m) is the one dimension nearly
+every plan carries. The lower median of the interior door gaps sets `metersPerPixel`, the estimate is
+**written back as the calibration** on success (so the quad, tracing and the next read all agree, and
+recalibrating remains the ordinary correction), sibling PDF pages inherit it through the existing
+never-calibrated-only rule, and the outcome line says how many doorways it stood on. Uncalibrated and
+doorless refuses with a sentence pointing at the scale wizard. A wrong assumption shows itself: the
+Scale button wears the estimated width the moment the read lands. The anchor floor used to be the
+single smallest gap, so one spurious break (an arrowhead, a cleanup hole) shrank the whole scale;
+the floor is now the smallest gap another gap supports within 1.5x, with a lone gap still anchoring
+alone (a one-door plan must keep working). Closet gaps are excluded while any other interior gap
+stands, because a closet door (0.61 m) sits inside 1.5x of the assumed leaf (0.813 m) and would
+drag the median.
+
+**Synchronous, on purpose.** The detector is bounded by its 1200 px working resolution and finishes
+well under a second, so `RunLocalGeneration` runs whole inside one `Tick` behind a single
+`_pendingLocalGenerate` flag: no phase latch, no cancel, no staleness check, and nothing is written
+until detection, the frame and the compile have all succeeded, so a refusal leaves the floor, the
+calibration and the undo stack untouched. One `RecordEdit` covers the scale write-back and the
+install because the undo snapshot is the whole document: one undo takes back both, verified live.
+The detector's API is pure (`Color32[]` in, spec out), so if a machine ever proves slower the run can
+move to a worker thread without touching the detector.
+
+**Stated not-yets:** interior double-line conventions (pass-through counters and in-band sliding
+doors; the extraction already marks them, the reader only trusts the exterior ones, and the refusal
+to read them as doors is argued above), perspective de-skew (photograph plans face-on; the projection-profile
+search straightens up to about four degrees of tilt), white-on-black plans (the binarize guard
+refuses them with the line-work sentence), diagonal and curved walls (the chain drift cap rejects
+them, deliberately: the spec is rectilinear), a plan drawn to the sheet's very edge (the border
+ring is blanked after a skew rotation), and a closed furniture outline long enough to read as wall,
+which bites its footprint out of its room rather than corrupting the plan around it.
 
 ### The key is not in `settings.json`
 

@@ -10,12 +10,14 @@ using UnityEngine.InputSystem;
 // important interaction in the application. Click two points on the image, type the real distance
 // between them, and every wall traced afterwards is dimensionally correct.
 //
-// There are now two ways on from there. Trace it by hand, or press Read the plan and have the sketch
-// read for you (SketchPlanGenerator). Calibration gates BOTH, and the reason is the same one this
-// file has always given: a photo of a hand-drawn plan, calibrated against one known dimension, beats
-// a model's estimate of the same sketch. Generation does not replace that measurement, it is measured
-// against it, which is why the button is not offered until metersPerPixel is set, and why tracing
-// remains the accurate route while generation is the fast one.
+// There are now three ways on from there. Trace it by hand; press Read this plan and have the sketch
+// read by Claude (SketchPlanGenerator); or press Read on device and have it read locally
+// (SketchPlanDetector), with no key and no network. Calibration gates tracing and the Claude read,
+// for the reason this file has always given: a photo of a hand-drawn plan, calibrated against one
+// known dimension, beats any estimate of the same sketch. The on-device read is the one exception:
+// on an uncalibrated plan it estimates the scale from the doorways it finds, writes that back as the
+// calibration, and says so, because a standard door is the one dimension nearly every plan carries.
+// Tracing remains the accurate route; the readers are the fast ones.
 //
 // Until it is calibrated, the image has no scale and nothing traced over it means anything, so the
 // rail says so plainly rather than letting someone trace a whole plan at the wrong size.
@@ -52,6 +54,11 @@ public class UnderlayTool : ResidenceToolBase
     // reads only those. Same shape as _pendingStage, applied to a new source of asynchrony.
     private bool _pendingGenerate;
     private bool _pendingApply;
+
+    // The on-device read needs none of the machinery above: it is synchronous and finishes inside
+    // the Tick that starts it, so one deferral flag is its whole protocol. It reports through the
+    // same _gen* fields, because the rail's report rows are about the last read, whoever read it.
+    private bool _pendingLocalGenerate;
     private ClaudeClient.Call _genCall;
     private SketchGenerationResult _genResult;
     private bool _genRunning;
@@ -143,6 +150,7 @@ public class UnderlayTool : ResidenceToolBase
 
         if (_pendingGenerate) { _pendingGenerate = false; BeginGeneration(); }
         if (_pendingApply) { _pendingApply = false; ApplyGeneration(); }
+        if (_pendingLocalGenerate) { _pendingLocalGenerate = false; RunLocalGeneration(); }
 
         if (_pendingImportAll) { _pendingImportAll = false; ImportAllPages(); }
         if (_pendingAddLevel)
@@ -272,12 +280,15 @@ public class UnderlayTool : ResidenceToolBase
     // ---------------------------------------------------------------------------------------
 
     /// <summary>
-    /// The one control in ResidenceViz that reaches the network, and the only place that says so.
+    /// Both read buttons. Read this plan is the one control in ResidenceViz that reaches the
+    /// network, and the only place that says so; Read on device is its offline sibling.
     ///
-    /// It sits directly under Scale because that is the honest order of operations: a generated plan
-    /// is only as accurate as the calibration it is measured against, so the button is not offered
-    /// until there is one. Tracing by hand is still the accurate route and is still what everything
-    /// else in this rail is for: this is the fast one.
+    /// The section sits directly under Scale because that is the honest order of operations: a
+    /// generated plan is only as accurate as the calibration it is measured against, so the Claude
+    /// button is not offered until there is one. The on-device read is the exception and says so in
+    /// its tooltip: with no calibration it estimates the scale from the doorways it finds and writes
+    /// that back. Tracing by hand is still the accurate route and is still what everything else in
+    /// this rail is for: these are the fast ones.
     /// </summary>
     private void DrawGenerate(UnderlayDef underlay)
     {
@@ -286,22 +297,13 @@ public class UnderlayTool : ResidenceToolBase
         // somebody needs before their first import behind the whole workflow it unlocks.
         DrawApiKey();
 
-        if (underlay.metersPerPixel <= 0f)
-        {
-            UITheme.Glyph("⚠", "Set the scale first. A generated plan is measured against the "
-                             + "calibration, so it is only ever as accurate as that.", UITheme.Warn);
-            return;
-        }
-
-        if (_keySource == ApiKeyStore.Origin.None) return;
-
         // THE GATE GOES HERE, IN THE DRAWING PASS, and that is the whole point of it.
         //
         // BeginGeneration used to open with RefuseIfLocked(), which DRAWS, and it is called from
         // Tick, where drawing does nothing. So on a locked variant, which is the default state of
         // every residence in the library and of all six samples, pressing the button was silent: no
-        // badge, no message, no request, nothing. Refusing where the button is drawn means the
-        // button is never live to be pressed, and the reason is on screen beside it.
+        // badge, no message, no request, nothing. Refusing where the buttons are drawn means neither
+        // is ever live to be pressed, and the reason is on screen beside them.
         if (RefuseIfLocked())
         {
             UITheme.Glyph("⚠", "Reading a plan writes walls, rooms and furniture into this floor, "
@@ -320,36 +322,66 @@ public class UnderlayTool : ResidenceToolBase
             return;
         }
 
-        // The label stays short; the price lives in the ⚠ beside it. The Danger colour is the
-        // standing signal that this write replaces something: the glyph's hover says what, exactly.
+        // The Claude read stays gated on calibration and a key; the on-device read needs neither,
+        // which is why it draws below regardless. Everything either branch keys on is per-frame
+        // stable, so the control count holds between layout and repaint.
+        bool calibrated = underlay.metersPerPixel > 0f;
+        bool apiReady = calibrated && _keySource != ApiKeyStore.Origin.None;
         bool empty = SketchInstall.IsEmpty(Ctx.Level);
 
-        string tip = "The sketch image is sent to Anthropic and read by Claude, which returns the "
-                   + "rooms, doors, windows and furniture it can see. Nothing else about this residence "
-                   + "leaves your machine, and it only happens when you press this. One undo takes "
-                   + "the whole plan back.";
+        string apiTip = "The sketch image is sent to Anthropic and read by Claude, which returns the "
+                      + "rooms, doors, windows and furniture it can see. Nothing else about this residence "
+                      + "leaves your machine, and it only happens when you press this. One undo takes "
+                      + "the whole plan back.";
 
-        bool go;
-        if (empty)
+        string localTip = "Reads the sketch on this machine. Nothing leaves it. Rooms, doorways and "
+                        + "windows are found; furniture is drawn in afterwards, by you. One undo "
+                        + "takes the whole plan back."
+                        + (calibrated ? "" : " The scale is estimated from the doorways it finds "
+                                           + "and saved as this plan's calibration.");
+
+        if (apiReady)
         {
-            go = UITheme.PrimaryButton("Read this plan");
-            UITheme.Tip(tip);
+            if (DangerOrPrimary("Read this plan", apiTip, empty)) _pendingGenerate = true;
+            UITheme.Gap();
         }
-        else
+        else if (!calibrated)
         {
-            GUILayout.BeginHorizontal();
-            go = UITheme.DangerButton("Read this plan",
-                                      GUILayout.Width(UITheme.ContentWidth - UITheme.GlyphReserve));
-            UITheme.Tip(tip);
-            UITheme.Glyph("⚠", "Replaces " + SketchInstall.ContentSummary(Ctx.Level)
-                             + " already on this floor. One undo takes the whole plan back.",
-                          UITheme.Danger);
-            GUILayout.EndHorizontal();
+            // A missing key already explains itself in the key row above; a missing scale is
+            // explained here, and only for the path it gates.
+            UITheme.Glyph("⚠", "Set the scale to read this plan with Claude. A generated plan is "
+                             + "measured against the calibration, so it is only ever as accurate as "
+                             + "that. Read on device estimates a scale from the doorways it finds.",
+                          UITheme.Warn);
         }
 
-        if (go) _pendingGenerate = true;
+        if (DangerOrPrimary("Read on device", localTip, empty)) _pendingLocalGenerate = true;
 
         DrawGenerationReport();
+    }
+
+    /// <summary>
+    /// One read button: plain on an empty floor, Danger with the price in the ⚠ beside it once the
+    /// floor holds anything. The label stays short; the glyph's hover says what a press replaces.
+    /// </summary>
+    private bool DangerOrPrimary(string label, string tip, bool empty)
+    {
+        if (empty)
+        {
+            bool go = UITheme.PrimaryButton(label);
+            UITheme.Tip(tip);
+            return go;
+        }
+
+        GUILayout.BeginHorizontal();
+        bool pressed = UITheme.DangerButton(label,
+                                            GUILayout.Width(UITheme.ContentWidth - UITheme.GlyphReserve));
+        UITheme.Tip(tip);
+        UITheme.Glyph("⚠", "Replaces " + SketchInstall.ContentSummary(Ctx.Level)
+                         + " already on this floor. One undo takes the whole plan back.",
+                      UITheme.Danger);
+        GUILayout.EndHorizontal();
+        return pressed;
     }
 
     /// <summary>
@@ -582,6 +614,116 @@ public class UnderlayTool : ResidenceToolBase
         Ctx.Controller.Status(result.problems.Count == 0
             ? $"Read {rooms} rooms from the sketch."
             : $"Read {rooms} rooms, with {result.problems.Count} left unresolved.");
+    }
+
+    /// <summary>
+    /// The whole on-device read, start to finish, inside one Tick. Only ever reached from Tick:
+    /// never from OnGUI. Synchronous on purpose: the detector is bounded by its working resolution
+    /// and finishes well under a second, and a run that cannot outlive the frame needs no phase
+    /// latch, no cancel, and no staleness check against a floor switched mid-flight.
+    ///
+    /// Nothing is written until everything has succeeded. Detection, the frame and the compile are
+    /// all pure, so a refusal at any point leaves the floor, the calibration and the undo stack
+    /// exactly as they were. On success ONE RecordEdit covers both the estimated-scale write-back
+    /// and the plan install, because the undo snapshot is the whole document: one undo takes back
+    /// both together.
+    /// </summary>
+    private void RunLocalGeneration()
+    {
+        // NOT RefuseIfLocked(): that helper draws, and this runs from Tick. The rail refuses before
+        // the button is live; this is the belt to that pair of braces.
+        if (Ctx == null || Ctx.IsLocked)
+        {
+            _genError = "This design option is locked, so nothing can be written into it. Unlock it "
+                      + "from the mode band at the top and press the button again.";
+            _genOutcome = null;
+            return;
+        }
+
+        var level = Ctx.Level;
+        if (level == null)
+        {
+            _genError = "There is no floor to read this plan onto.";
+            _genOutcome = null;
+            return;
+        }
+
+        var underlay = ResidenceStore.UnderlayFor(Ctx.Doc, level.id);
+        if (underlay == null || _texture == null)
+        {
+            _genError = "The sketch image is not loaded.";
+            _genOutcome = null;
+            return;
+        }
+
+        _genError = null;
+        _genOutcome = null;
+        _genNotes = null;
+        _genProblems.Clear();
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var detected = SketchPlanDetector.Detect(_texture.GetPixels32(), _texture.width,
+                                                 _texture.height, underlay.metersPerPixel);
+        if (!detected.Ok)
+        {
+            _genError = detected.refusal;
+            Ctx.Controller.Status("Could not read that plan.");
+            return;
+        }
+
+        var frame = SketchFrame.Build(underlay.originMeters, _texture.width, _texture.height,
+                                      detected.metersPerPixel, underlay.rotationDeg);
+        if (!frame.valid)
+        {
+            _genError = frame.reason;
+            Ctx.Controller.Status("Could not read that plan.");
+            return;
+        }
+
+        var compiled = SketchPlanCompiler.Compile(detected.spec, frame,
+                                                  level.ceilingHeight, level.wallThickness);
+        if (!compiled.Ok)
+        {
+            _genError = compiled.refusal;
+            Ctx.Controller.Status("Could not read that plan.");
+            return;
+        }
+
+        Ctx.RecordEdit("Read plan on device");
+
+        if (detected.scaleEstimated)
+        {
+            underlay.metersPerPixel = detected.metersPerPixel;
+            ApplyTransform(underlay);
+            // previous = 0: only sibling pages that were never calibrated inherit the estimate; a
+            // page somebody measured by hand keeps its own number.
+            ApplyScaleToSiblings(underlay, 0f);
+        }
+
+        SketchInstall.Adopt(level, compiled.level, SketchPlanCompiler.NewPrefix());
+        Ctx.Changed();
+        watch.Stop();
+
+        _genProblems.AddRange(compiled.issues);
+        _genProblems.AddRange(compiled.warnings);
+        _genProblems.AddRange(detected.warnings);
+
+        int rooms = level.rooms?.Count ?? 0;
+        int walls = level.walls?.Count ?? 0;
+        int openings = level.openings?.Count ?? 0;
+
+        // Counted off the LEVEL, like ApplyGeneration and for the same reason: it reports what was
+        // actually installed.
+        string scaleNote = detected.scaleEstimated
+            ? $" · scale from {detected.scaleDoorways} " + (detected.scaleDoorways == 1 ? "doorway" : "doorways")
+            : "";
+        _genOutcome = $"{rooms} rooms · {walls} walls · {openings} doors and windows"
+                    + $"  (on device, {watch.Elapsed.TotalSeconds:0.0} s{scaleNote})";
+
+        Ctx.Controller.Status(detected.scaleEstimated
+            ? $"Read {rooms} rooms on this device. The scale was estimated from doorways; calibrate "
+              + "the plan for exact measurements."
+            : $"Read {rooms} rooms on this device.");
     }
 
     /// <summary>

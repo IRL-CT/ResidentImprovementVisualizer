@@ -103,6 +103,64 @@ sketch → Claude →│ regularize → validate ─┐                     │�
   the Import tab is open; save/forget deferred via `_pendingKeySave`/`_pendingKeyForget` and the
   `Source` latched in `Tick`.
 
+**Read on device** (`SketchPlanDetector`, in `CXRAuthoring` beside the compiler) is the offline
+sibling of Read the plan: same seam (`SketchPlanSpec` → `Compile` → `Adopt`), no key, no network.
+
+- **Deterministic, by contract**: same pixels and calibration give the same spec byte for byte.
+  Row-major scans, lower medians, index tie-breaks, no Dictionary iteration, no parallelism, no
+  randomness, no Hough. `SketchPlanDetectorTests` pins it with plans drawn in code
+  (`SketchTestImages`); `SketchWallStageTests` pins the stages one at a time.
+- It emits rooms and relationships through the spec, never wall ids or world coordinates. **Graph
+  first, cells second**: the mask is read once into measured wall segments (`SketchWallSegments`,
+  scanline crossings chained along the span, so hand wobble and the double-line convention are
+  handled structurally; majors establish wall lines, minors only join them). A chain whose center
+  drift exceeds the diagonal cap is split at its largest center step and each side judged again,
+  so a panel line drawn touching its jamb cannot drag the wall's chain into rejection. Repairing the snapped
+  line graph (`SketchWallGraph`, a 1 to 3 stroke tolerance ladder driven by leak signals) **is** the
+  doorway detector: a doorway is a gap between collinear segments, a corner pen lift is an endpoint
+  that missed a perpendicular line, and both tolerate the few-pixel offsets a photographed sketch
+  always has. Rooms are the bounded cells of the closed arrangement (`SketchCellMap`), on
+  centerlines **by construction**; the row sweep cuts a cell into at most 4 rectangles (root plus
+  parts), bounding box plus warning past that. Openings are believed only after the mask verifies
+  the gap and the cell map names its two sides (`SketchOpeningReader`); windows are the double-line
+  marks the extraction already measured, trusted only with the outside on one side. Text, arrows
+  and small symbols are removed first (`SketchMaskCleanup`: no long straight run and a small box);
+  the stroke is **re-measured after that cleanup**, because every threshold scales with it. After a
+  skew rotation the border ring is blanked: the seam against the paper fill binarises into bands
+  that read as walls.
+- **Door symbols are tolerated, not read** (`GapReadsOpen`): a gap passes clean at a tenth of the
+  slab inked, and inkier gaps still pass when no blocked stretch along the wall exceeds `3*stroke`
+  and the slab stays under 30 percent ink. Swing arcs, bifold zigzags and a route line walked
+  through a doorway all pass; a shattered wall, hatching or a label lying along the line still veto.
+- **Closets survive by their door**: a room under `closetMaxAreaMeters` (1.5 m2) with a verified
+  door is kept, typed `storage` and named Closet (its own counter, reading order). A doorless room
+  still needs `minRoomAreaMeters`; every room still needs `SketchRegularizer.MinRoomSide` per side.
+  Short jambs (down to `2*stroke`) are accepted only when the smaller adjacent rect is at most four
+  door widths squared, and that same test marks the gap `closet`.
+- **The scale floor needs support**: the anchor floor is the smallest gap another gap backs within
+  1.5x (a lone gap still anchors alone), interior non-closet gaps are preferred, and closet gaps
+  stay out of the anchor set while any other interior gap stands.
+- **One opening per span** (`SketchOpeningReader.Dedup`): where a window run overlaps a verified
+  doorway on one wall line, the doorway is emitted and the window dropped.
+- The one flip from `GetPixels32`'s bottom-up rows to the spec's top-down `y` happens once, in
+  `ToGrayTopDown`. `alongFraction` pays the south→north flip in `Along`, with a vertical-wall test.
+- **Not gated on calibration.** Uncalibrated, the scale is estimated from the lower median interior
+  doorway at 0.813 m, **written back** as the calibration on success (sibling pages inherit via the
+  never-calibrated-only rule), and the outcome line names the doorway count. Uncalibrated and
+  doorless refuses and points at the scale wizard. The measured wall thickness cross-checks the
+  estimate: walls past 0.35 m at the estimated scale add a warning, never a refusal (stroke width
+  is a property of the pen).
+- **Synchronous inside one `Tick`** behind `_pendingLocalGenerate`; `RunLocalGeneration` checks
+  `Ctx.IsLocked` directly (the drawing-pass gate in `DrawGenerate` covers both buttons). Nothing is
+  written until detect, frame and compile have all succeeded; then ONE `RecordEdit` covers the scale
+  write-back and the install, so one undo takes back both.
+- The regularizer envelope the detector may lean on is **±0.10 m** per coordinate
+  (`SketchRegularizerTests`); the design note explains why the older ±0.15 figure is not guaranteed.
+- Stated not-yets: interior double-lines (a doorway-width `dbl` run is NOT a sliding door: printed
+  plans draw every wall double-line, so reading it would mint phantom doors), perspective de-skew,
+  white-on-black plans, diagonal and curved walls, a plan drawn to the sheet's very edge, and a
+  closed furniture outline long enough to read as wall, which bites its footprint out of its room.
+
 **Stories: `Stories.cs`** (in `CXRAuthoring`, testable; `ResidenceStore` delegates to it).
 - `ResidenceEditController.Level` is indexed by `_levelIndex` (the same index `ResidenceRenderer` already took).
 - `ResidenceDoc.underlays` is one sketch per storey keyed by `levelId`; `Migrate` folds the old `underlay`
